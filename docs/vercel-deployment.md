@@ -27,24 +27,30 @@ Never paste secrets into GitHub, chat, the browser source code, or the public Ve
 
 | Variable or service | Status on Vercel | What it is for |
 |---|---|---|
-| `DATABASE_URL` | Required for marketplace data | A Vercel-reachable MySQL/TiDB-compatible database; database migrations must be applied separately. |
+| `DATABASE_URL` | Legacy protected-runtime dependency only | It is not used by public discovery on Vercel. It remains necessary only until all protected MySQL/TiDB procedures are migrated to isolated PostgreSQL. |
 | `JWT_SECRET` | Required for protected sessions | A new long, random secret controlled by the owner. |
 | `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` | **Configured for MtaaMarket Production** | Browser-safe connection values for the isolated `mfgjpjtlmfdtsnkoluco` Supabase project. They are safe to expose only because Supabase Row Level Security remains active. |
 | `SUPABASE_SECRET_KEY` and `SUPABASE_JWKS_URL` | **Configured as MtaaMarket Production secrets** | Server-only isolated-project access and Supabase Auth token verification. They must never be imported into browser code, GitHub, or another project. |
 | Authentication provider | Requires a migration decision | The present login flow uses Manus OAuth (`VITE_APP_ID`, `OAUTH_SERVER_URL`) and cannot simply be assumed to work from Vercel. Configure a supported external identity provider and adapt the auth layer before relying on sign-in. |
-| Object storage | Requires a migration decision | Vendor photo upload currently uses Manus-managed storage. Use an owner-controlled compatible storage provider and update the storage adapter before enabling real seller uploads on Vercel. |
+| Object storage | Adapter configured; user-flow validation pending | The storage compatibility layer now targets the isolated Supabase buckets when configured. Do not enable real seller uploads until the final Supabase Auth/UUID write flow is validated on Vercel. |
 | AI listing assistance | Optional; requires a provider choice | The current built-in AI helper relies on Manus-managed credentials. Keep the button disabled or migrate it to a server-side AI provider with a budget and privacy policy. |
 | M-Pesa/courier/supplier credentials | Intentionally not activated | Add only after an approved provider relationship, public callback URL, and end-to-end sandbox test. |
 
+## Verified public data path
+
+The deployed public tRPC path now uses the isolated MtaaMarket Supabase project for **categories, visible products, approved sellers, active Siaya pickup stations, and verified reviews**. These reads are deliberately anonymous and RLS-compatible. The empty marketplace state is legitimate until the owner adds original, verified catalogue content through the final protected write flow; no sample or copied supplier products are seeded to make the page look populated.
+
+UUID-backed Supabase listings intentionally do **not** enter the existing numeric MySQL basket or order mutations. Until the full order adapter is migrated, the storefront tells customers to use the Request Desk rather than allowing a cross-database order to be created.
+
 ## What should work after the routing repair
 
-The browser should receive the Siaya Online MtaaMarket interface rather than compiled source code. The public interface will call `/api/trpc`; public catalogue data and protected functions still need the compatible database and service configuration above. If a required variable is missing, the correct next symptom is an API/authentication error—not raw JavaScript on the homepage.
+The browser should receive the Siaya Online MtaaMarket interface rather than compiled source code. The public interface calls `/api/trpc` and its discovery endpoints use isolated Supabase. Protected sign-in, vendor, account, order, payment, and owner actions still need the compatible PostgreSQL/Auth application migration above. If a required variable is missing, the correct next symptom is an API/authentication error—not raw JavaScript on the homepage.
 
 ## Safe launch order
 
 1. Redeploy the configuration fix and confirm that the homepage renders as a marketplace.
 2. Use the isolated MtaaMarket Supabase project and its reviewed PostgreSQL migrations; never reuse Dumiropay resources.
-3. Port the running MySQL/TiDB server procedures to the isolated PostgreSQL model and complete Supabase Auth account/session integration before inviting real users.
+3. Complete the UUID-aware PostgreSQL server adapter and Supabase Auth account/session integration before inviting real users or enabling seller/account/order workflows.
 4. Validate the Supabase Storage compatibility layer with a full seller-photo flow in the deployed environment, then switch MtaaMarket media operations deliberately.
 5. Replace or migrate the Manus-specific AI integration only after choosing a server-side provider and usage budget.
 6. Add verified fulfilment choices and a payment provider only after operational testing. Keep payment confirmation and Assisted Market order control manual until then.

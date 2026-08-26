@@ -68,7 +68,7 @@ export const appRouter = router({
     products: publicProcedure.input(z.object({ categorySlug: z.string().trim().max(96).optional(), search: safeSearch.optional(), limit: z.number().int().min(1).max(60).optional() }).optional()).query(({ input }) => listProducts(input)),
     productBySlug: publicProcedure.input(z.object({ slug: z.string().trim().min(1).max(220) })).query(({ input }) => getPublicProductBySlug(input.slug)),
     approvedVendors: publicProcedure.query(() => listApprovedVendors()),
-    reviewsByProduct: publicProcedure.input(z.object({ productId: z.number().int().positive() })).query(({ input }) => listVerifiedReviewsForProduct(input.productId)),
+    reviewsByProduct: publicProcedure.input(z.object({ productId: z.union([z.number().int().positive(), z.string().uuid()]) })).query(({ input }) => listVerifiedReviewsForProduct(input.productId)),
     mpesaStatus: publicProcedure.query(() => ({ configured: isMpesaConfigured(), environment: "sandbox" as const })),
 
     myProfile: protectedProcedure.query(({ ctx }) => ensureMarketplaceProfile(ctx.user.id, ctx.user.name)),

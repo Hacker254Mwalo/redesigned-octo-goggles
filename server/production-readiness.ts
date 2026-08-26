@@ -1,7 +1,7 @@
 export type ReadinessState = "ready" | "blocked" | "intentional";
 
 export type ProductionGate = {
-  id: "database" | "server" | "auth" | "storage" | "commerce";
+  id: "database" | "publicDiscovery" | "server" | "auth" | "storage" | "commerce";
   title: string;
   state: ReadinessState;
   detail: string;
@@ -33,10 +33,17 @@ export function getProductionReadiness(): ProductionReadiness {
     },
     {
       id: "server",
-      title: "Vercel data adapter",
+      title: "Protected Vercel data adapter",
       state: "blocked",
-      detail: "The isolated Supabase client is configured and verified, but the running marketplace queries still use the existing MySQL/TiDB data adapter.",
-      nextAction: "Port server queries and order procedures to the reviewed PostgreSQL schema, then test every protected flow.",
+      detail: "Anonymous discovery reads now use isolated Supabase. Account, vendor, order, administration, and payment procedures still use the old MySQL/TiDB adapter and are blocked on Vercel.",
+      nextAction: "Port the identity-linked server queries and order procedures to the reviewed PostgreSQL schema, then test every protected flow.",
+    },
+    {
+      id: "publicDiscovery",
+      title: "Public catalogue discovery",
+      state: "ready",
+      detail: "Vercel-compatible Supabase reads now serve categories, visible products, approved sellers, active Siaya pickup stations, and verified reviews without relying on the legacy MySQL database.",
+      nextAction: "Add only original, verified listings and operational locations after the protected UUID/Auth write path is complete.",
     },
     {
       id: "auth",
@@ -49,8 +56,8 @@ export function getProductionReadiness(): ProductionReadiness {
       id: "storage",
       title: "Production product-media uploads",
       state: "blocked",
-      detail: "The upload compatibility layer can use the isolated Supabase buckets, but Vercel environment configuration and end-to-end media tests are still required.",
-      nextAction: "Set Vercel environment values securely and test public original-product photos plus private operational files.",
+      detail: "The isolated Supabase storage layer and Vercel environment configuration are ready, but a deployed seller upload and retrieval flow has not yet been validated with the final Auth/UUID write path.",
+      nextAction: "After Auth and seller-write migration, test public original-product photos plus private operational files in the deployed environment.",
     },
     {
       id: "commerce",

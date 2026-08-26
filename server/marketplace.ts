@@ -11,7 +11,14 @@ import {
   vendors,
 } from "../drizzle/schema";
 import { getDb } from "./db";
-import { listSupabasePublicCategories } from "./supabase-marketplace";
+import {
+  getSupabasePublicProductBySlug,
+  listSupabaseApprovedVendors,
+  listSupabasePublicCategories,
+  listSupabasePublicPickupStations,
+  listSupabasePublicProducts,
+  listSupabaseVerifiedReviewsForProduct,
+} from "./supabase-marketplace";
 
 export type MarketplaceRole = "buyer" | "vendor" | "admin";
 export type VendorApprovalStatus = "pending" | "approved" | "suspended" | "rejected";
@@ -82,6 +89,8 @@ export async function listPublicCategories() {
 }
 
 export async function listPickupStations() {
+  const supabaseStations = await listSupabasePublicPickupStations();
+  if (supabaseStations) return supabaseStations as any;
   const db = await getDb();
   if (!db) return [];
   return db.select().from(pickupStations).where(and(eq(pickupStations.isActive, true), eq(pickupStations.county, "Siaya"))).orderBy(asc(pickupStations.town), asc(pickupStations.name));
@@ -94,6 +103,8 @@ const publicProductConditions = [
 ];
 
 export async function listProducts(input?: { categorySlug?: string; search?: string; limit?: number }) {
+  const supabaseProducts = await listSupabasePublicProducts(input);
+  if (supabaseProducts) return supabaseProducts as any;
   await seedMarketplaceFoundation();
   const db = await getDb();
   if (!db) return [];
@@ -113,6 +124,8 @@ export async function listProducts(input?: { categorySlug?: string; search?: str
 }
 
 export async function getPublicProductBySlug(slug: string) {
+  const supabaseProduct = await getSupabasePublicProductBySlug(slug);
+  if (supabaseProduct !== null) return supabaseProduct as any;
   const db = await getDb();
   if (!db) return undefined;
   const rows = await db.select({ product: products, category: categories, vendor: vendors })
@@ -125,6 +138,8 @@ export async function getPublicProductBySlug(slug: string) {
 }
 
 export async function listApprovedVendors() {
+  const supabaseVendors = await listSupabaseApprovedVendors();
+  if (supabaseVendors) return supabaseVendors as any;
   const db = await getDb();
   if (!db) return [];
   return db.select().from(vendors)
@@ -134,7 +149,12 @@ export async function listApprovedVendors() {
 }
 
 /** Publicly visible feedback is limited to reviews tied to completed orders. */
-export async function listVerifiedReviewsForProduct(productId: number) {
+export async function listVerifiedReviewsForProduct(productId: number | string) {
+  if (typeof productId === "string") {
+    const supabaseReviews = await listSupabaseVerifiedReviewsForProduct(productId);
+    if (supabaseReviews) return supabaseReviews as any;
+  }
+  if (typeof productId !== "number") return [];
   const db = await getDb();
   if (!db) return [];
   return db.select({ review: reviews, reviewer: marketplaceProfiles })

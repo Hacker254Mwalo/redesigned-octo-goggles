@@ -17,9 +17,15 @@ The existing `drizzle/schema.ts` targets MySQL/TiDB and uses MySQL tables, numer
 
 > Row Level Security is enabled on every marketplace table in the exposed `public` schema. Public users can read only categories, active pickup stations, approved vendors, visible active listings, and reviews. Buyer, vendor, owner, payment, and fulfilment writes stay server-managed until the Vercel-compatible API and Supabase Auth session validation are implemented. [1]
 
+## Completed public-read cutover
+
+The anonymous discovery adapter now runs on the isolated Supabase project. Its server-only mapper translates PostgreSQL snake-case rows and UUID identities into the existing frontend-friendly response shape for categories, visible products, approved sellers, active Siaya pickup stations, product detail, and verified reviews. Read-only integration checks cover every discovery resource without inserting test products, vendor accounts, collection points, or reviews.
+
+This is intentionally **not** a protected commerce cutover. Supabase UUID product and station IDs are not passed into the legacy numeric MySQL basket/order mutations. Where a future UUID-backed listing is visible before the full write-path migration, the user is directed to the Request Desk instead of being allowed to create a cross-database order.
+
 ## Migration gates
 
-The baseline creates the database foundation only. It does **not** yet replace the live Manus database adapter, Manus OAuth, Manus storage helper, or unapproved payment and courier integrations. The next implementation stage must add a PostgreSQL-compatible server adapter, validated Supabase Auth sessions, isolated Vercel secrets, and a Supabase storage adapter before protected marketplace workflows are accepted on the Vercel deployment.
+The baseline and anonymous discovery adapter do **not** yet replace the protected Manus/MySQL database adapter, Manus OAuth, or identity-linked seller/order operations. The next implementation stage must add a PostgreSQL-compatible protected server adapter, validated Supabase Auth sessions, founder role assignment, and deployed seller media workflow validation before protected marketplace workflows are accepted on the Vercel deployment.
 
 The owner role is intentionally not seeded during database creation. It will be assigned only after the founder signs in through the final Auth flow and the ownership mapping is verified using the server-side administration path.
 
