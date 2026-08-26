@@ -3,6 +3,7 @@
 // Downloads return /manus-storage/{key} paths served via 307 redirect.
 
 import { ENV } from "./_core/env";
+import { getSupabasePublicConfig, getSupabaseServiceClient, isSupabaseConfigured } from "./supabase";
 
 function getForgeConfig() {
   const forgeUrl = ENV.forgeApiUrl;
@@ -33,6 +34,14 @@ export async function storagePut(
   data: Buffer | Uint8Array | string,
   contentType = "application/octet-stream",
 ): Promise<{ key: string; url: string }> {
+  if (isSupabaseConfigured()) {
+    const key = appendHashSuffix(normalizeKey(relKey));
+    const { error } = await getSupabaseServiceClient().storage.from("catalogue-media").upload(key, data, { contentType, upsert: false });
+    if (error) throw new Error(`Supabase catalogue-media upload failed: ${error.message}`);
+    const { data: publicUrl } = getSupabaseServiceClient().storage.from("catalogue-media").getPublicUrl(key);
+    if (!publicUrl.publicUrl) throw new Error("Supabase catalogue-media returned no public URL.");
+    return { key, url: publicUrl.publicUrl };
+  }
   const { forgeUrl, forgeKey } = getForgeConfig();
   const key = appendHashSuffix(normalizeKey(relKey));
 
@@ -73,10 +82,20 @@ export async function storagePut(
 
 export async function storageGet(relKey: string): Promise<{ key: string; url: string }> {
   const key = normalizeKey(relKey);
+  if (isSupabaseConfigured()) {
+    const { url } = getSupabasePublicConfig();
+    return { key, url: `${url}/storage/v1/object/public/catalogue-media/${encodeURIComponent(key).replace(/%2F/g, "/")}` };
+  }
   return { key, url: `/manus-storage/${key}` };
 }
 
 export async function storageGetSignedUrl(relKey: string): Promise<string> {
+  if (isSupabaseConfigured()) {
+    const key = normalizeKey(relKey);
+    const { data, error } = await getSupabaseServiceClient().storage.from("marketplace-private").createSignedUrl(key, 60 * 10);
+    if (error || !data?.signedUrl) throw new Error(`Supabase private-file URL failed: ${error?.message ?? "empty URL"}`);
+    return data.signedUrl;
+  }
   const { forgeUrl, forgeKey } = getForgeConfig();
   const key = normalizeKey(relKey);
 
