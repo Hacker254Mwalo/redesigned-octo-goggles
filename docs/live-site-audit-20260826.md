@@ -71,3 +71,7 @@ The production dependency audit initially found 81 advisories, including one cri
 The final `pnpm audit --prod` result reports **zero** info, low, moderate, high, and critical vulnerabilities across 286 production dependencies. TypeScript, the full 22-file / 59-test suite, and the Vercel build all passed after the update. A separate future maintenance item remains for the deprecated Recharts 2.x package, but it is not listed as a current vulnerability and should be upgraded only with its own visual/regression review.
 
 The audit hardening is now durable across future project installs: the security overrides and Wouter patch registration were moved from the package manifest’s ignored pnpm section into `pnpm-workspace.yaml`, and the project declares pnpm 10.18.0, the verified runner that applies that workspace configuration. A clean install and audit through that runner preserved the zero-vulnerability result.
+
+## Release-test resilience
+
+The authenticated Supabase Storage verification creates and removes a temporary object in the isolated `catalogue-media` bucket. To prevent a transient remote cleanup delay from holding the entire release suite indefinitely, the test runner now executes external verification files serially and applies a 15-second timeout to tests and hooks. The production storage adapter itself was not modified. The full 22-file / 61-test suite completed in 13.76 seconds, including the real storage upload-and-cleanup check, followed by a passing TypeScript check, Vercel build, and zero-vulnerability production audit.

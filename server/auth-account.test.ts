@@ -6,6 +6,10 @@ const supabaseAuthContextSource = readFileSync(
   new URL("../client/src/contexts/SupabaseAuthContext.tsx", import.meta.url),
   "utf8",
 );
+const accountDialogSource = readFileSync(
+  new URL("../client/src/components/MtaaAccountDialog.tsx", import.meta.url),
+  "utf8",
+);
 
 describe("MtaaMarket email/password account safeguards", () => {
   it("requires an eight-character password with both letters and digits", () => {
@@ -37,5 +41,12 @@ describe("MtaaMarket email/password account safeguards", () => {
     expect(supabaseAuthContextSource).not.toMatch(/(?:localStorage|sessionStorage)\.[^(]+\([^)]*password/i);
     expect(supabaseAuthContextSource).not.toMatch(/password[^\n]*(?:localStorage|sessionStorage)/i);
     expect(supabaseAuthContextSource).not.toMatch(/\brole\s*:/i);
+  });
+
+  it("keeps the public account dialog keyboard-accessible without changing account-provider behavior", () => {
+    expect(accountDialogSource).toContain('event.key !== "Escape"');
+    expect(accountDialogSource).toContain("window.addEventListener(\"keydown\", handleEscape)");
+    expect(accountDialogSource).toContain("returnFocusRef.current?.focus()");
+    expect(accountDialogSource).toContain("ref={emailInputRef}");
   });
 });
