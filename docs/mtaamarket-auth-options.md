@@ -28,6 +28,12 @@ Supabase's default email service is intended for testing, limits delivery to pre
 
 **Recommendation:** Start with **Brevo Free**, using a verified sender identity and the display name **MtaaMarket**. When MtaaMarket later owns a custom domain, authenticate it with SPF, DKIM, and DMARC and move the From address to a dedicated address such as `no-reply@auth.example.com`. [1] This is an external account setup; the founder must create the account and supply SMTP credentials only through secure settings.
 
+### Current MtaaMarket sender status
+
+The founder-created Brevo Free workspace is named **Siaya Online MtaaMarket**, and its temporary MtaaMarket sender identity has been verified. Brevo marks the sender as a freemail address, which is acceptable only as a temporary low-volume sender and not a final brand identity. No SMTP/API credential has been created, saved, or exposed, and MtaaMarket has not sent any customer email through Brevo. Any additional provider verification shown at first-send time must be completed only in the relevant email-delivery flow, not through a separate calling product.
+
+The provider's separate **Brevo Phone** product is not the required verification route for MtaaMarket email delivery and is excluded from this setup because it is a paid business-calling feature. A personal phone number is not entered into that product. Sender/domain verification and SMTP configuration remain the only relevant email-delivery steps.
+
 ## Primary and backup delivery design
 
 Supabase supports only one active SMTP configuration, so it cannot provide automatic provider failover by itself. For a true primary/backup path, MtaaMarket should use the **Send Email Auth Hook**, which replaces the built-in Auth sender and can attempt a second provider when the primary fails. [7]
