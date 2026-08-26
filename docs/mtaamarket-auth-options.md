@@ -34,6 +34,12 @@ The founder-created Brevo Free workspace is named **Siaya Online MtaaMarket**, a
 
 The provider's separate **Brevo Phone** product is not the required verification route for MtaaMarket email delivery and is excluded from this setup because it is a paid business-calling feature. A personal phone number is not entered into that product. Sender/domain verification and SMTP configuration remain the only relevant email-delivery steps.
 
+The first temporary SMTP key generated during configuration was deliberately **not saved** in Supabase after the unsaved form was discarded. Brevo rejected the first revocation attempt. It remains inactive and permanently **do not use**; no MtaaMarket configuration points to it. Two further short-lived keys were generated during dashboard-session recovery but their unsaved Supabase forms were also deliberately discarded. The Supabase SMTP settings now show the custom-SMTP toggle enabled, the verified Brevo sender/relay values retained, no password displayed, and a disabled Save action—evidence that the final encrypted save completed. One guarded founder-approved magic-link request was accepted by the deployed MtaaMarket UI after this change. Brevo’s log page did not finish loading in the current browser session, so receipt and full session completion remain explicitly unverified; do not treat email authentication as production-ready yet. Earlier inactive keys should be removed from Brevo when that provider control becomes available.
+
+### Callback deployment verification
+
+The callback repair has been validated locally and pushed to the selected GitHub `main` branch. An immediate public check after the push still rendered MtaaMarket's prior client-side 404 state at `/auth/callback`, which is treated as deployment propagation still pending rather than a successful release. The release gate remains open until a direct public check shows the callback recovery page without an authorization code, followed by one fresh same-browser email-link sign-in test.
+
 ## Primary and backup delivery design
 
 Supabase supports only one active SMTP configuration, so it cannot provide automatic provider failover by itself. For a true primary/backup path, MtaaMarket should use the **Send Email Auth Hook**, which replaces the built-in Auth sender and can attempt a second provider when the primary fails. [7]
