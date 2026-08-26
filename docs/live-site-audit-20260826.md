@@ -31,3 +31,7 @@ The deployed `/auth/callback` recovery route and same-device magic-link test now
 ### Prioritised safe implementation backlog
 
 The next technical foundation work should focus on public performance, accessibility, and resilience rather than feature activation. The recommended sequence is: route-level code splitting for the non-home workspace pages; a small shared empty/error-state pattern with retry guidance; a web-app manifest and offline-safe shell that never stores customer data; semantic metadata and structured data for public discovery; and a consent-aware analytics/error-monitoring activation plan. These changes must leave payments, delivery, vendor writes, assisted-order execution, and livestock transactions disabled.
+
+## Deployment verification
+
+The Vercel deployment associated with the hardening checkpoint completed successfully. The public production domain now serves the MtaaMarket `manifest.webmanifest` with the expected standalone/mobile metadata rather than the single-page fallback. This confirms that the latest static asset deployment propagated; it does not activate offline caching, protected commerce, or an install prompt with custom icons.
