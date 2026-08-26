@@ -46,6 +46,10 @@ UUID-backed Supabase listings intentionally do **not** enter the existing numeri
 
 The browser should receive the Siaya Online MtaaMarket interface rather than compiled source code. The public interface calls `/api/trpc` and its discovery endpoints use isolated Supabase. Protected sign-in, vendor, account, order, payment, and owner actions still need the compatible PostgreSQL/Auth application migration above. If a required variable is missing, the correct next symptom is an API/authentication error—not raw JavaScript on the homepage.
 
+### Latest public verification
+
+After the public-discovery commit was deployed, `marketplace.products`, `marketplace.pickupStations`, and `marketplace.approvedVendors` each returned successful empty arrays from the isolated MtaaMarket catalogue rather than the earlier `Marketplace database is unavailable` error. An empty result is expected because no original, verified products, operational stations, or approved sellers have been added yet; it is not a signal to seed examples or turn on checkout.
+
 ## Safe launch order
 
 1. Redeploy the configuration fix and confirm that the homepage renders as a marketplace.
