@@ -11,7 +11,7 @@ The isolated project already has a server-side JWT verifier that checks the Supa
 | Gate | Required completion evidence | Current status |
 |---|---|---|
 | Auth URL configuration | The production site URL and exact allowed authentication redirects are configured in the isolated Supabase project. | Blocked; hosted Auth URL configuration has not been verified. |
-| Browser authentication | A browser-safe client uses only the publishable key, obtains a session, and forwards a bearer token only over HTTPS to the MtaaMarket API. | Implemented; local visual review passed. The email provider could not be rechecked after the Supabase dashboard session expired. |
+| Browser authentication | A browser-safe client uses only the publishable key, obtains a session, and forwards a bearer token only over HTTPS to the MtaaMarket API. | Implemented; local and deployed dialog reviews passed. A read-only isolated Auth settings check confirms Email is enabled, signups are permitted, and email auto-confirmation is off. |
 | Server verification | The API verifies the bearer token using the configured JWKS, maps its `sub` UUID to a Supabase profile, and never trusts client-supplied roles. | Implemented for verified, lowest-privilege buyer-profile preparation. Protected procedures still do not consume this identity. |
 | Founder role assignment | The founder signs in using the final flow; a server-side one-time owner assignment maps that exact Auth UUID to `admin`. | Not started; no profile is seeded or elevated. |
 | Protected procedure adapter | Buyer, vendor, owner, order, review-write, and media metadata procedures use one PostgreSQL UUID data model end to end. | Blocked; legacy procedures still require numeric MySQL identities. |

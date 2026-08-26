@@ -50,6 +50,8 @@ The browser should receive the Siaya Online MtaaMarket interface rather than com
 
 After the public-discovery commit was deployed, `marketplace.products`, `marketplace.pickupStations`, and `marketplace.approvedVendors` each returned successful empty arrays from the isolated MtaaMarket catalogue rather than the earlier `Marketplace database is unavailable` error. An empty result is expected because no original, verified products, operational stations, or approved sellers have been added yet; it is not a signal to seed examples or turn on checkout.
 
+The next deployed milestone added the MtaaMarket-only email sign-in dialog and verified its safe anonymous status endpoint. The live `auth.supabaseSession` response reports `signedIn: false` and `protectedCommerceReady: false` when no authenticated bearer token is present. This proves the deployed UI and API boundary render correctly; it does **not** test delivery of an email link, create an account, assign an owner, or enable buyer/vendor/order/payment actions.
+
 ## Safe launch order
 
 1. Redeploy the configuration fix and confirm that the homepage renders as a marketplace.

@@ -16,3 +16,7 @@ export function getSupabaseBrowserClient() {
 }
 
 export const SUPABASE_ACCESS_TOKEN_KEY = "mtaamarket-supabase-access-token";
+
+export function getSupabaseAuthCode(search: string) {
+  return new URLSearchParams(search).get("code");
+}

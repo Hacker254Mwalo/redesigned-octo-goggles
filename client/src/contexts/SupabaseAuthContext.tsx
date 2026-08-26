@@ -1,4 +1,5 @@
 import { getSupabaseBrowserClient, isSupabaseBrowserConfigured, SUPABASE_ACCESS_TOKEN_KEY } from "@/lib/supabase-browser";
+import { trpc } from "@/lib/trpc";
 import type { Session } from "@supabase/supabase-js";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
@@ -7,6 +8,9 @@ type SupabaseAuthState = {
   loading: boolean;
   session: Session | null;
   requestMagicLink: (email: string) => Promise<void>;
+  requestEmailCode: (email: string) => Promise<void>;
+  verifyEmailCode: (email: string, token: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -24,6 +28,11 @@ function mirrorAccessToken(session: Session | null) {
 export function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(isSupabaseBrowserConfigured);
+  trpc.auth.supabaseSession.useQuery(undefined, {
+    enabled: Boolean(session?.access_token),
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
 
   useEffect(() => {
     if (!isSupabaseBrowserConfigured) return;
@@ -38,8 +47,27 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
     loading,
     session,
     async requestMagicLink(email) {
-      const redirectTo = `${window.location.origin}/`;
-      const { error } = await getSupabaseBrowserClient().auth.signInWithOtp({ email, options: { emailRedirectTo: redirectTo } });
+      const { error } = await getSupabaseBrowserClient().auth.signInWithOtp({
+        email,
+        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+      });
+      if (error) throw error;
+    },
+    async requestEmailCode(email) {
+      const { error } = await getSupabaseBrowserClient().auth.signInWithOtp({ email });
+      if (error) throw error;
+    },
+    async verifyEmailCode(email, token) {
+      const { data, error } = await getSupabaseBrowserClient().auth.verifyOtp({ email, token, type: "email" });
+      if (error || !data.session) throw error || new Error("MtaaMarket could not verify this code.");
+      mirrorAccessToken(data.session);
+      setSession(data.session);
+    },
+    async signInWithGoogle() {
+      const { error } = await getSupabaseBrowserClient().auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: `${window.location.origin}/auth/callback` },
+      });
       if (error) throw error;
     },
     async signOut() {
