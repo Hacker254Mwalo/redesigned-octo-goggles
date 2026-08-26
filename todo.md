@@ -48,3 +48,9 @@
 - [x] Add Vitest coverage for fulfilment/payment preference validation, including payment-timing snapshots and invalid order combinations.
 - [x] Add a focused test for converting an item request into an owner-managed Assisted Market order.
 - [x] Commit the completed MtaaMarket work, push only redesigned-octo-goggles to GitHub, and leave Dumiropay unchanged.
+- [x] Diagnose why the Vercel deployment serves the backend JavaScript bundle as the home page instead of the MtaaMarket application.
+- [x] Add and validate a Vercel-compatible build/output/routing configuration for the React and Express application, or document the safer managed-hosting alternative if Vercel cannot support the required runtime.
+- [x] Document Vercel environment-variable, database, callback, and deployment prerequisites without exposing secrets or activating unapproved payment providers.
+- [ ] Verify the repaired deployment path, checkpoint and synchronize the fix to GitHub, and provide precise redeployment steps.
+- [ ] After Vercel serves the marketplace correctly, collect Supabase details securely and plan a schema-first migration for production database, object storage, and authentication dependencies.
+- [ ] Do not accept real marketplace operations until the approved Supabase migration, data rules, and production environment validation are complete.
