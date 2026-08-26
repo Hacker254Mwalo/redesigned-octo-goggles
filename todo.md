@@ -21,10 +21,10 @@
 - [x] Research free AI, coding, design, operations, analytics, and customer-support tools suitable for a beginner vibe coder.
 - [x] Design compliant supplier, catalogue, payment, pickup, returns, and future vendor-onboarding workflows that avoid copied content, fake reviews, and unapproved payment or marketplace practices.
 - [x] Compare the Siaya marketplace with a wider single-seller store and recommend the best staged build order.
-- [ ] Conduct a real-time competitive research study for a premium Siaya-only marketplace with owner resale, local vendors, assisted sourcing, and payment-on-delivery.
-- [ ] Define compliant assisted-order rules for Jumia or other third-party sourcing that are transparent to customers and do not copy listings or misrepresent affiliation.
-- [ ] Design practical revenue streams, vendor fees, payment-on-delivery safeguards, returns, vendor payout, and platform-control rules.
-- [ ] Compare no-cost hosting and technical options, then define a zero-cost launch path and evidence-based upgrade triggers.
+- [x] Conduct a real-time competitive research study for a premium Siaya-only marketplace with owner resale, local vendors, assisted sourcing, and payment-on-delivery.
+- [x] Define compliant assisted-order rules for Jumia or other third-party sourcing that are transparent to customers and do not copy listings or misrepresent affiliation.
+- [x] Design practical revenue streams, vendor fees, payment-on-delivery safeguards, returns, vendor payout, and platform-control rules.
+- [x] Compare no-cost hosting and technical options, then define a zero-cost launch path and evidence-based upgrade triggers.
 - [x] Research-only constraint: do not modify MtaaMarket application functionality, activate payments/delivery, or alter the separate Dumiropay project unless the founder explicitly says to start building.
 - [x] Define the premium marketplace experience: buyer discovery, vendor listing experience, platform-controlled support, and requested-item flow without deciding payment or courier integrations.
 - [x] Recommend distinctive platform features and product structure that make a Siaya marketplace feel premium rather than a clone of a national marketplace.
@@ -47,4 +47,4 @@
 - [x] Add Vitest coverage for vendor approval/suspension and individual listing moderation pause/remove/restore behavior.
 - [x] Add Vitest coverage for fulfilment/payment preference validation, including payment-timing snapshots and invalid order combinations.
 - [x] Add a focused test for converting an item request into an owner-managed Assisted Market order.
-- [ ] Commit the completed MtaaMarket work, push only redesigned-octo-goggles to GitHub, and leave Dumiropay unchanged.
+- [x] Commit the completed MtaaMarket work, push only redesigned-octo-goggles to GitHub, and leave Dumiropay unchanged.
