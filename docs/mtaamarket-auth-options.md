@@ -2,14 +2,15 @@
 
 ## Decision for the next release
 
-MtaaMarket will present two passwordless choices: **Google** and **email one-time code**. Both are safer and easier for a new marketplace than asking customers to remember a password. The code path should be the default fallback because it works for people who do not use Google, while Google can reduce inbox friction once its provider credentials are configured.
+MtaaMarket will use a staged account experience: **email magic link** remains the currently verified method; **email/password** is the next candidate once its signup, verification, recovery, and rate-limit paths are tested; and **Google** stays unavailable until the founder creates and configures the required OAuth client. No UI will imply that an unconfigured provider is usable.
 
 Neither option will unlock checkout, seller publishing, administration, payment, delivery, or live-animal activity. A successful sign-in creates only a lowest-privilege buyer identity until the separate UUID profile and role migration is complete.
 
 | Option | What a customer sees | Required configuration | Current implementation position |
 |---|---|---|---|
 | Email one-time code | Enter email, receive a six-digit code, type it into MtaaMarket. | A Supabase Email OTP template containing `{{ .Token }}` and a tested sender configuration. | UI and verification step can be built now; template switch and sender activation require controlled configuration. |
-| Google sign-in | A Continue with Google button and the Google consent screen. | Google Cloud OAuth client ID/secret, authorized MtaaMarket origin, Supabase Auth callback URI, and provider activation. | UI can be safely disabled until the founder adds real Google OAuth credentials. |
+| Email/password | Create an account, confirm the email, sign in with the password, and use a non-enumerating password-reset request if needed. | Email provider, confirmation template, password requirements, reset redirect, delivery rate limits, and a tested custom SMTP sender. | Local UI and `/auth/reset-password` foundations are built and tested. Public activation remains gated on hosted password-policy alignment, one fresh real verification/reset test, and delivery-domain remediation. |
+| Google sign-in | A Continue with Google button and the Google consent screen. | Google Cloud OAuth client ID/secret, authorized MtaaMarket origin, Supabase Auth callback URI, and provider activation. | Provider is verified disabled in the MtaaMarket Supabase project; do not render an active button until the founder adds real Google OAuth credentials. |
 | Branded authentication email | A simple security email from a MtaaMarket sender address. | A verified domain or sending identity plus SMTP credentials in Supabase Auth. | Planned; do not claim a branded sender until domain/sender verification succeeds. |
 
 ## Why the sender cannot simply hide the provider
@@ -30,7 +31,7 @@ Supabase's default email service is intended for testing, limits delivery to pre
 
 ### Current MtaaMarket sender status
 
-The founder-created Brevo Free workspace is named **Siaya Online MtaaMarket**, and its temporary MtaaMarket sender identity has been verified. Brevo marks the sender as a freemail address, which is acceptable only as a temporary low-volume sender and not a final brand identity. No SMTP/API credential has been created, saved, or exposed, and MtaaMarket has not sent any customer email through Brevo. Any additional provider verification shown at first-send time must be completed only in the relevant email-delivery flow, not through a separate calling product.
+The founder-created Brevo Free workspace is named **Siaya Online MtaaMarket**, and its temporary MtaaMarket sender identity has been verified. Brevo marks the sender as a freemail address, which is acceptable only as a temporary low-volume sender and not a final brand identity. A purpose-limited SMTP credential was generated and entered directly into the Supabase encrypted SMTP form without being printed, committed, or shared in chat. MtaaMarket has sent only guarded founder-approved authentication tests through this sender. Any additional provider verification shown at first-send time must be completed only in the relevant email-delivery flow, not through a separate calling product.
 
 The provider's separate **Brevo Phone** product is not the required verification route for MtaaMarket email delivery and is excluded from this setup because it is a paid business-calling feature. A personal phone number is not entered into that product. Sender/domain verification and SMTP configuration remain the only relevant email-delivery steps.
 
@@ -46,7 +47,19 @@ The safe next remediation is therefore **not** repeated sends or copy changes. I
 
 ### Callback deployment verification
 
-The callback repair has been validated locally and pushed to the selected GitHub `main` branch. An immediate public check after the push still rendered MtaaMarket's prior client-side 404 state at `/auth/callback`, which is treated as deployment propagation still pending rather than a successful release. The release gate remains open until a direct public check shows the callback recovery page without an authorization code, followed by one fresh same-browser email-link sign-in test.
+The callback repair was deployed, and founder evidence verified the completed same-device magic-link session. The callback continues to prepare only a lowest-privilege buyer profile; it does not create a founder, seller, payment, order, collection, or delivery permission.
+
+## Verified email/password provider state
+
+The MtaaMarket Supabase Email provider is enabled, signups are allowed, and email confirmation is enabled. Secure email-change confirmation is also enabled. Google is disabled. The provider currently accepts a six-character password and no character-class requirement; leaked-password protection is unavailable on the current Free plan. Reauthentication and current-password enforcement are currently disabled.
+
+Supabase states that email/password signups and recovery require an SMTP sender in production; it also deliberately makes password-recovery requests non-enumerating. [10] The platform’s email-send endpoints are subject to per-project and per-user rate limits, including a default resend window for signup confirmation and password recovery. [11] MtaaMarket must therefore use the same generic success response for every reset request, add an in-form retry countdown, and never write password values to logs, analytics, browser storage, or application database tables.
+
+MtaaMarket now has a local account dialog for magic-link sign-in, email/password sign-in, email/password signup, and a non-enumerating reset request. The recovery redirect has an explicit `/auth/reset-password` route that exchanges a recovery code, removes it from the visible URL, enforces an eight-character letters-and-digits password locally, and avoids browser/local storage of a password. Focused regression coverage confirms password validation and generic recovery wording. These screens have not yet been used to create a production password account or reset a real customer password.
+
+The recommended safe activation order is: first complete a controlled production verification of signup/confirmation, password sign-in, reset-request, reset-completion, and generic error views; next move the hosted Supabase minimum password length to at least eight characters with a letters-and-digits requirement; then enable reauthentication only after the in-session password-change experience can collect and validate the nonce. Current-password enforcement should remain disabled until the recovery flow is separately confirmed compatible, because a reset user will not possess a current password. Supabase describes both reauthentication and current-password checks as additional update-password controls, not replacements for recovery. [12]
+
+Google needs a founder-owned Google Cloud OAuth web client, MtaaMarket’s authorised origin, the exact Supabase Google callback URI shown in its provider screen, and a private client secret entered only in Supabase. [2] Until those prerequisites exist, a visible active Google control would be misleading and is prohibited.
 
 ## Primary and backup delivery design
 
@@ -84,3 +97,6 @@ MtaaMarket will retain the documented one-time-code expiry and rate-limit safegu
 [7]: https://supabase.com/docs/guides/auth/auth-hooks/send-email-hook "Supabase Auth: Send Email Hook"
 [8]: https://help.brevo.com/hc/en-us/articles/14925263522578-Comply-with-Gmail-Yahoo-and-Microsoft-s-requirements-for-email-senders "Brevo: Sender requirements for Gmail, Yahoo, and Microsoft"
 [9]: https://support.google.com/mail/answer/81126?hl=en "Google: Email sender guidelines"
+[10]: https://supabase.com/docs/guides/auth/passwords "Supabase Auth: Password-based authentication"
+[11]: https://supabase.com/docs/guides/auth/rate-limits "Supabase Auth: Rate limits"
+[12]: https://supabase.com/docs/guides/auth/password-security "Supabase Auth: Password security"

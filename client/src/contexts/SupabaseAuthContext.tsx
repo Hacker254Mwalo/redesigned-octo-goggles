@@ -11,6 +11,10 @@ type SupabaseAuthState = {
   requestEmailCode: (email: string) => Promise<void>;
   verifyEmailCode: (email: string, token: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
+  signUpWithPassword: (email: string, password: string) => Promise<void>;
+  signInWithPassword: (email: string, password: string) => Promise<void>;
+  requestPasswordReset: (email: string) => Promise<void>;
+  updatePassword: (password: string) => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -69,6 +73,30 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
         options: { redirectTo: `${window.location.origin}/auth/callback` },
       });
       if (error) throw error;
+    },
+    async signUpWithPassword(email, password) {
+      const { error } = await getSupabaseBrowserClient().auth.signUp({
+        email,
+        password,
+        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+      });
+      if (error) throw error;
+    },
+    async signInWithPassword(email, password) {
+      const { data, error } = await getSupabaseBrowserClient().auth.signInWithPassword({ email, password });
+      if (error || !data.session) throw error || new Error("MtaaMarket could not start a session.");
+      mirrorAccessToken(data.session);
+      setSession(data.session);
+    },
+    async requestPasswordReset(email) {
+      const { error } = await getSupabaseBrowserClient().auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`,
+      });
+      if (error) throw error;
+    },
+    async updatePassword(password) {
+      const { data, error } = await getSupabaseBrowserClient().auth.updateUser({ password });
+      if (error || !data.user) throw error || new Error("MtaaMarket could not update the password.");
     },
     async signOut() {
       if (isSupabaseBrowserConfigured) await getSupabaseBrowserClient().auth.signOut();

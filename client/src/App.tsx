@@ -13,6 +13,7 @@ const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const PickupStations = lazy(() => import("./pages/PickupStations"));
 const ProductDetail = lazy(() => import("./pages/ProductDetail"));
 const RequestDeskPage = lazy(() => import("./pages/RequestDeskPage"));
+const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
 const SupabaseAuthCallbackPage = lazy(() => import("./pages/SupabaseAuthCallbackPage"));
 const VendorPage = lazy(() => import("./pages/VendorPage"));
 
@@ -31,6 +32,7 @@ function Router() {
         <Route path={"/stations"} component={PickupStations} />
         <Route path={"/request"} component={RequestDeskPage} />
         <Route path={"/auth/callback"} component={SupabaseAuthCallbackPage} />
+        <Route path={"/auth/reset-password"} component={ResetPasswordPage} />
         <Route path={"/vendor"} component={VendorPage} />
         <Route path={"/dashboard"} component={DashboardPage} />
         <Route path={"/404"} component={NotFound} />
