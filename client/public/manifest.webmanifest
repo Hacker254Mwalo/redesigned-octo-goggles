@@ -1,0 +1,11 @@
+{
+  "name": "Siaya Online MtaaMarket",
+  "short_name": "MtaaMarket",
+  "description": "A Siaya-served physical-products marketplace with platform-managed support.",
+  "lang": "en",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f9f7f2",
+  "theme_color": "#0e2f27",
+  "categories": ["shopping", "business"]
+}

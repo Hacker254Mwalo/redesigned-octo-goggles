@@ -1,35 +1,43 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
+import { lazy, Suspense } from "react";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { CartProvider } from "./contexts/CartContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import CartPage from "./pages/CartPage";
-import DashboardPage from "./pages/DashboardPage";
 import Home from "./pages/Home";
-import PickupStations from "./pages/PickupStations";
-import ProductDetail from "./pages/ProductDetail";
-import RequestDeskPage from "./pages/RequestDeskPage";
-import SupabaseAuthCallbackPage from "./pages/SupabaseAuthCallbackPage";
-import VendorPage from "./pages/VendorPage";
+
+const CartPage = lazy(() => import("./pages/CartPage"));
+const DashboardPage = lazy(() => import("./pages/DashboardPage"));
+const PickupStations = lazy(() => import("./pages/PickupStations"));
+const ProductDetail = lazy(() => import("./pages/ProductDetail"));
+const RequestDeskPage = lazy(() => import("./pages/RequestDeskPage"));
+const SupabaseAuthCallbackPage = lazy(() => import("./pages/SupabaseAuthCallbackPage"));
+const VendorPage = lazy(() => import("./pages/VendorPage"));
+
+function RouteLoadingState() {
+  return <div className="min-h-screen bg-[#f9f7f2] px-6 py-24 text-center text-sm text-[#35584a]" role="status">Loading MtaaMarket…</div>;
+}
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
   return (
-    <Switch>
-      <Route path={"/"} component={Home} />
-      <Route path={"/products/:slug"} component={ProductDetail} />
-      <Route path={"/cart"} component={CartPage} />
-      <Route path={"/stations"} component={PickupStations} />
-      <Route path={"/request"} component={RequestDeskPage} />
-      <Route path={"/auth/callback"} component={SupabaseAuthCallbackPage} />
-      <Route path={"/vendor"} component={VendorPage} />
-      <Route path={"/dashboard"} component={DashboardPage} />
-      <Route path={"/404"} component={NotFound} />
-      {/* Final fallback route */}
-      <Route component={NotFound} />
-    </Switch>
+    <Suspense fallback={<RouteLoadingState />}>
+      <Switch>
+        <Route path={"/"} component={Home} />
+        <Route path={"/products/:slug"} component={ProductDetail} />
+        <Route path={"/cart"} component={CartPage} />
+        <Route path={"/stations"} component={PickupStations} />
+        <Route path={"/request"} component={RequestDeskPage} />
+        <Route path={"/auth/callback"} component={SupabaseAuthCallbackPage} />
+        <Route path={"/vendor"} component={VendorPage} />
+        <Route path={"/dashboard"} component={DashboardPage} />
+        <Route path={"/404"} component={NotFound} />
+        {/* Final fallback route */}
+        <Route component={NotFound} />
+      </Switch>
+    </Suspense>
   );
 }
 

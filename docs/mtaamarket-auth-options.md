@@ -34,7 +34,15 @@ The founder-created Brevo Free workspace is named **Siaya Online MtaaMarket**, a
 
 The provider's separate **Brevo Phone** product is not the required verification route for MtaaMarket email delivery and is excluded from this setup because it is a paid business-calling feature. A personal phone number is not entered into that product. Sender/domain verification and SMTP configuration remain the only relevant email-delivery steps.
 
-The first temporary SMTP key generated during configuration was deliberately **not saved** in Supabase after the unsaved form was discarded. Brevo rejected the first revocation attempt. It remains inactive and permanently **do not use**; no MtaaMarket configuration points to it. Two further short-lived keys were generated during dashboard-session recovery but their unsaved Supabase forms were also deliberately discarded. The Supabase SMTP settings now show the custom-SMTP toggle enabled, the verified Brevo sender/relay values retained, no password displayed, and a disabled Save action—evidence that the final encrypted save completed. One guarded founder-approved magic-link request was accepted by the deployed MtaaMarket UI after this change. Brevo’s log page did not finish loading in the current browser session, so receipt and full session completion remain explicitly unverified; do not treat email authentication as production-ready yet. Earlier inactive keys should be removed from Brevo when that provider control becomes available.
+The first temporary SMTP key generated during configuration was deliberately **not saved** in Supabase after the unsaved form was discarded. Brevo rejected the first revocation attempt. It remains inactive and permanently **do not use**; no MtaaMarket configuration points to it. Two further short-lived keys were generated during dashboard-session recovery but their unsaved Supabase forms were also deliberately discarded. The Supabase SMTP settings now show the custom-SMTP toggle enabled, the verified Brevo sender/relay values retained, no password displayed, and a disabled Save action—evidence that the final encrypted save completed. Earlier inactive keys should be removed from Brevo when that provider control becomes available.
+
+Founder-provided evidence subsequently verified both delivery and the repaired same-device callback: the MtaaMarket message arrived, and the callback showed **“Sign-in complete”** with only a lowest-privilege buyer-profile preparation message. The email appeared in Gmail’s Spam folder. This proves the temporary sender and callback work; it does **not** demonstrate production-quality inbox placement.
+
+## Deliverability remediation: custom domain required
+
+The temporary freemail sender must be treated as a launch test path only. Brevo’s official guidance recommends sending from a professional address on a custom domain, authenticating that domain with DKIM and DMARC, and aligning the visible From-domain with the authenticated domain. [8] Google recommends SPF, DKIM, and DMARC for every sending domain; it explains that unauthenticated messages can be marked as spam or rejected, and that DMARC alignment requires the authenticated domain to match the domain shown in the From header. [9]
+
+The safe next remediation is therefore **not** repeated sends or copy changes. It is a founder-owned MtaaMarket domain, followed by Brevo-provided DNS records for domain verification and 2048-bit DKIM where supported, an SPF record that includes the selected sender, and a monitored DMARC policy beginning at `p=none`. Only after Brevo reports the domain authenticated should MtaaMarket switch the sender to a dedicated address such as `no-reply@<mtaamarket-domain>` and run a fresh low-volume inbox-placement test. Until then, the verified temporary sender remains usable for controlled internal tests but is not appropriate for public launch.
 
 ### Callback deployment verification
 
@@ -74,3 +82,5 @@ MtaaMarket will retain the documented one-time-code expiry and rate-limit safegu
 [5]: https://www.mailersend.com/pricing "MailerSend pricing"
 [6]: https://resend.com/docs/send-with-smtp "Resend: Send emails with SMTP"
 [7]: https://supabase.com/docs/guides/auth/auth-hooks/send-email-hook "Supabase Auth: Send Email Hook"
+[8]: https://help.brevo.com/hc/en-us/articles/14925263522578-Comply-with-Gmail-Yahoo-and-Microsoft-s-requirements-for-email-senders "Brevo: Sender requirements for Gmail, Yahoo, and Microsoft"
+[9]: https://support.google.com/mail/answer/81126?hl=en "Google: Email sender guidelines"

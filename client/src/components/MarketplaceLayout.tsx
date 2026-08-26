@@ -2,6 +2,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { startLogin } from "@/const";
 import { useCart } from "@/contexts/CartContext";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
+import { magicLinkDeliveryNotice } from "@/lib/auth-delivery";
 import { cn } from "@/lib/utils";
 import { Chrome, Heart, HandHeart, KeyRound, Loader2, MailCheck, Menu, Search, ShoppingBag, Store, UserRound, X } from "lucide-react";
 import { useState } from "react";
@@ -31,7 +32,7 @@ export function MarketplaceLayout({ children }: { children: React.ReactNode }) {
   const sendMagicLink = async (event: React.FormEvent) => {
     event.preventDefault();
     setSending(true); setEmailNotice("");
-    try { await requestMagicLink(email); setEmailNotice("Check your email for the secure MtaaMarket sign-in link. It only signs you in; it does not submit a request or activate an order."); }
+    try { await requestMagicLink(email); setEmailNotice(magicLinkDeliveryNotice()); }
     catch { setEmailNotice("We could not send a sign-in link. Confirm the email address and try again later."); }
     finally { setSending(false); }
   };
