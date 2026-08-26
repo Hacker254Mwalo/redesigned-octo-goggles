@@ -75,3 +75,7 @@ The audit hardening is now durable across future project installs: the security 
 ## Release-test resilience
 
 The authenticated Supabase Storage verification creates and removes a temporary object in the isolated `catalogue-media` bucket. To prevent a transient remote cleanup delay from holding the entire release suite indefinitely, the test runner now executes external verification files serially and applies a 15-second timeout to tests and hooks. The production storage adapter itself was not modified. The full 22-file / 61-test suite completed in 13.76 seconds, including the real storage upload-and-cleanup check, followed by a passing TypeScript check, Vercel build, and zero-vulnerability production audit.
+
+## Deployed account-dialog check
+
+The deployed public Sign in dialog was opened without entering an email, password, code, or recovery request. It rendered the verified email-link method and the email/password route, disclosed that Google remains unavailable until a secure provider configuration exists, and repeated that the protected workspace remains unavailable pending the separate role migration. The deployed dialog’s close control and email input were present, and a direct Escape-key check closed the dialog without submitting an action. No sign-in, signup, reset, order, vendor, payment, delivery, or role action was submitted during this check.
