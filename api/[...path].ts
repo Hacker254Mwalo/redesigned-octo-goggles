@@ -1,6 +1,6 @@
-import "dotenv/config";
-import { createMarketplaceApp } from "../server/_core/app";
+import marketplaceApp from "./_bundle.mjs";
 
-// Vercel imports this Express app as one serverless API function for /api/*.
-// The Vite storefront is published from dist/public by vercel.json.
-export default createMarketplaceApp();
+// The Vercel build creates _bundle.mjs from the shared Express application.
+// Importing the bundle prevents a serverless runtime from resolving source-only
+// TypeScript modules that are not emitted beside this function.
+export default marketplaceApp;

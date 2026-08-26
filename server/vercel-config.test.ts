@@ -13,9 +13,16 @@ describe("Vercel deployment configuration", () => {
     expect(fs.existsSync(path.join(root, "api", "[...path].ts"))).toBe(true);
   });
 
-  it("exports the marketplace API without starting a second web server", () => {
+  it("exports a Vercel-compatible bundled marketplace API without starting a second web server", () => {
     const functionSource = fs.readFileSync(path.join(root, "api", "[...path].ts"), "utf8");
-    expect(functionSource).toContain("export default createMarketplaceApp()");
+    const bundleSource = fs.readFileSync(path.join(root, "api", "marketplace-function.ts"), "utf8");
+    expect(functionSource).toContain('import marketplaceApp from "./_bundle.mjs"');
+    expect(bundleSource).toContain("export default createMarketplaceApp()");
     expect(functionSource).not.toContain("listen(");
+  });
+
+  it("builds the shared Express application before Vercel packages the API function", () => {
+    const packageJson = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
+    expect(packageJson.scripts["build:vercel"]).toContain("build-vercel-api.mjs");
   });
 });
