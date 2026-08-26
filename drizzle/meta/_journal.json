@@ -36,6 +36,20 @@
       "when": 1787724915501,
       "tag": "0004_complete_madame_web",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1787744275737,
+      "tag": "0005_lazy_darkhawk",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1787744728377,
+      "tag": "0006_absurd_shocker",
+      "breakpoints": true
     }
   ]
 }

@@ -282,14 +282,29 @@ export type AssistedOrderInput = {
   fulfilmentMethod: "siaya_pickup" | "home_delivery" | "collection_point" | "special_order";
   preferredLocation?: string;
   sourceRoute: "mtaa_select" | "approved_vendor" | "supplier" | "external_marketplace" | "other";
+  externalSourceDisclosure?: string;
+  externalContentAttestation?: boolean;
   platformNotes?: string;
   itemRequestId?: number;
 };
 
 export type AssistedRequestSource = Pick<typeof itemRequests.$inferSelect, "id" | "customerName" | "customerPhone" | "title" | "details" | "quotedPrice" | "budgetHint" | "preferredFulfilment" | "preferredLocation" | "sourceRoute">;
 export const ASSISTED_REQUEST_ACCEPTED_REPLY = "MtaaMarket has opened an Assisted Market order and will confirm the next step.";
+export const EXTERNAL_SOURCE_DISCLOSURE_GUIDANCE = "Record that the customer understands MtaaMarket is independently sourcing the item, is not affiliated with the external marketplace, and will confirm the final item, price, and fulfilment before payment.";
 
-export function buildAssistedOrderFromRequest(request: AssistedRequestSource, customerName: string): AssistedOrderInput {
+export function validateExternalSourceDisclosure(sourceRoute: AssistedOrderInput["sourceRoute"], disclosure?: string, contentAttestation?: boolean) {
+  if (sourceRoute !== "external_marketplace") return undefined;
+  const normalized = disclosure?.trim();
+  if (!normalized || normalized.length < 12) {
+    throw new Error("Record the customer's confirmation before using an external marketplace route.");
+  }
+  if (!contentAttestation) {
+    throw new Error("Confirm that MtaaMarket content is original before using an external marketplace route.");
+  }
+  return normalized.slice(0, 600);
+}
+
+export function buildAssistedOrderFromRequest(request: AssistedRequestSource, customerName: string, externalSourceDisclosure?: string, externalContentAttestation?: boolean): AssistedOrderInput {
   return {
     customerName,
     customerPhone: request.customerPhone || undefined,
@@ -300,12 +315,14 @@ export function buildAssistedOrderFromRequest(request: AssistedRequestSource, cu
     fulfilmentMethod: request.preferredFulfilment,
     preferredLocation: request.preferredLocation || undefined,
     sourceRoute: request.sourceRoute || "other",
+    externalSourceDisclosure,
+    externalContentAttestation,
     itemRequestId: request.id,
   };
 }
 
-export async function convertRequestToAssistedOrder<T>(request: AssistedRequestSource, customerName: string, handlers: { createOrder: (input: AssistedOrderInput) => Promise<T>; markRequestAccepted: (requestId: number) => Promise<void> }) {
-  const created = await handlers.createOrder(buildAssistedOrderFromRequest(request, customerName));
+export async function convertRequestToAssistedOrder<T>(request: AssistedRequestSource, customerName: string, handlers: { createOrder: (input: AssistedOrderInput) => Promise<T>; markRequestAccepted: (requestId: number) => Promise<void> }, externalSourceDisclosure?: string, externalContentAttestation?: boolean) {
+  const created = await handlers.createOrder(buildAssistedOrderFromRequest(request, customerName, externalSourceDisclosure, externalContentAttestation));
   await handlers.markRequestAccepted(request.id);
   return created;
 }
@@ -315,6 +332,7 @@ export async function createAssistedOrder(ownerProfileId: number, input: Assiste
   if (!db) throw new Error("Marketplace database is unavailable.");
   const owner = await ensureProfileRole(ownerProfileId);
   assertMarketplaceRole(owner.role, ["admin"]);
+  const externalSourceDisclosure = validateExternalSourceDisclosure(input.sourceRoute, input.externalSourceDisclosure, input.externalContentAttestation);
   const inserted = await db.insert(assistedOrders).values({
     assistedOrderNumber: makeAssistedOrderNumber(),
     itemRequestId: input.itemRequestId || null,
@@ -328,13 +346,16 @@ export async function createAssistedOrder(ownerProfileId: number, input: Assiste
     fulfilmentMethod: input.fulfilmentMethod,
     preferredLocation: input.preferredLocation?.trim() || null,
     sourceRoute: input.sourceRoute,
+    externalSourceDisclosure: externalSourceDisclosure || null,
+    externalSourceConfirmedAt: externalSourceDisclosure ? new Date() : null,
+    externalSourceContentAttestedAt: externalSourceDisclosure ? new Date() : null,
     platformNotes: input.platformNotes?.trim() || null,
   });
   if (input.itemRequestId && options.updateLinkedRequest !== false) await db.update(itemRequests).set({ status: "accepted", platformReply: ASSISTED_REQUEST_ACCEPTED_REPLY }).where(eq(itemRequests.id, input.itemRequestId));
   return (await db.select().from(assistedOrders).where(eq(assistedOrders.id, Number(inserted[0].insertId))).limit(1))[0];
 }
 
-export async function createAssistedOrderFromRequest(ownerProfileId: number, requestId: number) {
+export async function createAssistedOrderFromRequest(ownerProfileId: number, requestId: number, externalSourceDisclosure?: string, externalContentAttestation?: boolean) {
   const db = await getDb();
   if (!db) throw new Error("Marketplace database is unavailable.");
   const request = (await db.select().from(itemRequests).where(eq(itemRequests.id, requestId)).limit(1))[0];
@@ -343,7 +364,7 @@ export async function createAssistedOrderFromRequest(ownerProfileId: number, req
   return convertRequestToAssistedOrder(request, customer, {
     createOrder: input => createAssistedOrder(ownerProfileId, input, { updateLinkedRequest: false }),
     markRequestAccepted: async id => { await db.update(itemRequests).set({ status: "accepted", platformReply: ASSISTED_REQUEST_ACCEPTED_REPLY }).where(eq(itemRequests.id, id)); },
-  });
+  }, externalSourceDisclosure, externalContentAttestation);
 }
 
 export async function listAdminAssistedOrders() {

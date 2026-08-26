@@ -1,46 +1,46 @@
 # Supabase Project Boundary — Siaya Online MtaaMarket
 
-## Decision record
+## Current verified state
 
-**Decision:** No existing Supabase project may be reused for Siaya Online MtaaMarket. Both active project slots belong to separate Dumiropay systems, and the account's free-plan capacity is fully occupied. No schema, data, authentication, storage, credential, pause, deletion, or display-name change was made as part of this decision record.
+Siaya Online MtaaMarket now has its **own isolated Supabase project**. The previous legacy Dumiropay project was permanently deleted only after the founder explicitly authorized that exact project reference. The verified working Dumiropay project remains separate and unchanged.
 
-| Project reference | Organization | Verified classification | Evidence | MtaaMarket rule |
-|---|---|---|---|---|
-| `jwnhluxftefqciwomqig` | `hacker254mwalo's projects` | **Active and healthy Dumiropay system** | Supabase reports `ACTIVE_HEALTHY`. Its public schema includes users, wallet transactions, deposits, withdrawals, investments, loans, app settings, audit records, workload records, and other Dumiropay features. The 24-hour log window contained 371 edge events plus recent Postgres and PostgREST activity. An active `clerk-webhook` Edge Function is deployed. | **Never modify or repurpose from MtaaMarket work. Do not pause.** |
-| `qlzfhogkbfsipmrurbfo` | `Dreaps venture` | **Active and healthy Dumiropay system** | Supabase reports `ACTIVE_HEALTHY`. Its public schema includes 907 transactions, 3 users, 5 deposits, 10 withdrawals, 4 loans, 25 investments, support messages, password-reset requests, and application settings. Its 24-hour log window included recent Edge, Postgres, PgBouncer, PostgREST, Realtime, and Storage activity. | **Never modify or repurpose from MtaaMarket work. Do not pause.** |
+| Project reference | Organization | Verified role | Current rule |
+|---|---|---|---|
+| `jwnhluxftefqciwomqig` | `hacker254mwalo's projects` | **Working Dumiropay runtime**. It is `ACTIVE_HEALTHY`, contains real Dumiropay data, and received recent Node/Supabase application traffic. | Never pause, rename, delete, migrate, reuse, or share credentials with MtaaMarket. |
+| `mfgjpjtlmfdtsnkoluco` | `Siaya Online MtaaMarket` | **Isolated MtaaMarket production foundation**. Named `siaya-online-mtaamarket-production`, `ACTIVE_HEALTHY`, region `eu-west-1`. | MtaaMarket only. No Dumiropay data, configuration, users, storage, or credentials may enter this project. |
 
-The `qlzfhogkbfsipmrurbfo` display name has been restored to **`Dumiropay — Active`**. An earlier visual Table Editor view appeared empty, but it was not authoritative; table inventory and recent system activity proved the project contains active Dumiropay data. The project reference, not the display name, is the operational identity that must be protected.
+The new MtaaMarket project was created at **$0 per month** after the current cost was checked and confirmed by the founder. Its `public` schema was empty before migration. The initial MtaaMarket PostgreSQL baseline is now applied: it created only marketplace tables, two MtaaMarket storage buckets, ten product categories, and Row Level Security on every marketplace table. Supabase security advisors returned no security lints after migration.
 
-## Capacity outcome
+## Historical capacity decision
 
-The account owner is limited to **two active free Supabase projects**. The `Siaya Online MtaaMarket` organization exists but contains no database project. Creating `siaya-online-mtaamarket-production` was cost-confirmed at **$0/month** and explicitly approved, but Supabase refused the creation because the owner's two active-project limit is already consumed by the two Dumiropay projects above.
+The former `Dreaps venture` project `qlzfhogkbfsipmrurbfo` contained legacy Dumiropay records and was not reused. It was permanently deleted through the authenticated Supabase dashboard after the founder explicitly instructed deletion of that exact reference. The organization project list then showed no projects and zero database/storage usage. A direct check confirmed `jwnhluxftefqciwomqig` remained `ACTIVE_HEALTHY` after the deletion.
 
-> Separate Supabase organizations do not create separate free-project capacity when the same account owner is subject to the active-project limit.
+> The removal is irreversible. The active Dumiropay runtime is **not** the project that was deleted.
 
-## Separation rules
+## MtaaMarket database foundation
 
-| Resource | Current state | Required boundary |
+The source-controlled migration is [`supabase/migrations/20260826_001_initial_mtaamarket.sql`](../supabase/migrations/20260826_001_initial_mtaamarket.sql). It is written for PostgreSQL and Supabase Auth rather than copied from the existing MySQL/TiDB Drizzle schema. It uses Auth UUID profile keys, PostgreSQL enums, `jsonb`, `timestamptz`, explicit indexes, privacy-safe order access, audit events, and future payment/fulfilment records.
+
+| Layer | Verified now | Still required before accepting protected Vercel marketplace traffic |
 |---|---|---|
-| MtaaMarket Vercel deployment | The public storefront renders correctly at `siayaonlinemarket.vercel.app`. | Keep it visually live, but do not present protected production transactions, login, uploads, or AI services as migrated until their independent replacements are configured and tested. |
-| Manus project database, authentication, and storage | Current development services for MtaaMarket. | Keep separate from all Dumiropay Supabase resources. Do not copy Dumiropay data, storage objects, credentials, or auth configuration. |
-| `Dumiropay` organization | No project currently visible. | Preserve it; no MtaaMarket resource may be created or migrated there. |
-| `Siaya Online MtaaMarket` organization | Named organization with no database project. | Reserve it as the preferred future MtaaMarket home only after a project slot is made available through a safe, explicitly approved route. |
+| Database | Isolated PostgreSQL tables, categories, indexes, constraints, and RLS are applied. | Replace the current MySQL/TiDB server adapter and port every data procedure to PostgreSQL. |
+| Authentication | Schema is ready for Supabase Auth UUIDs. | Build Supabase Auth session validation, founder owner-role assignment, and Vercel-compatible account flows. |
+| Storage | `catalogue-media` and `marketplace-private` buckets and scoped file policies exist. | Replace the Manus storage adapter and validate original-photo uploads, private files, and owner access. |
+| Public storefront | The visual MtaaMarket storefront remains live on `siayaonlinemarket.vercel.app`. | Configure secure Vercel environment values and test protected API, sign-in, listing, request, order, and upload flows. |
+| Payments and delivery | Future preference/status fields exist only. | Keep external payment, courier, and supplier integrations disabled until each provider and legal/operational workflow is approved. |
 
-## Safe paths forward
+## Security model
 
-MtaaMarket has three safe routes. The first is to continue using the existing managed development services while the public Vercel storefront remains a verified frontend deployment. The second is to create a dedicated MtaaMarket project under an eligible **separate Supabase owner/account** if the platform permits that arrangement; it must first be confirmed empty and controlled only for MtaaMarket. The third is a paid Supabase capacity change, but it requires the exact displayed price and the founder's explicit approval before any upgrade or project creation.
+Every marketplace table in the exposed `public` schema has Row Level Security enabled. Public browsing is restricted to active categories, pickup stations, approved vendors, visible active products, and reviews. Buyer, vendor, owner, fulfilment, and payment-sensitive access remains server-mediated until the final Supabase Auth and Vercel API migration is implemented. This avoids exposing buyer contact information or owner operational records to vendors or anonymous visitors. [1]
 
-Neither Dumiropay project may be deleted, cleared, renamed again, paused, or reused merely to create a free slot. A pause would interrupt a project that has real domain data and recent service activity, while reuse would mix unrelated customers, transaction records, security policies, and operational risk.
+The migration creates a **public** product-media bucket and a **private** marketplace-records bucket. Upload policies scope file paths to authenticated user UUID folders. No product images, customer documents, or supplier content were copied during setup.
 
-## Required migration gate once an isolated project exists
+## Non-negotiable separation rules
 
-The current `drizzle/schema.ts` is a MySQL/TiDB-style Drizzle schema and must **not** be applied directly to Supabase PostgreSQL. Before switching MtaaMarket backend traffic to Vercel, the team must complete the following ordered gate in the new isolated project:
+MtaaMarket must never access the Dumiropay database, its Edge Function, its Auth users, storage, data, service credentials, or application configuration. Likewise, Dumiropay must never point to the MtaaMarket Supabase URL or use MtaaMarket secrets.
 
-1. Design and review a dedicated PostgreSQL schema and migrations for MtaaMarket only, including Row Level Security and marketplace data access rules.
-2. Replace the MySQL database adapter with a PostgreSQL-compatible data layer and validate server procedures against the new schema.
-3. Replace or migrate Manus OAuth with a Vercel-compatible authentication design, including owner/admin role mapping and secure session handling.
-4. Move product media to isolated storage buckets with private upload controls and public delivery rules, without importing Dumiropay files.
-5. Configure Vercel environment values securely through project settings; never copy secrets into source control or chat.
-6. Test sign-in, role checks, listing management, media upload, order privacy, error paths, and rollback steps before accepting real buyer or vendor operations.
+No current claim should say that protected MtaaMarket login, transactions, product uploads, vendor onboarding, or checkout are fully migrated to Supabase/Vercel. The database foundation is complete; the application adapters and end-to-end validation remain the next gate.
 
-Until this gate is complete, MtaaMarket should not claim that production authentication, protected marketplace operations, media uploads, or transactions are operating from Supabase on Vercel.
+## Reference
+
+[1]: https://supabase.com/docs/guides/database/postgres/row-level-security "Supabase Row Level Security documentation"

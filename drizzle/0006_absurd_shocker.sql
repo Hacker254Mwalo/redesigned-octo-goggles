@@ -1,0 +1,1 @@
+ALTER TABLE `assisted_orders` ADD `externalSourceContentAttestedAt` timestamp;

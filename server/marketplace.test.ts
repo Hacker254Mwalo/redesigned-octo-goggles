@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ASSISTED_REQUEST_ACCEPTED_REPLY, assertAssistedOrderTransition, assertMarketplaceRole, buildAssistedOrderFromRequest, convertRequestToAssistedOrder, getProductModerationUpdate, getVendorGovernanceUpdate, makeAssistedOrderNumber, makeSlug } from "./marketplace";
+import { ASSISTED_REQUEST_ACCEPTED_REPLY, assertAssistedOrderTransition, assertMarketplaceRole, buildAssistedOrderFromRequest, convertRequestToAssistedOrder, getProductModerationUpdate, getVendorGovernanceUpdate, makeAssistedOrderNumber, makeSlug, validateExternalSourceDisclosure } from "./marketplace";
 
 describe("marketplace foundation helpers", () => {
   it("creates clean URL-safe slugs for stores and products", () => {
@@ -49,6 +49,14 @@ describe("marketplace foundation helpers", () => {
     expect(draft).toEqual(expect.objectContaining({ itemRequestId: 9, customerName: "Offline customer", quotedAmount: 2200, fulfilmentMethod: "home_delivery", sourceRoute: "approved_vendor", paymentTiming: "confirm_with_mtaamarket" }));
   });
 
+  it("requires an owner-recorded customer confirmation for an external marketplace route", () => {
+    expect(() => validateExternalSourceDisclosure("external_marketplace")).toThrow(/customer's confirmation/i);
+    expect(() => validateExternalSourceDisclosure("external_marketplace", "too short")).toThrow(/customer's confirmation/i);
+    expect(() => validateExternalSourceDisclosure("external_marketplace", "Customer understands this is MtaaMarket manual sourcing, not an external marketplace partnership.")).toThrow(/content is original/i);
+    expect(validateExternalSourceDisclosure("external_marketplace", "Customer understands this is MtaaMarket manual sourcing, not an external marketplace partnership.", true)).toContain("manual sourcing");
+    expect(validateExternalSourceDisclosure("approved_vendor")).toBeUndefined();
+  });
+
   it("creates the linked assisted order before marking the source request accepted", async () => {
     const events: string[] = [];
     const request = { id: 12, customerName: null, customerPhone: "254712345678", title: "Household kettle", details: "A reliable electric kettle for home use.", quotedPrice: null, budgetHint: "1800.00", preferredFulfilment: "collection_point", preferredLocation: "Siaya Town", sourceRoute: null } as any;
@@ -58,5 +66,15 @@ describe("marketplace foundation helpers", () => {
     });
     expect(created).toMatchObject({ id: 77, input: { itemRequestId: 12, customerName: "Request buyer", quotedAmount: 1800 } });
     expect(events).toEqual(["create:12:Household kettle", `accepted:12:${ASSISTED_REQUEST_ACCEPTED_REPLY}`]);
+  });
+
+  it("carries the owner-recorded disclosure through an external-marketplace request conversion before the order handler runs", async () => {
+    const request = { id: 18, customerName: null, customerPhone: null, title: "Laptop sleeve", details: "Protective sleeve for a 14-inch laptop.", quotedPrice: null, budgetHint: "1800.00", preferredFulfilment: "siaya_pickup", preferredLocation: "Siaya Town", sourceRoute: "external_marketplace" } as any;
+    const disclosure = "Customer understands this is independent MtaaMarket manual sourcing, not a marketplace partnership.";
+    const created = await convertRequestToAssistedOrder(request, "Request buyer", {
+      createOrder: async input => ({ input }),
+      markRequestAccepted: async () => undefined,
+    }, disclosure, true);
+    expect(created).toMatchObject({ input: { itemRequestId: 18, sourceRoute: "external_marketplace", externalSourceDisclosure: disclosure, externalContentAttestation: true } });
   });
 });

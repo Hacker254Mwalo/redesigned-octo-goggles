@@ -46,6 +46,7 @@ import {
 } from "./marketplace-operations";
 import { initiateMpesaStkPush, isMpesaConfigured } from "./payments";
 import { createListingDraft } from "./marketplace-ai";
+import { getProductionReadiness } from "./production-readiness";
 
 const safeSearch = z.string().trim().max(100);
 const phone = z.string().trim().regex(/^\+?254[17]\d{8}$/, "Use a Kenyan number beginning with 254.").optional();
@@ -119,6 +120,10 @@ export const appRouter = router({
       if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN", message: "Administrator access is required." });
       return getAdminSummary();
     }),
+    adminProductionReadiness: protectedProcedure.query(({ ctx }) => {
+      if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN", message: "Administrator access is required." });
+      return getProductionReadiness();
+    }),
     adminVendors: protectedProcedure.query(async ({ ctx }) => {
       if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN", message: "Administrator access is required." });
       return listAdminVendors();
@@ -143,13 +148,13 @@ export const appRouter = router({
       if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN", message: "Administrator access is required." });
       return listAdminAssistedOrders();
     }),
-    adminCreateAssistedOrder: protectedProcedure.input(z.object({ customerName: z.string().trim().min(2).max(120), customerPhone: z.string().trim().min(9).max(20).optional(), title: z.string().trim().min(4).max(180), details: z.string().trim().min(10).max(3000), quotedAmount: z.number().positive().max(10000000).optional(), paymentTiming: z.enum(["pay_before", "pay_on_collection", "pay_on_delivery", "confirm_with_mtaamarket"]), fulfilmentMethod: z.enum(["siaya_pickup", "home_delivery", "collection_point", "special_order"]), preferredLocation: z.string().trim().max(180).optional(), sourceRoute: z.enum(["mtaa_select", "approved_vendor", "supplier", "external_marketplace", "other"]), platformNotes: z.string().trim().max(3000).optional() })).mutation(async ({ ctx, input }) => {
+    adminCreateAssistedOrder: protectedProcedure.input(z.object({ customerName: z.string().trim().min(2).max(120), customerPhone: z.string().trim().min(9).max(20).optional(), title: z.string().trim().min(4).max(180), details: z.string().trim().min(10).max(3000), quotedAmount: z.number().positive().max(10000000).optional(), paymentTiming: z.enum(["pay_before", "pay_on_collection", "pay_on_delivery", "confirm_with_mtaamarket"]), fulfilmentMethod: z.enum(["siaya_pickup", "home_delivery", "collection_point", "special_order"]), preferredLocation: z.string().trim().max(180).optional(), sourceRoute: z.enum(["mtaa_select", "approved_vendor", "supplier", "external_marketplace", "other"]), externalSourceDisclosure: z.string().trim().max(600).optional(), externalContentAttestation: z.boolean().optional(), platformNotes: z.string().trim().max(3000).optional() })).mutation(async ({ ctx, input }) => {
       if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN", message: "Administrator access is required." });
       return createAssistedOrder((await ensureMarketplaceProfile(ctx.user.id, ctx.user.name)).id, input);
     }),
-    adminCreateAssistedOrderFromRequest: protectedProcedure.input(z.object({ requestId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+    adminCreateAssistedOrderFromRequest: protectedProcedure.input(z.object({ requestId: z.number().int().positive(), externalSourceDisclosure: z.string().trim().max(600).optional(), externalContentAttestation: z.boolean().optional() })).mutation(async ({ ctx, input }) => {
       if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN", message: "Administrator access is required." });
-      return createAssistedOrderFromRequest((await ensureMarketplaceProfile(ctx.user.id, ctx.user.name)).id, input.requestId);
+      return createAssistedOrderFromRequest((await ensureMarketplaceProfile(ctx.user.id, ctx.user.name)).id, input.requestId, input.externalSourceDisclosure, input.externalContentAttestation);
     }),
     adminUpdateAssistedOrder: protectedProcedure.input(z.object({ assistedOrderId: z.number().int().positive(), status: z.enum(["recorded", "confirmed", "sourcing", "ready", "out_for_delivery", "completed", "cancelled"]), platformNotes: z.string().trim().max(3000).optional(), quotedAmount: z.number().positive().max(10000000).optional(), paymentTiming: z.enum(["pay_before", "pay_on_collection", "pay_on_delivery", "confirm_with_mtaamarket"]).optional(), fulfilmentMethod: z.enum(["siaya_pickup", "home_delivery", "collection_point", "special_order"]).optional() })).mutation(async ({ ctx, input }) => {
       if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN", message: "Administrator access is required." });
