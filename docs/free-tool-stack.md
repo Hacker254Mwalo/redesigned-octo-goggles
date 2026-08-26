@@ -40,6 +40,18 @@ Jumia’s published terms prohibit systematic automated data collection, includi
 
 Start with the existing listing draft assistant, original photos, Request Desk, Assisted Market orders, and simple owner dashboards. Add Cloudflare Web Analytics only once the privacy notice and a small page-view plan are ready. Introduce PostHog only when the owner needs funnel or feature-flag answers that basic analytics cannot give. Add Sentry at the moment real protected traffic is enabled. Each addition should have a small owner-facing success measure—for example, “fewer incomplete listings” or “faster response to item requests”—rather than being added simply because it is fashionable.
 
+## Current free-plan comparison
+
+The recommended first addition remains **none until the public privacy notice is ready**, followed by **Cloudflare Web Analytics only**. It is the narrowest option for basic page and performance measurement. Sentry becomes useful only when real protected customer traffic exists, while PostHog should wait until the owner has a specific funnel or feature-flag question that simple analytics cannot answer.
+
+| Tool | Official free-plan position checked | Best first use for MtaaMarket | Do not send |
+|---|---|---|---|
+| Cloudflare Web Analytics | Cloudflare presents it as privacy-focused web analytics for understanding page performance. [6] | Public page views and page-performance trends. | Customer names, contact information, order details, payment paths, or Request Desk text. |
+| Sentry Developer | Sentry lists a $0 Developer plan for one user, with error monitoring, tracing, alerts, and email notifications. [7] | Production error alerts once account and order flows are genuinely live. | Buyer/vendor identities, phone numbers, addresses, payment references, tokens, or raw request bodies. |
+| PostHog Free | PostHog says its no-card Free plan includes one project, one-year data retention, unlimited team members, monthly allowances, and usage stopping at free-tier limits. [8] | Later: a small, consented event plan for product discovery funnels or carefully reviewed feature flags. | Session recordings of sign-in, Request Desk, baskets, checkout, payment, profiles, seller operations, or owner dashboards. |
+
+No provider is connected by this comparison. Before adding any tool, the owner should document a specific measurement question, name the exact paths/events permitted, keep the integration removable, and review the provider's current terms and limits again.
+
 ## References
 
 [1]: https://www.cloudflare.com/web-analytics/ "Cloudflare Web Analytics"
@@ -47,3 +59,6 @@ Start with the existing listing draft assistant, original photos, Request Desk, 
 [3]: https://sentry.io/pricing/ "Sentry pricing"
 [4]: https://www.jumia.co.ke/sp-terms-and-conditions "Jumia Kenya terms and conditions"
 [5]: https://www.jumia.co.ke/sp-market-place/ "Jumia Kenya marketplace"
+[6]: https://developers.cloudflare.com/web-analytics/ "Cloudflare Web Analytics documentation"
+[7]: https://sentry.io/pricing/ "Sentry pricing"
+[8]: https://posthog.com/pricing "PostHog pricing"

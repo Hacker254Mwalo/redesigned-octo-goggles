@@ -71,6 +71,13 @@ export function resolvePaymentTimingSnapshot(timings: PaymentTiming[]): PaymentT
   return timings.length > 0 && new Set(timings).size === 1 ? timings[0] : "confirm_with_mtaamarket";
 }
 
+/** Live-animal listings require the isolated UUID workflow with owner review; never publish them through the legacy seller-write path. */
+export function assertLegacySellerListingCategoryCanPublish(categorySlug: string) {
+  if (categorySlug === "poultry-livestock") {
+    throw new Error("Poultry and livestock listings require MtaaMarket owner review and manual collection checks before they can be published.");
+  }
+}
+
 export function validateFulfilmentSelection(input: { fulfilmentMethod: FulfilmentMethod; pickupStationId?: number; customerFulfilmentNote?: string; deliveryArea?: string }) {
   const hasLocation = Boolean(input.deliveryArea?.trim() || input.customerFulfilmentNote?.trim());
   if (input.fulfilmentMethod === "home_delivery" && !hasLocation) throw new Error("Add a Siaya delivery area or location suggestion for home delivery.");
@@ -182,6 +189,7 @@ export async function createVendorProduct(profileId: number, input: { categoryId
   const vendor = await getVendorForProfile(profileId); if (!vendor) throw new Error("Create your vendor profile before adding products.");
   if (vendor.approvalStatus !== "approved" || !vendor.isActive) throw new Error("Your Seller Studio is awaiting MtaaMarket approval before listings can go public.");
   const category = (await db.select().from(categories).where(eq(categories.id, input.categoryId)).limit(1))[0]; if (!category) throw new Error("Select a valid category.");
+  assertLegacySellerListingCategoryCanPublish(category.slug);
   let imageUrl: string | undefined; let imageKey: string | undefined;
   if (input.imageDataUrl) {
     const match = input.imageDataUrl.match(/^data:image\/webp;base64,([A-Za-z0-9+/=]+)$/);

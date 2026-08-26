@@ -49,8 +49,8 @@ export function getProductionReadiness(): ProductionReadiness {
       id: "auth",
       title: "Production sign-in and owner roles",
       state: "blocked",
-      detail: "A Supabase JWKS verifier is configured, but the current marketplace still depends on Manus OAuth rather than a completed Supabase Auth session flow.",
-      nextAction: "Implement Supabase Auth sign-in/session handling and assign the founder owner role through the final secured flow.",
+      detail: "MtaaMarket production Auth URLs, browser email-session handling, token verification, and lowest-privilege UUID buyer-profile preparation are in place. Founder-role binding, email-provider confirmation, and protected PostgreSQL procedures are still incomplete.",
+      nextAction: "Verify the enabled email provider, bind the founder's verified Auth UUID through a one-time secured role action, then migrate the protected profile, vendor, order, and admin procedures.",
     },
     {
       id: "storage",

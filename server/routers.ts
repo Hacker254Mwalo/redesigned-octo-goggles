@@ -45,8 +45,9 @@ import {
   releaseEscrowOrder,
 } from "./marketplace-operations";
 import { initiateMpesaStkPush, isMpesaConfigured } from "./payments";
-import { createListingDraft } from "./marketplace-ai";
+import { createItemRequestDraft, createListingDraft } from "./marketplace-ai";
 import { getProductionReadiness } from "./production-readiness";
+import { ensureSupabaseMarketplaceProfile } from "./supabase-profiles";
 
 const safeSearch = z.string().trim().max(100);
 const phone = z.string().trim().regex(/^\+?254[17]\d{8}$/, "Use a Kenyan number beginning with 254.").optional();
@@ -56,6 +57,18 @@ export const appRouter = router({
   system: systemRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
+    supabaseSession: publicProcedure.query(async ({ ctx }) => {
+      if (!ctx.supabaseIdentity) return { signedIn: false, protectedCommerceReady: false, message: "No verified MtaaMarket email session is present." };
+      const profile = await ensureSupabaseMarketplaceProfile(ctx.supabaseIdentity);
+      return {
+        signedIn: true,
+        subject: ctx.supabaseIdentity.subject,
+        email: ctx.supabaseIdentity.email,
+        profile,
+        protectedCommerceReady: false,
+        message: "Your MtaaMarket email session is verified with a buyer profile. Seller, owner, basket, order, and payment actions remain unavailable until the protected UUID migration is complete.",
+      };
+    }),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
@@ -83,6 +96,11 @@ export const appRouter = router({
     buyerOrders: protectedProcedure.query(async ({ ctx }) => listBuyerOrders((await ensureMarketplaceProfile(ctx.user.id, ctx.user.name)).id)),
     buyerItemRequests: protectedProcedure.query(async ({ ctx }) => listBuyerItemRequests((await ensureMarketplaceProfile(ctx.user.id, ctx.user.name)).id)),
     createItemRequest: protectedProcedure.input(z.object({ title: z.string().trim().min(4).max(180), details: z.string().trim().min(10).max(3000), budgetHint: z.number().positive().max(10000000).optional(), preferredFulfilment: z.enum(["siaya_pickup", "home_delivery", "collection_point", "special_order"]), preferredLocation: z.string().trim().max(180).optional() })).mutation(async ({ ctx, input }) => createItemRequest((await ensureMarketplaceProfile(ctx.user.id, ctx.user.name)).id, input)),
+    draftItemRequest: protectedProcedure.input(z.object({ title: z.string().trim().max(180).optional(), details: z.string().trim().max(1200).optional(), preferredFulfilment: z.enum(["siaya_pickup", "home_delivery", "collection_point", "special_order"]), preferredLocation: z.string().trim().max(180).optional() }).refine(input => Boolean(input.title || input.details), { message: "Add a few words about the item before using the request assistant." })).mutation(async ({ ctx, input }) => {
+      const profile = await ensureMarketplaceProfile(ctx.user.id, ctx.user.name);
+      assertMarketplaceRole(profile.role, ["buyer", "vendor", "admin"]);
+      return createItemRequestDraft(profile.id, input);
+    }),
     initiatePayment: protectedProcedure.input(z.object({ orderId: z.number().int().positive(), phone: z.string().trim().min(9).max(20) })).mutation(async ({ ctx, input }) => initiateMpesaStkPush((await ensureMarketplaceProfile(ctx.user.id, ctx.user.name)).id, input.orderId, input.phone)),
     confirmPickup: protectedProcedure.input(z.object({ orderId: z.number().int().positive() })).mutation(async ({ ctx, input }) => confirmPickup((await ensureMarketplaceProfile(ctx.user.id, ctx.user.name)).id, input.orderId)),
     openDispute: protectedProcedure.input(z.object({ orderId: z.number().int().positive(), reason: z.string().trim().min(3).max(120), details: z.string().trim().min(10).max(3000) })).mutation(async ({ ctx, input }) => openDispute((await ensureMarketplaceProfile(ctx.user.id, ctx.user.name)).id, input.orderId, input.reason, input.details)),

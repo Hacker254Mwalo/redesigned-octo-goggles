@@ -11,11 +11,15 @@ The isolated project already has a server-side JWT verifier that checks the Supa
 | Gate | Required completion evidence | Current status |
 |---|---|---|
 | Auth URL configuration | The production site URL and exact allowed authentication redirects are configured in the isolated Supabase project. | Blocked; hosted Auth URL configuration has not been verified. |
-| Browser authentication | A browser-safe client uses only the publishable key, obtains a session, and forwards a bearer token only over HTTPS to the MtaaMarket API. | Not implemented. |
-| Server verification | The API verifies the bearer token using the configured JWKS, maps its `sub` UUID to a Supabase profile, and never trusts client-supplied roles. | Verifier exists; profile mapping and protected context bridge are not implemented. |
-| Founder role assignment | The founder signs in using the final flow; a server-side one-time owner assignment maps that exact Auth UUID to `admin`. | Not started; no profile is seeded. |
+| Browser authentication | A browser-safe client uses only the publishable key, obtains a session, and forwards a bearer token only over HTTPS to the MtaaMarket API. | Implemented; local visual review passed. The email provider could not be rechecked after the Supabase dashboard session expired. |
+| Server verification | The API verifies the bearer token using the configured JWKS, maps its `sub` UUID to a Supabase profile, and never trusts client-supplied roles. | Implemented for verified, lowest-privilege buyer-profile preparation. Protected procedures still do not consume this identity. |
+| Founder role assignment | The founder signs in using the final flow; a server-side one-time owner assignment maps that exact Auth UUID to `admin`. | Not started; no profile is seeded or elevated. |
 | Protected procedure adapter | Buyer, vendor, owner, order, review-write, and media metadata procedures use one PostgreSQL UUID data model end to end. | Blocked; legacy procedures still require numeric MySQL identities. |
 | Recovery and misuse controls | Passwordless/email authentication settings, rate limits, redirect allow-list, and the no-self-promotion policy are reviewed before inviting customers. | Blocked. |
+
+### Latest configuration inspection
+
+The isolated project’s hosted **Authentication → URL Configuration** page was updated only after founder approval. Its Site URL is `https://siayaonlinemarket.vercel.app`, and its redirect allow-list now contains exactly `https://siayaonlinemarket.vercel.app`. The production URL prerequisite for the MtaaMarket email magic-link flow is complete.
 
 ## Authentication method boundary
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ASSISTED_REQUEST_ACCEPTED_REPLY, assertAssistedOrderTransition, assertMarketplaceRole, buildAssistedOrderFromRequest, convertRequestToAssistedOrder, getProductModerationUpdate, getVendorGovernanceUpdate, makeAssistedOrderNumber, makeSlug, validateExternalSourceDisclosure } from "./marketplace";
+import { ASSISTED_REQUEST_ACCEPTED_REPLY, assertAssistedOrderTransition, assertMarketplaceRole, buildAssistedOrderFromRequest, CATEGORY_SEED, convertRequestToAssistedOrder, getProductModerationUpdate, getVendorGovernanceUpdate, makeAssistedOrderNumber, makeSlug, validateExternalSourceDisclosure } from "./marketplace";
 
 describe("marketplace foundation helpers", () => {
   it("creates clean URL-safe slugs for stores and products", () => {
@@ -42,6 +42,14 @@ describe("marketplace foundation helpers", () => {
     expect(getProductModerationUpdate(activeProduct, "paused")).toEqual({ moderationStatus: "paused", status: "active" });
     expect(getProductModerationUpdate(activeProduct, "removed")).toEqual({ moderationStatus: "removed", status: "archived" });
     expect(getProductModerationUpdate(activeProduct, "visible")).toEqual({ moderationStatus: "visible", status: "active" });
+  });
+
+  it("includes the governed Poultry & Livestock category in fallback discovery", () => {
+    expect(CATEGORY_SEED).toContainEqual(expect.objectContaining({
+      slug: "poultry-livestock",
+      name: "Poultry & Livestock",
+      icon: "Beef",
+    }));
   });
 
   it("converts a request into a platform-controlled Assisted Market order with its source and fulfilment preference intact", () => {

@@ -11,9 +11,10 @@ export function formatKes(value: string | number) { return new Intl.NumberFormat
 export function ProductCard({ entry }: { entry: ProductCardData }) {
   const { addItem } = useCart();
   const product = entry.product;
+  const isLivestockListing = entry.category.slug === "poultry-livestock";
   const add = () => {
-    if (typeof product.id !== "number") {
-      toast.message("Online ordering is being activated. Please use the Request Desk and MtaaMarket will confirm the next step.");
+    if (typeof product.id !== "number" || isLivestockListing) {
+      toast.message(isLivestockListing ? "Livestock collection is confirmed manually. Please use the Request Desk and MtaaMarket will confirm the next safe step." : "Online ordering is being activated. Please use the Request Desk and MtaaMarket will confirm the next step.");
       return;
     }
     addItem({ id: product.id, slug: product.slug, title: product.title, price: Number(product.price), category: entry.category.slug });
@@ -21,6 +22,6 @@ export function ProductCard({ entry }: { entry: ProductCardData }) {
   };
   return <article className="product-card">
     <Link href={`/products/${product.slug}`} className="product-image-link"><ProductVisual category={entry.category.slug} title={product.title} imageUrl={product.imageUrl} /><span className="open-product"><ArrowUpRight size={16} /></span></Link>
-    <div className="product-card-body"><p className="product-category">{entry.category.name}</p><Link href={`/products/${product.slug}`} className="product-title">{product.title}</Link><div className="product-price-row"><strong>{formatKes(product.price)}</strong><button className="add-to-basket" onClick={add} aria-label={typeof product.id === "number" ? `Add ${product.title} to basket` : `Request ${product.title} through MtaaMarket`}><ShoppingBag size={16} /></button></div><p className="sample-note">{typeof product.id !== "number" ? "Request through MtaaMarket · confirmation first" : entry.vendor?.storeName ? `Approved seller · ${entry.vendor.storeName}` : product.sourceType === "mtaa_select" ? "MtaaMarket Select" : product.availabilityStatus === "special_order" ? "Special order · confirm first" : `${product.itemCondition || "new"} item · fulfilment confirmed by MtaaMarket`}</p></div>
+    <div className="product-card-body"><p className="product-category">{entry.category.name}</p><Link href={`/products/${product.slug}`} className="product-title">{product.title}</Link><div className="product-price-row"><strong>{formatKes(product.price)}</strong><button className="add-to-basket" onClick={add} aria-label={typeof product.id === "number" && !isLivestockListing ? `Add ${product.title} to basket` : `Request ${product.title} through MtaaMarket`}><ShoppingBag size={16} /></button></div><p className="sample-note">{isLivestockListing ? "Local livestock · owner confirmation and collection checks required" : typeof product.id !== "number" ? "Request through MtaaMarket · confirmation first" : entry.vendor?.storeName ? `Approved seller · ${entry.vendor.storeName}` : product.sourceType === "mtaa_select" ? "MtaaMarket Select" : product.availabilityStatus === "special_order" ? "Special order · confirm first" : `${product.itemCondition || "new"} item · fulfilment confirmed by MtaaMarket`}</p></div>
   </article>;
 }

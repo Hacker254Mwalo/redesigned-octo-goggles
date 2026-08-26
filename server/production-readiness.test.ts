@@ -11,6 +11,7 @@ describe("MtaaMarket production readiness", () => {
     expect(readiness.gates.find(gate => gate.id === "publicDiscovery")?.state).toBe("ready");
     expect(readiness.gates.find(gate => gate.id === "server")?.state).toBe("blocked");
     expect(readiness.gates.find(gate => gate.id === "auth")?.state).toBe("blocked");
+    expect(readiness.gates.find(gate => gate.id === "auth")?.detail).toMatch(/email-session/i);
     expect(readiness.gates.find(gate => gate.id === "storage")?.state).toBe("blocked");
     expect(readiness.gates.find(gate => gate.id === "commerce")?.state).toBe("intentional");
   });

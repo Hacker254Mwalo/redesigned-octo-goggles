@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assertOrderTransition, getPickupStationDeliveryNotice, makeOrderNumber, normalizeKenyanPhone, resolvePaymentTimingSnapshot, toVendorSafeOrderView, validateFulfilmentSelection } from "./marketplace-operations";
+import { assertLegacySellerListingCategoryCanPublish, assertOrderTransition, getPickupStationDeliveryNotice, makeOrderNumber, normalizeKenyanPhone, resolvePaymentTimingSnapshot, toVendorSafeOrderView, validateFulfilmentSelection } from "./marketplace-operations";
 
 describe("marketplace order safeguards", () => {
   it("normalizes accepted Kenyan mobile formats to Daraja-compatible form", () => {
@@ -44,6 +44,11 @@ describe("marketplace order safeguards", () => {
     expect(resolvePaymentTimingSnapshot(["pay_on_delivery"])).toBe("pay_on_delivery");
     expect(resolvePaymentTimingSnapshot(["pay_on_delivery", "pay_before"])).toBe("confirm_with_mtaamarket");
     expect(resolvePaymentTimingSnapshot([])).toBe("confirm_with_mtaamarket");
+  });
+
+  it("blocks livestock from the legacy seller-write path pending the UUID owner-review workflow", () => {
+    expect(() => assertLegacySellerListingCategoryCanPublish("poultry-livestock")).toThrow(/owner review/i);
+    expect(() => assertLegacySellerListingCategoryCanPublish("farm-garden")).not.toThrow();
   });
 
   it("requires enough location information for home delivery or an unverified collection point", () => {

@@ -6,6 +6,8 @@ import { createRoot } from "react-dom/client";
 import superjson from "superjson";
 import App from "./App";
 import { startLogin } from "./const";
+import { SUPABASE_ACCESS_TOKEN_KEY } from "./lib/supabase-browser";
+import { SupabaseAuthProvider } from "./contexts/SupabaseAuthContext";
 import "./index.css";
 
 const queryClient = new QueryClient();
@@ -17,6 +19,11 @@ const redirectToLoginIfUnauthorized = (error: unknown) => {
   const isUnauthorized = error.message === UNAUTHED_ERR_MSG;
 
   if (!isUnauthorized) return;
+  try {
+    if (sessionStorage.getItem(SUPABASE_ACCESS_TOKEN_KEY)) return;
+  } catch {
+    // Fall back to the local development login path.
+  }
 
   startLogin();
 };
@@ -48,6 +55,8 @@ const trpcClient = trpc.createClient({
         // session into sessionStorage so we can forward it as a Bearer token.
         // The regular OAuth cookie flow keeps working and takes priority server-side.
         try {
+          const supabaseToken = sessionStorage.getItem(SUPABASE_ACCESS_TOKEN_KEY);
+          if (supabaseToken) return { Authorization: `Bearer ${supabaseToken}` };
           const raw = sessionStorage.getItem("manus-cookie");
           if (raw) {
             const prefix = `${COOKIE_NAME}=`;
@@ -75,7 +84,7 @@ const trpcClient = trpc.createClient({
 createRoot(document.getElementById("root")!).render(
   <trpc.Provider client={trpcClient} queryClient={queryClient}>
     <QueryClientProvider client={queryClient}>
-      <App />
+      <SupabaseAuthProvider><App /></SupabaseAuthProvider>
     </QueryClientProvider>
   </trpc.Provider>
 );

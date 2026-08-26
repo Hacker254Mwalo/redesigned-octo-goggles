@@ -31,7 +31,7 @@ export function assertMarketplaceRole(role: MarketplaceRole, allowed: Marketplac
   }
 }
 
-const CATEGORY_SEED = [
+export const CATEGORY_SEED = [
   { name: "Phones & Electronics", slug: "phones-electronics", icon: "Smartphone", description: "Phones, accessories, audio and practical electronics.", sortOrder: 1 },
   { name: "Computing", slug: "computing", icon: "Laptop", description: "Computers, peripherals and work essentials.", sortOrder: 2 },
   { name: "Home & Kitchen", slug: "home-kitchen", icon: "House", description: "Useful home, kitchen and living products.", sortOrder: 3 },
@@ -40,8 +40,9 @@ const CATEGORY_SEED = [
   { name: "Groceries & Household", slug: "groceries-household", icon: "ShoppingBasket", description: "Everyday household and pantry items.", sortOrder: 6 },
   { name: "Baby, Kids & Toys", slug: "baby-kids-toys", icon: "Baby", description: "Physical products for babies, children and families.", sortOrder: 7 },
   { name: "Farm & Garden", slug: "farm-garden", icon: "Sprout", description: "Farm, garden and outdoor essentials.", sortOrder: 8 },
-  { name: "Tools & Building", slug: "tools-building", icon: "Wrench", description: "Tools, hardware and building essentials.", sortOrder: 9 },
-  { name: "Automotive & Parts", slug: "automotive-parts", icon: "Car", description: "Vehicle accessories and physical spare parts.", sortOrder: 10 },
+  { name: "Poultry & Livestock", slug: "poultry-livestock", icon: "Beef", description: "Owner-approved local poultry and livestock listings with manual welfare and collection checks.", sortOrder: 9 },
+  { name: "Tools & Building", slug: "tools-building", icon: "Wrench", description: "Tools, hardware and building essentials.", sortOrder: 10 },
+  { name: "Automotive & Parts", slug: "automotive-parts", icon: "Car", description: "Vehicle accessories and physical spare parts.", sortOrder: 11 },
 ] as const;
 
 const LEGACY_STATION_SLUGS = ["nairobi-cbd-hub", "westlands-point", "rongai-station", "mombasa-centre"];
