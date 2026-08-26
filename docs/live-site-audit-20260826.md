@@ -35,3 +35,13 @@ The next technical foundation work should focus on public performance, accessibi
 ## Deployment verification
 
 The Vercel deployment associated with the hardening checkpoint completed successfully. The public production domain now serves the MtaaMarket `manifest.webmanifest` with the expected standalone/mobile metadata rather than the single-page fallback. This confirms that the latest static asset deployment propagated; it does not activate offline caching, protected commerce, or an install prompt with custom icons.
+
+## Expanded public-foundation deployment verification
+
+The subsequent public deployment exposes the new `/auth/reset-password` recovery route. A visit without a recovery code renders the intentional safe recovery state rather than a 404 or a password form. The deployed Request Desk also accepts an item hand-off from discovery through a URL parameter, pre-filling the item text while keeping submission behind sign-in and keeping the collection area explicitly broad.
+
+| Route | Observed production state | Boundary preserved |
+|---|---|---|
+| `/auth/reset-password` | Safe “Link needs attention” recovery state renders successfully with no token in the visible address. | No password change happens without a valid Supabase recovery session. |
+| `/request?item=solar%20lantern` | The item field safely pre-fills as “solar lantern”; the form explains collection/data-minimisation limits. | No request, order, payment, vendor action, or delivery promise was submitted. |
+| `/manifest.webmanifest` | Returns `200` with MtaaMarket app metadata after the latest GitHub-triggered deployment. | No service worker or protected-data caching is enabled. |
