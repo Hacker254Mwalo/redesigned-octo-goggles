@@ -1,5 +1,11 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { ACCOUNT_EMAIL_ACTION_COOLDOWN_SECONDS, ACCOUNT_MIN_PASSWORD_LENGTH, accountEmailCooldownNotice, passwordRecoveryNotice, validateMtaaMarketPassword } from "../client/src/lib/auth-account";
+
+const supabaseAuthContextSource = readFileSync(
+  new URL("../client/src/contexts/SupabaseAuthContext.tsx", import.meta.url),
+  "utf8",
+);
 
 describe("MtaaMarket email/password account safeguards", () => {
   it("requires an eight-character password with both letters and digits", () => {
@@ -20,5 +26,16 @@ describe("MtaaMarket email/password account safeguards", () => {
     expect(ACCOUNT_EMAIL_ACTION_COOLDOWN_SECONDS).toBe(60);
     expect(accountEmailCooldownNotice()).toContain("wait 60 seconds");
     expect(accountEmailCooldownNotice(1.2)).toContain("wait 2 seconds");
+  });
+
+  it("keeps passwords client-to-provider only and cannot assign marketplace roles during account actions", () => {
+    expect(supabaseAuthContextSource).toContain("auth.signUp({");
+    expect(supabaseAuthContextSource).toContain("auth.signInWithPassword({ email, password })");
+    expect(supabaseAuthContextSource).toContain("auth.resetPasswordForEmail(email");
+    expect(supabaseAuthContextSource).toContain("auth.updateUser({ password })");
+    expect(supabaseAuthContextSource).toContain("sessionStorage.setItem(SUPABASE_ACCESS_TOKEN_KEY, session.access_token)");
+    expect(supabaseAuthContextSource).not.toMatch(/(?:localStorage|sessionStorage)\.[^(]+\([^)]*password/i);
+    expect(supabaseAuthContextSource).not.toMatch(/password[^\n]*(?:localStorage|sessionStorage)/i);
+    expect(supabaseAuthContextSource).not.toMatch(/\brole\s*:/i);
   });
 });
