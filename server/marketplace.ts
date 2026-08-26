@@ -11,6 +11,7 @@ import {
   vendors,
 } from "../drizzle/schema";
 import { getDb } from "./db";
+import { listSupabasePublicCategories } from "./supabase-marketplace";
 
 export type MarketplaceRole = "buyer" | "vendor" | "admin";
 export type VendorApprovalStatus = "pending" | "approved" | "suspended" | "rejected";
@@ -72,6 +73,8 @@ export async function seedMarketplaceFoundation() {
 }
 
 export async function listPublicCategories() {
+  const supabaseCategories = await listSupabasePublicCategories();
+  if (supabaseCategories) return supabaseCategories;
   await seedMarketplaceFoundation();
   const db = await getDb();
   if (!db) return [];
