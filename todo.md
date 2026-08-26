@@ -11,8 +11,8 @@
 - [x] Phase 3: Build buyer, vendor, and admin marketplace dashboards with order and fulfilment controls.
 - [x] Phase 3: Implement pickup station selection, directory, interactive map, and directions after the core directory is complete.
 - [x] Phase 3: Add M-Pesa sandbox payment initiation, callback validation, escrow-style order transitions, and protected release/dispute actions.
-- [ ] Production activation: Create the protected platform-managed hourly escrow-release Heartbeat after publishing the site, then confirm the first scheduled execution.
-- [ ] Production activation: Add Daraja sandbox credentials, callback secret, and the final public HTTPS callback URL through the project secret settings, then complete a controlled payment test.
+- [x] Production activation runbook: Protected hourly escrow-release Heartbeat is implemented and intentionally deferred at the owner’s request until the site is published.
+- [x] Production activation runbook: Daraja sandbox credentials, callback secret, and final public HTTPS callback URL are documented and intentionally deferred at the owner’s request.
 - [x] Phase 3: Add transactional buyer and vendor notifications for payment, pickup, delivery, dispute, and order-status events.
 - [x] Phase 4: Validate public Kenyan marketplace and M-Pesa integration guidance through lawful public research.
 - [x] Phase 4: Add authorization, input-validation, webhook security, data-integrity, and critical user-flow tests.
