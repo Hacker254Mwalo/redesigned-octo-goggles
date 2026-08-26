@@ -1,0 +1,21 @@
+import { MarketplaceLayout } from "@/components/MarketplaceLayout";
+import { formatKes } from "@/components/ProductCard";
+import { ProductVisual } from "@/components/ProductVisual";
+import { useCart } from "@/contexts/CartContext";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { startLogin } from "@/const";
+import { trpc } from "@/lib/trpc";
+import { ArrowRight, CreditCard, MapPin, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { Link, useLocation } from "wouter";
+import { toast } from "sonner";
+
+export default function CartPage() {
+  const { items, subtotal, updateQuantity, removeItem, clearCart } = useCart(); const { isAuthenticated } = useAuth(); const [, setLocation] = useLocation();
+  const stations = trpc.marketplace.pickupStations.useQuery(); const [stationId, setStationId] = useState<number>(); const [paymentPhone, setPaymentPhone] = useState("");
+  const createOrder = trpc.marketplace.createOrder.useMutation({ onSuccess: order => { clearCart(); toast.success(`Order ${order.orderNumber} created. Add M-Pesa credentials to activate payment.`); setLocation("/dashboard"); }, onError: error => toast.error(error.message) });
+  const selected = stations.data?.find(station => station.id === stationId);
+  const pickupFee = items.length ? 120 : 0;
+  const checkout = () => { if (!isAuthenticated) return startLogin(); if (!stationId) return toast.error("Choose a pickup station first."); if (!paymentPhone.trim()) return toast.error("Enter the Kenyan number to receive the M-Pesa prompt."); createOrder.mutate({ items: items.map(item => ({ productId: item.id, quantity: item.quantity })), pickupStationId: stationId, paymentPhone }); };
+  return <MarketplaceLayout><div className="basket-page"><div className="basket-heading"><p className="eyebrow">Your selections</p><h1>Your basket</h1><p>Review your picks, choose a pickup station, then continue to M-Pesa.</p></div>{items.length === 0 ? <div className="empty-basket"><ShoppingBag size={36} /><h2>Your basket is waiting.</h2><p>Discover useful finds and add them when you are ready.</p><Link href="/" className="primary-cta">Browse the market <ArrowRight size={17} /></Link></div> : <div className="checkout-layout"><section className="basket-list">{items.map(item => <article className="basket-item" key={item.id}><ProductVisual category={item.category} title={item.title} /><div><p className="product-category">Marketplace item</p><h2>{item.title.replace("Sample Listing — ", "")}</h2><strong>{formatKes(item.price)}</strong></div><div className="basket-controls"><div><button onClick={() => updateQuantity(item.id, item.quantity - 1)}><Minus size={14} /></button><span>{item.quantity}</span><button onClick={() => updateQuantity(item.id, item.quantity + 1)}><Plus size={14} /></button></div><button className="remove-item" onClick={() => removeItem(item.id)}><Trash2 size={16} /> Remove</button></div></article>)}</section><aside className="order-summary"><h2>Order summary</h2><div className="station-select"><label htmlFor="station"><MapPin size={16} /> Pickup station</label><select id="station" value={stationId || ""} onChange={event => setStationId(Number(event.target.value) || undefined)}><option value="">Select a station</option>{stations.data?.map(station => <option key={station.id} value={station.id}>{station.name} — {station.town}</option>)}</select>{selected && <p>{selected.address}<br />{selected.openingHours}</p>}</div><div className="station-select"><label htmlFor="phone"><CreditCard size={16} /> M-Pesa phone number</label><input id="phone" value={paymentPhone} onChange={event => setPaymentPhone(event.target.value)} placeholder="0712 345 678" inputMode="tel" /></div><div className="summary-lines"><span>Items <strong>{formatKes(subtotal)}</strong></span><span>Pickup <strong>{formatKes(pickupFee)}</strong></span><span className="total-line">Total <strong>{formatKes(subtotal + pickupFee)}</strong></span></div><button disabled={createOrder.isPending} className="basket-button" onClick={checkout}>{createOrder.isPending ? "Creating order…" : isAuthenticated ? "Create order" : "Sign in to continue"} <ArrowRight size={17} /></button><p className="summary-note">No payment is taken until you approve the M-Pesa prompt.</p></aside></div>}</div></MarketplaceLayout>;
+}

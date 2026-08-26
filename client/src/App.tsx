@@ -3,14 +3,25 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
+import { CartProvider } from "./contexts/CartContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import CartPage from "./pages/CartPage";
+import DashboardPage from "./pages/DashboardPage";
 import Home from "./pages/Home";
+import PickupStations from "./pages/PickupStations";
+import ProductDetail from "./pages/ProductDetail";
+import VendorPage from "./pages/VendorPage";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
   return (
     <Switch>
       <Route path={"/"} component={Home} />
+      <Route path={"/products/:slug"} component={ProductDetail} />
+      <Route path={"/cart"} component={CartPage} />
+      <Route path={"/stations"} component={PickupStations} />
+      <Route path={"/vendor"} component={VendorPage} />
+      <Route path={"/dashboard"} component={DashboardPage} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />
@@ -31,8 +42,10 @@ function App() {
         // switchable
       >
         <TooltipProvider>
-          <Toaster />
-          <Router />
+          <CartProvider>
+            <Toaster richColors position="top-center" />
+            <Router />
+          </CartProvider>
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>

@@ -1,33 +1,20 @@
-import { useAuth } from "@/_core/hooks/useAuth";
-import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
-import { Streamdown } from 'streamdown';
+import { MarketplaceLayout } from "@/components/MarketplaceLayout";
+import { ProductCard } from "@/components/ProductCard";
+import { trpc } from "@/lib/trpc";
+import { ArrowRight, CheckCircle2, ChevronRight, MapPin, Search, ShieldCheck, Store, Truck, Zap } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Link } from "wouter";
 
-/**
- * All content in this page are only for example, replace with your own feature implementation
- * When building pages, remember your instructions in Frontend Workflow, Frontend Best Practices, Design Guide and Common Pitfalls
- */
 export default function Home() {
-  // The useAuth hook provides authentication state.
-  // To implement login/logout, call logout(), or start login from an event
-  // handler: onClick={() => startLogin()} (imported from "@/const"). Never call
-  // startLogin() during render (no href={startLogin()}) — it mints a one-time
-  // nonce cookie and must run only at the moment of navigation.
-  let { user, loading, error, isAuthenticated, logout } = useAuth();
-
-  // If theme is switchable in App.tsx, we can implement theme toggling like this:
-  // const { theme, toggleTheme } = useTheme();
-
-  return (
-    <div className="min-h-screen flex flex-col">
-      <main>
-        {/* Example: lucide-react for icons */}
-        <Loader2 className="animate-spin" />
-        Example Page
-        {/* Example: Streamdown for markdown rendering */}
-        <Streamdown>Any **markdown** content</Streamdown>
-        <Button variant="default">Example Button</Button>
-      </main>
-    </div>
-  );
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState<string | undefined>();
+  const categories = trpc.marketplace.categories.useQuery();
+  const products = trpc.marketplace.products.useQuery({ categorySlug: category, search: search || undefined, limit: 24 });
+  const productList = useMemo(() => products.data || [], [products.data]);
+  return <MarketplaceLayout>
+    <section className="hero-section"><div className="hero-container"><div className="hero-copy"><p className="eyebrow">A better local marketplace</p><h1>Find good things.<br /><em>Pick them up simply.</em></h1><p className="hero-description">Discover useful products, pay with M-Pesa, and collect from a pickup point that works for your day.</p><div className="hero-actions"><a href="#discover" className="primary-cta">Explore the market <ArrowRight size={17} /></a><Link href="/stations" className="text-cta">Find a pickup station <ChevronRight size={16} /></Link></div><div className="trust-row"><span><ShieldCheck size={16} /> Payment updates</span><span><MapPin size={16} /> Clear pickup details</span><span><Store size={16} /> Seller tools</span></div></div><div className="hero-art"><div className="hero-orb orb-one" /><div className="hero-orb orb-two" /><div className="hero-card hero-card-main"><span className="hero-card-tag">PICKUP READY</span><div className="hero-card-icon"><MapPin /></div><p>Choose a station near you</p><strong>Nairobi · Mombasa · Rongai</strong></div><div className="hero-card hero-card-float"><Zap size={18} fill="currentColor" /><span>M-Pesa checkout</span></div><div className="hero-arc" /></div></div></section>
+    <section className="market-strip"><div><CheckCircle2 size={18} /> Transparent pickup process</div><div><Truck size={18} /> Track every order state</div><div><Store size={18} /> Built for growing sellers</div></section>
+    <section id="discover" className="discover-section"><div className="section-heading"><div><p className="eyebrow">Shop the essentials</p><h2>Discover the market</h2></div><p>Start with a category or search for something specific.</p></div><div className="search-panel"><Search size={19} /><input value={search} onChange={event => setSearch(event.target.value)} placeholder="Search products, essentials, and accessories" aria-label="Search products" /><button onClick={() => { setSearch(""); setCategory(undefined); }}>Reset</button></div><div className="category-row"><button onClick={() => setCategory(undefined)} className={!category ? "category-chip selected" : "category-chip"}>All products</button>{categories.data?.map(item => <button key={item.id} onClick={() => setCategory(item.slug)} className={category === item.slug ? "category-chip selected" : "category-chip"}>{item.name}</button>)}</div><div className="product-grid">{products.isLoading ? Array.from({ length: 8 }).map((_, index) => <div className="product-skeleton" key={index} />) : productList.length ? productList.map(entry => <ProductCard key={entry.product.id} entry={entry as any} />) : <div className="empty-discovery"><Search size={28} /><h3>No matching product yet</h3><p>Try another category or clear your search.</p></div>}</div></section>
+    <section className="how-section"><div className="how-visual"><div className="how-stamp">KE</div><p>Built around the way you already shop and pay.</p></div><div className="how-copy"><p className="eyebrow">How it works</p><h2>Three simple steps, one clearer experience.</h2><div className="steps"><div><span>01</span><p><strong>Discover</strong>Browse products and seller offers at your pace.</p></div><div><span>02</span><p><strong>Pay securely</strong>Initiate a verified M-Pesa prompt at checkout.</p></div><div><span>03</span><p><strong>Collect with confidence</strong>Use the station details and updates to complete pickup.</p></div></div><Link href="/stations" className="secondary-cta">Browse pickup stations <ArrowRight size={17} /></Link></div></section>
+  </MarketplaceLayout>;
 }
