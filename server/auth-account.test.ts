@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ACCOUNT_MIN_PASSWORD_LENGTH, passwordRecoveryNotice, validateMtaaMarketPassword } from "../client/src/lib/auth-account";
+import { ACCOUNT_EMAIL_ACTION_COOLDOWN_SECONDS, ACCOUNT_MIN_PASSWORD_LENGTH, accountEmailCooldownNotice, passwordRecoveryNotice, validateMtaaMarketPassword } from "../client/src/lib/auth-account";
 
 describe("MtaaMarket email/password account safeguards", () => {
   it("requires an eight-character password with both letters and digits", () => {
@@ -14,5 +14,11 @@ describe("MtaaMarket email/password account safeguards", () => {
     const notice = passwordRecoveryNotice();
     expect(notice).toContain("If an account matches that email");
     expect(notice).not.toContain("does not exist");
+  });
+
+  it("uses a short, transparent cooldown to reduce duplicate account-email requests", () => {
+    expect(ACCOUNT_EMAIL_ACTION_COOLDOWN_SECONDS).toBe(60);
+    expect(accountEmailCooldownNotice()).toContain("wait 60 seconds");
+    expect(accountEmailCooldownNotice(1.2)).toContain("wait 2 seconds");
   });
 });

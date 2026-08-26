@@ -1,8 +1,8 @@
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
-import { ACCOUNT_MIN_PASSWORD_LENGTH, accountActionErrorMessage, passwordRecoveryNotice, passwordSignupNotice, validateMtaaMarketPassword } from "@/lib/auth-account";
+import { ACCOUNT_EMAIL_ACTION_COOLDOWN_SECONDS, ACCOUNT_MIN_PASSWORD_LENGTH, accountActionErrorMessage, accountEmailCooldownNotice, passwordRecoveryNotice, passwordSignupNotice, validateMtaaMarketPassword } from "@/lib/auth-account";
 import { magicLinkDeliveryNotice } from "@/lib/auth-delivery";
 import { KeyRound, Loader2, MailCheck, ShieldCheck, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type AccountMode = "link" | "password" | "signup" | "recovery";
 
@@ -21,8 +21,19 @@ export function MtaaAccountDialog({ open, onClose }: { open: boolean; onClose: (
   const [confirmation, setConfirmation] = useState("");
   const [notice, setNotice] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [cooldownUntil, setCooldownUntil] = useState<number | null>(null);
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (!cooldownUntil) return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [cooldownUntil]);
 
   if (!open) return null;
+
+  const cooldownRemaining = cooldownUntil ? Math.max(0, Math.ceil((cooldownUntil - now) / 1000)) : 0;
+  const isEmailAction = mode === "link" || mode === "signup" || mode === "recovery";
 
   const chooseMode = (nextMode: AccountMode) => {
     setMode(nextMode);
@@ -35,6 +46,7 @@ export function MtaaAccountDialog({ open, onClose }: { open: boolean; onClose: (
     event.preventDefault();
     setNotice("");
     if (!configured) return setNotice("MtaaMarket account sign-in is not configured yet.");
+    if (isEmailAction && cooldownRemaining > 0) return setNotice(accountEmailCooldownNotice(cooldownRemaining));
     if (mode === "signup") {
       const passwordIssue = validateMtaaMarketPassword(password);
       if (passwordIssue) return setNotice(passwordIssue);
@@ -55,6 +67,10 @@ export function MtaaAccountDialog({ open, onClose }: { open: boolean; onClose: (
         await requestPasswordReset(email);
         setNotice(passwordRecoveryNotice());
       }
+      if (isEmailAction) {
+        setCooldownUntil(Date.now() + ACCOUNT_EMAIL_ACTION_COOLDOWN_SECONDS * 1000);
+        setNow(Date.now());
+      }
     } catch {
       setNotice(accountActionErrorMessage());
     } finally {
@@ -63,5 +79,6 @@ export function MtaaAccountDialog({ open, onClose }: { open: boolean; onClose: (
   };
 
   const copy = modeCopy[mode];
-  return <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-labelledby="mtaamarket-account-title"><form onSubmit={submit} className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"><div className="flex items-start justify-between gap-4"><div><p className="eyebrow">MtaaMarket secure account</p><h2 id="mtaamarket-account-title" className="mt-2 text-2xl font-semibold">{copy.title}</h2></div><button type="button" className="icon-action" onClick={onClose} aria-label="Close account dialog"><X size={18} /></button></div><p className="mt-3 text-sm text-muted-foreground">{copy.description}</p><div className="mt-5 flex flex-wrap gap-2" role="tablist" aria-label="Account method"><button type="button" role="tab" aria-selected={mode === "link"} onClick={() => chooseMode("link")} className={mode === "link" ? "rounded-full bg-[#0e2f27] px-3 py-2 text-sm font-semibold text-white" : "rounded-full border border-border px-3 py-2 text-sm"}>Email link</button><button type="button" role="tab" aria-selected={mode === "password"} onClick={() => chooseMode("password")} className={mode === "password" ? "rounded-full bg-[#0e2f27] px-3 py-2 text-sm font-semibold text-white" : "rounded-full border border-border px-3 py-2 text-sm"}>Email & password</button></div><label className="mt-5 block text-sm font-medium">Email address<input className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2" required type="email" autoComplete="email" value={email} onChange={event => setEmail(event.target.value)} placeholder="you@example.com" /></label>{(mode === "password" || mode === "signup") && <label className="mt-4 block text-sm font-medium">Password<input className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2" required type="password" minLength={ACCOUNT_MIN_PASSWORD_LENGTH} autoComplete={mode === "signup" ? "new-password" : "current-password"} value={password} onChange={event => setPassword(event.target.value)} placeholder={mode === "signup" ? "At least 8 characters, letters and numbers" : "Your password"} /></label>}{mode === "signup" && <label className="mt-4 block text-sm font-medium">Confirm password<input className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2" required type="password" minLength={ACCOUNT_MIN_PASSWORD_LENGTH} autoComplete="new-password" value={confirmation} onChange={event => setConfirmation(event.target.value)} placeholder="Type the password again" /></label>}{notice && <p className="mt-4 rounded-lg bg-muted p-3 text-sm" role="status">{notice}</p>}<button className="primary-cta mt-5 w-full justify-center" disabled={submitting}>{submitting ? <Loader2 className="animate-spin" size={17} /> : mode === "password" ? <KeyRound size={17} /> : mode === "signup" ? <ShieldCheck size={17} /> : <MailCheck size={17} />}{submitting ? "Please wait…" : mode === "link" ? "Email me a sign-in link" : mode === "password" ? "Sign in with password" : mode === "signup" ? "Create and verify account" : "Send password recovery link"}</button>{mode === "password" && <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm"><button className="underline" type="button" onClick={() => chooseMode("signup")}>Create an account</button><button className="underline" type="button" onClick={() => chooseMode("recovery")}>Forgot password?</button></div>}{mode === "signup" && <button className="mt-4 text-sm underline" type="button" onClick={() => chooseMode("password")}>Already verified? Sign in with password</button>}{mode === "recovery" && <button className="mt-4 text-sm underline" type="button" onClick={() => chooseMode("password")}>Return to password sign-in</button>}<p className="mt-4 text-xs text-muted-foreground">Google sign-in will appear only after the MtaaMarket Google provider is securely configured. Your protected workspace remains unavailable until the separate account and role migration is complete.</p></form></div>;
+  const actionLabel = submitting ? "Please wait…" : cooldownRemaining > 0 && isEmailAction ? `Wait ${cooldownRemaining}s before another email` : mode === "link" ? "Email me a sign-in link" : mode === "password" ? "Sign in with password" : mode === "signup" ? "Create and verify account" : "Send password recovery link";
+  return <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-labelledby="mtaamarket-account-title"><form onSubmit={submit} className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"><div className="flex items-start justify-between gap-4"><div><p className="eyebrow">MtaaMarket secure account</p><h2 id="mtaamarket-account-title" className="mt-2 text-2xl font-semibold">{copy.title}</h2></div><button type="button" className="icon-action" onClick={onClose} aria-label="Close account dialog"><X size={18} /></button></div><p className="mt-3 text-sm text-muted-foreground">{copy.description}</p><div className="mt-5 flex flex-wrap gap-2" role="tablist" aria-label="Account method"><button type="button" role="tab" aria-selected={mode === "link"} onClick={() => chooseMode("link")} className={mode === "link" ? "rounded-full bg-[#0e2f27] px-3 py-2 text-sm font-semibold text-white" : "rounded-full border border-border px-3 py-2 text-sm"}>Email link</button><button type="button" role="tab" aria-selected={mode === "password"} onClick={() => chooseMode("password")} className={mode === "password" ? "rounded-full bg-[#0e2f27] px-3 py-2 text-sm font-semibold text-white" : "rounded-full border border-border px-3 py-2 text-sm"}>Email & password</button></div><label className="mt-5 block text-sm font-medium">Email address<input className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2" required type="email" autoComplete="email" value={email} onChange={event => setEmail(event.target.value)} placeholder="you@example.com" /></label>{(mode === "password" || mode === "signup") && <label className="mt-4 block text-sm font-medium">Password<input className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2" required type="password" minLength={ACCOUNT_MIN_PASSWORD_LENGTH} autoComplete={mode === "signup" ? "new-password" : "current-password"} value={password} onChange={event => setPassword(event.target.value)} placeholder={mode === "signup" ? "At least 8 characters, letters and numbers" : "Your password"} /></label>}{mode === "signup" && <label className="mt-4 block text-sm font-medium">Confirm password<input className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2" required type="password" minLength={ACCOUNT_MIN_PASSWORD_LENGTH} autoComplete="new-password" value={confirmation} onChange={event => setConfirmation(event.target.value)} placeholder="Type the password again" /></label>}{notice && <p className="mt-4 rounded-lg bg-muted p-3 text-sm" role="status">{notice}</p>}<button className="primary-cta mt-5 w-full justify-center" disabled={submitting || (isEmailAction && cooldownRemaining > 0)}>{submitting ? <Loader2 className="animate-spin" size={17} /> : mode === "password" ? <KeyRound size={17} /> : mode === "signup" ? <ShieldCheck size={17} /> : <MailCheck size={17} />}{actionLabel}</button>{mode === "password" && <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm"><button className="underline" type="button" onClick={() => chooseMode("signup")}>Create an account</button><button className="underline" type="button" onClick={() => chooseMode("recovery")}>Forgot password?</button></div>}{mode === "signup" && <button className="mt-4 text-sm underline" type="button" onClick={() => chooseMode("password")}>Already verified? Sign in with password</button>}{mode === "recovery" && <button className="mt-4 text-sm underline" type="button" onClick={() => chooseMode("password")}>Return to password sign-in</button>}<p className="mt-4 text-xs text-muted-foreground">Google sign-in will appear only after the MtaaMarket Google provider is securely configured. Your protected workspace remains unavailable until the separate account and role migration is complete.</p></form></div>;
 }

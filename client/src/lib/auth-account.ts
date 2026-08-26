@@ -1,4 +1,5 @@
 export const ACCOUNT_MIN_PASSWORD_LENGTH = 8;
+export const ACCOUNT_EMAIL_ACTION_COOLDOWN_SECONDS = 60;
 
 export function validateMtaaMarketPassword(password: string) {
   if (password.length < ACCOUNT_MIN_PASSWORD_LENGTH) return "Use at least 8 characters.";
@@ -16,4 +17,9 @@ export function passwordSignupNotice() {
 
 export function accountActionErrorMessage() {
   return "MtaaMarket could not complete that account step. Check your details and try again later.";
+}
+
+export function accountEmailCooldownNotice(seconds: number = ACCOUNT_EMAIL_ACTION_COOLDOWN_SECONDS) {
+  const safeSeconds = Math.max(1, Math.ceil(seconds));
+  return `For account security, wait ${safeSeconds} seconds before requesting another email.`;
 }
