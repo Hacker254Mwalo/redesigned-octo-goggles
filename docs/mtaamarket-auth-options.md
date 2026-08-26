@@ -45,6 +45,8 @@ The temporary freemail sender must be treated as a launch test path only. Brevoâ
 
 The safe next remediation is therefore **not** repeated sends or copy changes. It is a founder-owned MtaaMarket domain, followed by Brevo-provided DNS records for domain verification and 2048-bit DKIM where supported, an SPF record that includes the selected sender, and a monitored DMARC policy beginning at `p=none`. Only after Brevo reports the domain authenticated should MtaaMarket switch the sender to a dedicated address such as `no-reply@<mtaamarket-domain>` and run a fresh low-volume inbox-placement test. Until then, the verified temporary sender remains usable for controlled internal tests but is not appropriate for public launch.
 
+The current `siayaonlinemarket.vercel.app` address remains suitable for the public storefront and Auth callback/redirect URLs. It is not a founder-controlled email domain and cannot supply the DNS ownership required for a branded From address, SPF, DKIM, or DMARC. MtaaMarket therefore continues normal public-site hardening on the Vercel domain while deferring sender-domain authentication until the founder later owns and links a custom domain.
+
 ### Callback deployment verification
 
 The callback repair was deployed, and founder evidence verified the completed same-device magic-link session. The callback continues to prepare only a lowest-privilege buyer profile; it does not create a founder, seller, payment, order, collection, or delivery permission.
@@ -52,6 +54,8 @@ The callback repair was deployed, and founder evidence verified the completed sa
 ## Verified email/password provider state
 
 The MtaaMarket Supabase Email provider is enabled, signups are allowed, and email confirmation is enabled. Secure email-change confirmation is also enabled. Google is disabled. The hosted minimum password length is now **eight characters**, matching the client minimum. The client additionally requires at least one letter and one digit; the hosted required-character setting remains unconfigured, so public password-account launch still requires explicit server-policy alignment and a controlled end-to-end verification. Leaked-password protection is unavailable on the current Free plan. Reauthentication and current-password enforcement are currently disabled.
+
+The current Supabase Security Advisor was rerun after the latest database-hardening work. It returned **zero errors** and one warning: leaked-password protection is disabled. This is the known Free-plan limitation above; it does not permit an unsafe bypass, and it does not remove the separate password-policy, deliverability, and end-to-end verification launch gates.
 
 Supabase states that email/password signups and recovery require an SMTP sender in production; it also deliberately makes password-recovery requests non-enumerating. [10] The platformâ€™s email-send endpoints are subject to per-project and per-user rate limits, including a default resend window for signup confirmation and password recovery. [11] MtaaMarket must therefore use the same generic success response for every reset request, add an in-form retry countdown, and never write password values to logs, analytics, browser storage, or application database tables.
 
