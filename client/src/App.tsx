@@ -10,6 +10,7 @@ import DashboardPage from "./pages/DashboardPage";
 import Home from "./pages/Home";
 import PickupStations from "./pages/PickupStations";
 import ProductDetail from "./pages/ProductDetail";
+import RequestDeskPage from "./pages/RequestDeskPage";
 import VendorPage from "./pages/VendorPage";
 
 function Router() {
@@ -20,6 +21,7 @@ function Router() {
       <Route path={"/products/:slug"} component={ProductDetail} />
       <Route path={"/cart"} component={CartPage} />
       <Route path={"/stations"} component={PickupStations} />
+      <Route path={"/request"} component={RequestDeskPage} />
       <Route path={"/vendor"} component={VendorPage} />
       <Route path={"/dashboard"} component={DashboardPage} />
       <Route path={"/404"} component={NotFound} />

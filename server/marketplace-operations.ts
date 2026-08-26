@@ -17,6 +17,8 @@ import { assertMarketplaceRole, makeSlug, type MarketplaceRole } from "./marketp
 import { storagePut } from "./storage";
 
 export type OrderStatus = "pending_payment" | "paid_escrow" | "ready_for_pickup" | "picked_up" | "released_vendor" | "disputed" | "cancelled";
+export type PaymentTiming = "pay_before" | "pay_on_collection" | "pay_on_delivery" | "confirm_with_mtaamarket";
+export type FulfilmentMethod = "siaya_pickup" | "home_delivery" | "collection_point" | "special_order";
 
 const ORDER_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   pending_payment: ["paid_escrow", "cancelled"],
@@ -52,6 +54,29 @@ export function getPickupStationDeliveryNotice(orderNumber: string) {
   };
 }
 
+export function toVendorSafeOrderView(order: typeof orders.$inferSelect) {
+  return {
+    id: order.id,
+    orderNumber: order.orderNumber,
+    totalAmount: order.totalAmount,
+    status: order.status,
+    fulfilmentMethod: order.fulfilmentMethod,
+    paymentTimingSnapshot: order.paymentTimingSnapshot,
+    pickupStationId: order.pickupStationId,
+    createdAt: order.createdAt,
+  };
+}
+
+export function resolvePaymentTimingSnapshot(timings: PaymentTiming[]): PaymentTiming {
+  return timings.length > 0 && new Set(timings).size === 1 ? timings[0] : "confirm_with_mtaamarket";
+}
+
+export function validateFulfilmentSelection(input: { fulfilmentMethod: FulfilmentMethod; pickupStationId?: number; customerFulfilmentNote?: string; deliveryArea?: string }) {
+  const hasLocation = Boolean(input.deliveryArea?.trim() || input.customerFulfilmentNote?.trim());
+  if (input.fulfilmentMethod === "home_delivery" && !hasLocation) throw new Error("Add a Siaya delivery area or location suggestion for home delivery.");
+  if (input.fulfilmentMethod === "collection_point" && !input.pickupStationId && !hasLocation) throw new Error("Choose a collection point or add a collection suggestion.");
+}
+
 async function getProfile(profileId: number) {
   const db = await getDb();
   if (!db) throw new Error("Marketplace database is unavailable.");
@@ -80,11 +105,12 @@ async function notifyVendor(vendorId: number | null, type: "payment" | "pickup" 
   if (vendor) await notify(vendor.profileId, type, title, body, orderId);
 }
 
-export async function createOrderFromBasket(profileId: number, input: { items: { productId: number; quantity: number }[]; pickupStationId: number; paymentPhone: string }) {
+export async function createOrderFromBasket(profileId: number, input: { items: { productId: number; quantity: number }[]; fulfilmentMethod: FulfilmentMethod; pickupStationId?: number; paymentPhone?: string; customerFulfilmentNote?: string; deliveryArea?: string }) {
   const db = await getDb();
   if (!db) throw new Error("Marketplace database is unavailable.");
   const profile = await getProfile(profileId);
   assertMarketplaceRole(profile.role, ["buyer", "vendor", "admin"]);
+  validateFulfilmentSelection(input);
   if (!input.items.length || input.items.length > 30) throw new Error("Your basket must contain between 1 and 30 items.");
   const quantities = new Map<number, number>();
   for (const item of input.items) quantities.set(item.productId, (quantities.get(item.productId) || 0) + item.quantity);
@@ -92,27 +118,34 @@ export async function createOrderFromBasket(profileId: number, input: { items: {
   const ids = Array.from(quantities.keys());
   const rows = await db.select().from(products).where(inArray(products.id, ids));
   if (rows.length !== ids.length || rows.some(product => product.status !== "active")) throw new Error("One or more selected products are no longer available.");
-  const station = (await db.select().from(pickupStations).where(and(eq(pickupStations.id, input.pickupStationId), eq(pickupStations.isActive, true))).limit(1))[0];
-  if (!station) throw new Error("Select an active pickup station.");
+  const station = input.pickupStationId
+    ? (await db.select().from(pickupStations).where(and(eq(pickupStations.id, input.pickupStationId), eq(pickupStations.isActive, true))).limit(1))[0]
+    : undefined;
+  if (input.pickupStationId && !station) throw new Error("Select an active Siaya collection point.");
   const vendorIds = Array.from(new Set(rows.map(product => product.vendorId).filter((value): value is number => value !== null)));
   if (vendorIds.length > 1) throw new Error("Please place separate orders for products from different sellers.");
   for (const product of rows) if ((product.stockQuantity || 0) < (quantities.get(product.id) || 0)) throw new Error(`${product.title} does not have enough stock.`);
   const subtotal = rows.reduce((total, product) => total + Number(product.price) * (quantities.get(product.id) || 0), 0);
-  const pickupFee = 120;
+  const fulfilmentFee = 0;
   const orderNumber = makeOrderNumber();
-  const paymentPhone = normalizeKenyanPhone(input.paymentPhone);
+  const paymentPhone = input.paymentPhone?.trim() ? normalizeKenyanPhone(input.paymentPhone) : undefined;
+  const paymentTimingSnapshot = resolvePaymentTimingSnapshot(rows.map(product => product.paymentTiming));
   const inserted = await db.insert(orders).values({
-    orderNumber, buyerProfileId: profileId, vendorId: vendorIds[0] ?? null, pickupStationId: station.id,
-    subtotal: subtotal.toFixed(2), pickupFee: pickupFee.toFixed(2), totalAmount: (subtotal + pickupFee).toFixed(2), paymentPhone,
+    orderNumber, buyerProfileId: profileId, vendorId: vendorIds[0] ?? null, pickupStationId: station?.id,
+    subtotal: subtotal.toFixed(2), pickupFee: fulfilmentFee.toFixed(2), totalAmount: (subtotal + fulfilmentFee).toFixed(2), paymentPhone,
+    fulfilmentMethod: input.fulfilmentMethod,
+    customerFulfilmentNote: input.customerFulfilmentNote?.trim() || null,
+    deliveryArea: input.deliveryArea?.trim() || null,
+    paymentTimingSnapshot,
   });
   const orderId = Number(inserted[0].insertId);
   await db.insert(orderItems).values(rows.map(product => ({
     orderId, productId: product.id, vendorId: product.vendorId, titleSnapshot: product.title, imageUrlSnapshot: product.imageUrl,
     unitPrice: String(product.price), quantity: quantities.get(product.id) || 1,
   })));
-  await db.insert(orderEvents).values({ orderId, actorProfileId: profileId, eventType: "order_created", toStatus: "pending_payment", metadata: { pickupStationId: station.id } });
-  await notify(profileId, "order", "Order created", `${orderNumber} is ready for M-Pesa payment.`, orderId);
-  await notifyVendor(vendorIds[0] ?? null, "order", "New marketplace order", `${orderNumber} is awaiting buyer payment.`, orderId);
+  await db.insert(orderEvents).values({ orderId, actorProfileId: profileId, eventType: "order_created", toStatus: "pending_payment", metadata: { fulfilmentMethod: input.fulfilmentMethod, pickupStationId: station?.id ?? null, paymentTimingSnapshot } });
+  await notify(profileId, "order", "Order received", `${orderNumber} is with MtaaMarket for confirmation. We will update your fulfilment and payment instructions here.`, orderId);
+  await notifyVendor(vendorIds[0] ?? null, "order", "New marketplace order", `${orderNumber} is awaiting MtaaMarket confirmation. Prepare only after the platform gives the next instruction.`, orderId);
   return (await db.select().from(orders).where(eq(orders.id, orderId)).limit(1))[0];
 }
 
@@ -126,9 +159,10 @@ export async function listBuyerOrders(profileId: number) {
 export async function listVendorOrders(profileId: number) {
   const db = await getDb(); if (!db) return [];
   const vendor = await getVendorForProfile(profileId); if (!vendor) return [];
-  return db.select({ order: orders, station: pickupStations, buyer: marketplaceProfiles }).from(orders)
-    .innerJoin(marketplaceProfiles, eq(orders.buyerProfileId, marketplaceProfiles.id)).leftJoin(pickupStations, eq(orders.pickupStationId, pickupStations.id))
+  const rows = await db.select({ order: orders, station: pickupStations }).from(orders)
+    .leftJoin(pickupStations, eq(orders.pickupStationId, pickupStations.id))
     .where(eq(orders.vendorId, vendor.id)).orderBy(desc(orders.createdAt));
+  return rows.map(({ order, station }) => ({ order: toVendorSafeOrderView(order), station }));
 }
 
 export async function listNotifications(profileId: number) {
@@ -142,10 +176,11 @@ export async function markNotificationRead(profileId: number, notificationId: nu
   return { ok: true };
 }
 
-export async function createVendorProduct(profileId: number, input: { categoryId: number; title: string; description: string; price: number; stockQuantity: number; imageDataUrl?: string }) {
+export async function createVendorProduct(profileId: number, input: { categoryId: number; title: string; description: string; price: number; stockQuantity: number; itemCondition: "new" | "used" | "refurbished"; availabilityStatus: "ready" | "seller_confirmed" | "special_order"; paymentTiming: "pay_before" | "pay_on_collection" | "pay_on_delivery" | "confirm_with_mtaamarket"; fulfilmentOptions: ("siaya_pickup" | "home_delivery" | "collection_point" | "special_order")[]; imageDataUrl?: string }) {
   const db = await getDb(); if (!db) throw new Error("Marketplace database is unavailable.");
   const profile = await getProfile(profileId); assertMarketplaceRole(profile.role, ["vendor", "admin"]);
   const vendor = await getVendorForProfile(profileId); if (!vendor) throw new Error("Create your vendor profile before adding products.");
+  if (vendor.approvalStatus !== "approved" || !vendor.isActive) throw new Error("Your Seller Studio is awaiting MtaaMarket approval before listings can go public.");
   const category = (await db.select().from(categories).where(eq(categories.id, input.categoryId)).limit(1))[0]; if (!category) throw new Error("Select a valid category.");
   let imageUrl: string | undefined; let imageKey: string | undefined;
   if (input.imageDataUrl) {
@@ -156,7 +191,7 @@ export async function createVendorProduct(profileId: number, input: { categoryId
     const saved = await storagePut(`vendors/${vendor.id}/products/${nanoid(16)}.webp`, bytes, "image/webp"); imageUrl = saved.url; imageKey = saved.key;
   }
   const slug = `${makeSlug(input.title)}-${nanoid(6).toLowerCase()}`;
-  await db.insert(products).values({ vendorId: vendor.id, categoryId: category.id, title: input.title, slug, description: input.description, price: input.price.toFixed(2), stockQuantity: input.stockQuantity, imageUrl, imageKey, imageAlt: input.title, status: vendor.isVerified ? "active" : "draft" });
+  await db.insert(products).values({ vendorId: vendor.id, categoryId: category.id, title: input.title, slug, description: input.description, price: input.price.toFixed(2), stockQuantity: input.stockQuantity, imageUrl, imageKey, imageAlt: input.title, sourceType: "approved_seller", itemCondition: input.itemCondition, availabilityStatus: input.availabilityStatus, paymentTiming: input.paymentTiming, fulfilmentOptions: input.fulfilmentOptions, moderationStatus: "visible", status: "active" });
   return (await db.select().from(products).where(eq(products.slug, slug)).limit(1))[0];
 }
 
@@ -169,11 +204,9 @@ export async function markReadyForPickup(profileId: number, orderId: number) {
   const db = await getDb(); if (!db) throw new Error("Marketplace database is unavailable."); const profile = await getProfile(profileId);
   const order = (await db.select().from(orders).where(eq(orders.id, orderId)).limit(1))[0]; if (!order) throw new Error("Order not found.");
   if (profile.role !== "admin") { const vendor = await getVendorForProfile(profileId); if (!vendor || vendor.id !== order.vendorId) throw new Error("Only the assigned vendor can prepare this order."); }
-  assertOrderTransition(order.status as OrderStatus, "ready_for_pickup"); if (order.paymentStatus !== "paid") throw new Error("Payment must be confirmed before pickup preparation.");
+  assertOrderTransition(order.status as OrderStatus, "ready_for_pickup"); if (order.paymentTimingSnapshot === "pay_before" && order.paymentStatus !== "paid") throw new Error("Payment must be confirmed before this order can be prepared.");
   await db.update(orders).set({ status: "ready_for_pickup" }).where(eq(orders.id, orderId)); await db.insert(orderEvents).values({ orderId, actorProfileId: profileId, eventType: "ready_for_pickup", fromStatus: order.status, toStatus: "ready_for_pickup" });
-  const delivery = getPickupStationDeliveryNotice(order.orderNumber);
-  await notify(order.buyerProfileId, delivery.type, delivery.title, delivery.body, orderId);
-  await notify(order.buyerProfileId, "pickup", "Ready for pickup", `${order.orderNumber} is ready at your selected pickup station.`, orderId); return { ok: true };
+  await notify(order.buyerProfileId, "delivery", "Order update", `${order.orderNumber} is ready for the next fulfilment step. Check MtaaMarket for the confirmed collection or delivery instructions.`, orderId); return { ok: true };
 }
 
 export async function confirmPickup(profileId: number, orderId: number) {

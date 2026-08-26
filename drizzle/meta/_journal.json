@@ -15,6 +15,27 @@
       "when": 1787689856904,
       "tag": "0001_burly_sebastian_shaw",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1787723738486,
+      "tag": "0002_wakeful_lizard",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1787724024778,
+      "tag": "0003_fluffy_random",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1787724915501,
+      "tag": "0004_complete_madame_web",
+      "breakpoints": true
     }
   ]
 }

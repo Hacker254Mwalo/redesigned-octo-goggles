@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assertMarketplaceRole, makeSlug } from "./marketplace";
+import { ASSISTED_REQUEST_ACCEPTED_REPLY, assertAssistedOrderTransition, assertMarketplaceRole, buildAssistedOrderFromRequest, convertRequestToAssistedOrder, getProductModerationUpdate, getVendorGovernanceUpdate, makeAssistedOrderNumber, makeSlug } from "./marketplace";
 
 describe("marketplace foundation helpers", () => {
   it("creates clean URL-safe slugs for stores and products", () => {
@@ -18,5 +18,45 @@ describe("marketplace foundation helpers", () => {
   it("allows a vendor in the vendor workspace but not the administrator workspace", () => {
     expect(() => assertMarketplaceRole("vendor", ["vendor", "admin"])).not.toThrow();
     expect(() => assertMarketplaceRole("vendor", ["admin"])).toThrow(/permission/i);
+  });
+
+  it("creates traceable assisted-market order numbers and enforces their owner-managed lifecycle", () => {
+    expect(makeAssistedOrderNumber(new Date("2026-08-26T00:00:00.000Z"))).toMatch(/^AM-260826-[A-Z0-9]{6}$/);
+    expect(() => assertAssistedOrderTransition("recorded", "confirmed")).not.toThrow();
+    expect(() => assertAssistedOrderTransition("sourcing", "ready")).not.toThrow();
+    expect(() => assertAssistedOrderTransition("recorded", "completed")).toThrow(/cannot move/i);
+    expect(() => assertAssistedOrderTransition("completed", "sourcing")).toThrow(/cannot move/i);
+  });
+
+  it("applies vendor approval and suspension controls without changing the owner’s authority", () => {
+    const pendingVendor = { approvedAt: null, suspendedAt: null } as any;
+    const approved = getVendorGovernanceUpdate(pendingVendor, "approved", "Verified by owner", new Date("2026-08-26"));
+    expect(approved).toMatchObject({ approvalStatus: "approved", isActive: true, isVerified: true, ownerNotes: "Verified by owner" });
+    const suspended = getVendorGovernanceUpdate({ ...pendingVendor, approvedAt: new Date("2026-08-25") }, "suspended", undefined, new Date("2026-08-26"));
+    expect(suspended).toMatchObject({ approvalStatus: "suspended", isActive: false, isVerified: false });
+    expect(suspended.suspendedAt).toEqual(new Date("2026-08-26"));
+  });
+
+  it("pauses or removes individual listings through a distinct moderation state", () => {
+    const activeProduct = { status: "active" } as any;
+    expect(getProductModerationUpdate(activeProduct, "paused")).toEqual({ moderationStatus: "paused", status: "active" });
+    expect(getProductModerationUpdate(activeProduct, "removed")).toEqual({ moderationStatus: "removed", status: "archived" });
+    expect(getProductModerationUpdate(activeProduct, "visible")).toEqual({ moderationStatus: "visible", status: "active" });
+  });
+
+  it("converts a request into a platform-controlled Assisted Market order with its source and fulfilment preference intact", () => {
+    const draft = buildAssistedOrderFromRequest({ id: 9, customerName: null, customerPhone: null, title: "School backpack", details: "Blue, durable, and suitable for a primary-school learner.", quotedPrice: "2200.00", budgetHint: "2500.00", preferredFulfilment: "home_delivery", preferredLocation: "Siaya Town", sourceRoute: "approved_vendor" } as any, "Offline customer");
+    expect(draft).toEqual(expect.objectContaining({ itemRequestId: 9, customerName: "Offline customer", quotedAmount: 2200, fulfilmentMethod: "home_delivery", sourceRoute: "approved_vendor", paymentTiming: "confirm_with_mtaamarket" }));
+  });
+
+  it("creates the linked assisted order before marking the source request accepted", async () => {
+    const events: string[] = [];
+    const request = { id: 12, customerName: null, customerPhone: "254712345678", title: "Household kettle", details: "A reliable electric kettle for home use.", quotedPrice: null, budgetHint: "1800.00", preferredFulfilment: "collection_point", preferredLocation: "Siaya Town", sourceRoute: null } as any;
+    const created = await convertRequestToAssistedOrder(request, "Request buyer", {
+      createOrder: async input => { events.push(`create:${input.itemRequestId}:${input.title}`); return { id: 77, input }; },
+      markRequestAccepted: async requestId => { events.push(`accepted:${requestId}:${ASSISTED_REQUEST_ACCEPTED_REPLY}`); },
+    });
+    expect(created).toMatchObject({ id: 77, input: { itemRequestId: 12, customerName: "Request buyer", quotedAmount: 1800 } });
+    expect(events).toEqual(["create:12:Household kettle", `accepted:12:${ASSISTED_REQUEST_ACCEPTED_REPLY}`]);
   });
 });

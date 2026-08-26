@@ -2,14 +2,14 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { startLogin } from "@/const";
 import { useCart } from "@/contexts/CartContext";
 import { cn } from "@/lib/utils";
-import { Heart, MapPin, Menu, Search, ShoppingBag, Store, UserRound, X } from "lucide-react";
+import { Heart, HandHeart, Menu, Search, ShoppingBag, Store, UserRound, X } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 
 const navItems = [
-  { href: "/", label: "Discover", icon: Search },
-  { href: "/stations", label: "Pickup stations", icon: MapPin },
-  { href: "/vendor", label: "Sell with us", icon: Store },
+  { href: "/", label: "Market", icon: Search },
+  { href: "/request", label: "Request an item", icon: HandHeart },
+  { href: "/vendor", label: "Seller Studio", icon: Store },
 ];
 
 export function MarketplaceLayout({ children }: { children: React.ReactNode }) {
@@ -20,12 +20,12 @@ export function MarketplaceLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="market-shell">
-      <div className="top-note"><span className="note-dot" /> Simple pickup. Protected payments. Kenyan sellers.</div>
+      <div className="top-note"><span className="note-dot" /> Siaya-served market · platform-managed support · physical products</div>
       <header className="site-header">
         <div className="header-inner">
-          <Link href="/" className="brand" aria-label="MtaaMarket home">
+          <Link href="/" className="brand" aria-label="Siaya Online MtaaMarket home">
             <span className="brand-mark">M</span>
-            <span>Mtaa<span>Market</span></span>
+            <span><small>Siaya Online</small>Mtaa<span>Market</span></span>
           </Link>
           <nav className="desktop-nav" aria-label="Main navigation">
             {navItems.map(({ href, label }) => <Link key={href} href={href} className={cn("nav-link", location === href && "active")}>{label}</Link>)}
@@ -44,9 +44,9 @@ export function MarketplaceLayout({ children }: { children: React.ReactNode }) {
       </header>
       <main>{children}</main>
       <footer className="site-footer">
-        <div><div className="brand footer-brand"><span className="brand-mark">M</span><span>Mtaa<span>Market</span></span></div><p>Built for easier discovery, clear pickup, and safer selling.</p></div>
-        <div className="footer-links"><Link href="/stations">Pickup stations</Link><Link href="/vendor">Sell with us</Link><Link href="/cart">Your basket</Link></div>
-        <div className="footer-trust"><Heart size={16} fill="currentColor" /> No hidden fees at checkout</div>
+        <div><div className="brand footer-brand"><span className="brand-mark">M</span><span><small>Siaya Online</small>Mtaa<span>Market</span></span></div><p>A local market platform for products, assisted orders, and carefully managed fulfilment.</p></div>
+        <div className="footer-links"><Link href="/request">Request an item</Link><Link href="/vendor">Seller Studio</Link><Link href="/cart">Your basket</Link></div>
+        <div className="footer-trust"><Heart size={16} fill="currentColor" /> Built to serve Siaya buyers</div>
       </footer>
     </div>
   );

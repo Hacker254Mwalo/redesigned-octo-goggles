@@ -17,3 +17,34 @@
 - [x] Phase 4: Validate public Kenyan marketplace and M-Pesa integration guidance through lawful public research.
 - [x] Phase 4: Add authorization, input-validation, webhook security, data-integrity, and critical user-flow tests.
 - [x] Phase 4: Add deployment and operations documentation, verify build and visual flows, then push the complete project to GitHub.
+- [x] Research and recommend a lawful zero-capital launch strategy for a Siaya-only marketplace controlled by the owner at launch.
+- [x] Research free AI, coding, design, operations, analytics, and customer-support tools suitable for a beginner vibe coder.
+- [x] Design compliant supplier, catalogue, payment, pickup, returns, and future vendor-onboarding workflows that avoid copied content, fake reviews, and unapproved payment or marketplace practices.
+- [x] Compare the Siaya marketplace with a wider single-seller store and recommend the best staged build order.
+- [ ] Conduct a real-time competitive research study for a premium Siaya-only marketplace with owner resale, local vendors, assisted sourcing, and payment-on-delivery.
+- [ ] Define compliant assisted-order rules for Jumia or other third-party sourcing that are transparent to customers and do not copy listings or misrepresent affiliation.
+- [ ] Design practical revenue streams, vendor fees, payment-on-delivery safeguards, returns, vendor payout, and platform-control rules.
+- [ ] Compare no-cost hosting and technical options, then define a zero-cost launch path and evidence-based upgrade triggers.
+- [x] Research-only constraint: do not modify MtaaMarket application functionality, activate payments/delivery, or alter the separate Dumiropay project unless the founder explicitly says to start building.
+- [x] Define the premium marketplace experience: buyer discovery, vendor listing experience, platform-controlled support, and requested-item flow without deciding payment or courier integrations.
+- [x] Recommend distinctive platform features and product structure that make a Siaya marketplace feel premium rather than a clone of a national marketplace.
+- [x] Audit the existing MtaaMarket schema, API, routes, components, tests, and current errors before the Siaya Online MtaaMarket redesign. Identified legacy Nairobi/Mombasa seed and M-Pesa/pickup assumptions, buyer-name exposure to vendors, and a stale browser module error to re-verify after the server/data-model update.
+- [x] Rebrand the public experience as Siaya Online MtaaMarket with a premium mobile-first visual system and physical-product marketplace positioning.
+- [x] Replace generic Kenya-wide discovery assumptions with Siaya-served catalogue rules, broad physical-product categories, and buyer-selected fulfilment preferences.
+- [x] Add Request Desk records and workflows for products that buyers cannot find in the catalogue.
+- [x] Add an Assisted Market workflow so the owner can create and manage a local order or personal-shopping delivery for customers who do not purchase online.
+- [x] Add vendor governance so approved vendors can list immediately while the owner can pause, remove, or suspend vendors and listings.
+- [x] Protect buyer contact and delivery information so the platform mediates communication and vendors receive only fulfilment information required for an order.
+- [x] Add product-level future payment timing and fulfilment preference fields without activating external payment, Jumia, G4S, or courier integrations.
+- [x] Build the Seller Studio experience with listing health, seller status, platform rules, and original-photo guidance.
+- [x] Add carefully bounded AI-ready assistance for original listing copy, image guidance, product discovery, and item-request drafting, with no automated commercial decisions. The live assistant drafts only seller listing copy; other workflows remain intentionally manual and AI-ready until a usage budget is approved.
+- [x] Research current free-tier AI, image, analytics, support, and operations tools; connect only safe, server-side, modular capabilities and document what remains an optional future provider choice.
+- [x] Write or update Vitest coverage for the new marketplace rules, run type checks/tests/build, visually verify the redesigned flows, and repair all newly introduced defects.
+- [x] Add dedicated assisted-order records with owner-managed fulfilment states and a documented conversion path from assisted request to managed marketplace order.
+- [x] Add owner-facing listing moderation controls for individual vendor listings, including pause/remove actions and validation.
+- [x] Add Seller Studio listing-health feedback for photos, description completeness, availability, payment timing, fulfilment options, and moderation state.
+- [x] Add rule-focused Vitest coverage for assisted-order progression, vendor approval/listing moderation, privacy shaping in vendor views, and fulfilment/payment preference validation.
+- [x] Add Vitest coverage for vendor approval/suspension and individual listing moderation pause/remove/restore behavior.
+- [x] Add Vitest coverage for fulfilment/payment preference validation, including payment-timing snapshots and invalid order combinations.
+- [x] Add a focused test for converting an item request into an owner-managed Assisted Market order.
+- [ ] Commit the completed MtaaMarket work, push only redesigned-octo-goggles to GitHub, and leave Dumiropay unchanged.
