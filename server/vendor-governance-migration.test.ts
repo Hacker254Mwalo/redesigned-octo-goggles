@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-const migrationPath = resolve(process.cwd(), "supabase/migrations/20260826_005_vendor_application_governance.sql");
+const migrationPath = resolve(process.cwd(), "supabase/migrations/20260826190721_vendor_application_governance.sql");
 
 function migrationSql() {
   return readFileSync(migrationPath, "utf8").toLowerCase();

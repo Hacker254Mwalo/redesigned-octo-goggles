@@ -19,7 +19,7 @@ The former `Dreaps venture` project `qlzfhogkbfsipmrurbfo` contained legacy Dumi
 
 ## MtaaMarket database foundation
 
-The source-controlled migration is [`supabase/migrations/20260826_001_initial_mtaamarket.sql`](../supabase/migrations/20260826_001_initial_mtaamarket.sql). It is written for PostgreSQL and Supabase Auth rather than copied from the existing MySQL/TiDB Drizzle schema. It uses Auth UUID profile keys, PostgreSQL enums, `jsonb`, `timestamptz`, explicit indexes, privacy-safe order access, audit events, and future payment/fulfilment records.
+The source-controlled baseline migration is [`supabase/migrations/20260826112501_initial_mtaamarket_postgres_baseline.sql`](../supabase/migrations/20260826112501_initial_mtaamarket_postgres_baseline.sql). It is written for PostgreSQL and Supabase Auth rather than copied from the existing MySQL/TiDB Drizzle schema. It uses Auth UUID profile keys, PostgreSQL enums, `jsonb`, `timestamptz`, explicit indexes, privacy-safe order access, audit events, and future payment/fulfilment records.
 
 | Layer | Verified now | Still required before accepting protected Vercel marketplace traffic |
 |---|---|---|

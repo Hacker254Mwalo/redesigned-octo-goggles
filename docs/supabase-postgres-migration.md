@@ -31,16 +31,19 @@ The owner role is intentionally not seeded during database creation. It will be 
 
 ## Applied follow-up safeguards
 
-Three reviewed migrations are now applied **only** to the isolated MtaaMarket project. The first establishes the marketplace schema, RLS, storage buckets, and Siaya taxonomy. The second requires an external-marketplace customer-disclosure note. The third records an owner original-content attestation for the same route. These guardrails support owner-managed assisted sourcing; they do not connect MtaaMarket to Jumia or any other supplier.
+Five reviewed migrations are now applied **only** to the isolated MtaaMarket project. The first establishes the marketplace schema, RLS, storage buckets, and Siaya taxonomy. The next two require an external-marketplace customer-disclosure note and owner original-content attestation. The fourth provides a governed poultry/livestock discovery foundation. The fifth creates a least-privilege vendor-application record with no client write path or role assignment. These guardrails support owner-managed assisted sourcing and gradual seller governance; they do not connect MtaaMarket to Jumia or any other supplier.
 
 | Migration | Applied safeguard | Operational effect |
 |---|---|---|
-| `20260826_001_initial_mtaamarket.sql` | Marketplace PostgreSQL baseline, RLS, buckets, categories | A clean isolated MtaaMarket database foundation. |
-| `20260826_002_external_marketplace_disclosure.sql` | Customer-confirmation text and timestamp | External-marketplace assisted orders cannot exist without a recorded manual-sourcing disclosure. |
-| `20260826_003_external_content_attestation.sql` | Original-content attestation timestamp | External-marketplace assisted orders require the owner to attest that MtaaMarket did not copy supplier materials. |
+| `20260826112501_initial_mtaamarket_postgres_baseline.sql` | Marketplace PostgreSQL baseline, RLS, buckets, categories | A clean isolated MtaaMarket database foundation. |
+| `20260826113917_external_marketplace_disclosure.sql` | Customer-confirmation text and timestamp | External-marketplace assisted orders cannot exist without a recorded manual-sourcing disclosure. |
+| `20260826114613_external_content_attestation.sql` | Original-content attestation timestamp | External-marketplace assisted orders require the owner to attest that MtaaMarket did not copy supplier materials. |
+| `20260826152111_mtaamarket_poultry_livestock_listings.sql` | Poultry/livestock category and manual-review safeguards | No automated animal checkout, transport, welfare claim, or payment flow is enabled. |
+| `20260826190721_vendor_application_governance.sql` | Owner-governed vendor-application records, attestations, RLS, and read-only client scope | No vendor/admin role, seller self-service write, listing write, or storage upload is enabled. |
 
-The corresponding development-database schema changes and server validation are covered by Vitest. The still-pending work is not a SQL migration: it is the controlled application migration from the current Manus data, OAuth, and storage adapters to Supabase/Vercel-compatible adapters.
+The corresponding development-database schema changes and server validation are covered by Vitest. The migration filenames were normalized to the exact remote history versions after the GitHub Supabase Preview check detected a history mismatch. The already-applied vendor-governance migration was marked applied in history without re-running its SQL, following Supabase’s documented repair model. [2] The still-pending work is not a SQL migration: it is the controlled application migration from the current Manus data, OAuth, and storage adapters to Supabase/Vercel-compatible adapters.
 
 ## Reference
 
 [1]: https://supabase.com/docs/guides/database/postgres/row-level-security "Supabase Row Level Security documentation"
+[2]: https://supabase.com/docs/guides/deployment/database-migrations "Supabase database-migration history repair guidance"
