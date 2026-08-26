@@ -1,4 +1,5 @@
 import { MapView } from "@/components/Map";
+import { optionalMapFallbackMessage } from "@/lib/maps-provider";
 import { MapPin } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
@@ -18,6 +19,6 @@ export function PickupMap({ stations }: { stations: Station[] }) {
       return [marker];
     });
   }, [stations]);
-  if (unavailable) return <div className="map-fallback"><MapPin size={24} /><div><strong>Map view is temporarily unavailable.</strong><p>Every station card below includes a directions link, address, landmark, and opening hours.</p></div></div>;
+  if (unavailable) return <div className="map-fallback"><MapPin size={24} /><div><strong>{optionalMapFallbackMessage}</strong><p>Every station card below includes a directions link, address, landmark, and opening hours.</p></div></div>;
   return <MapView className="pickup-map" initialCenter={{ lat: -1.286, lng: 36.817 }} initialZoom={10} onMapReady={map => { mapRef.current = map; }} onMapError={() => setUnavailable(true)} />;
 }

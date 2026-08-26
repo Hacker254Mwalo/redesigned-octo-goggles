@@ -77,6 +77,7 @@
 /// <reference types="@types/google.maps" />
 
 import { useEffect, useRef } from "react";
+import { isOptionalMapsProviderEnabled } from "@/lib/maps-provider";
 import { usePersistFn } from "@/hooks/usePersistFn";
 import { cn } from "@/lib/utils";
 
@@ -91,6 +92,7 @@ const FORGE_BASE_URL =
   import.meta.env.VITE_FRONTEND_FORGE_API_URL ||
   "https://forge.butterfly-effect.dev";
 const MAPS_PROXY_URL = `${FORGE_BASE_URL}/v1/maps/proxy`;
+const OPTIONAL_MAPS_PROVIDER_ENABLED = isOptionalMapsProviderEnabled(import.meta.env.VITE_MTAAMARKET_MAPS_ENABLED);
 
 function loadMapScript() {
   return new Promise<void>((resolve, reject) => {
@@ -130,6 +132,10 @@ export function MapView({
   const map = useRef<google.maps.Map | null>(null);
 
   const init = usePersistFn(async () => {
+    if (!OPTIONAL_MAPS_PROVIDER_ENABLED) {
+      onMapError?.();
+      return;
+    }
     try {
       await loadMapScript();
     } catch {

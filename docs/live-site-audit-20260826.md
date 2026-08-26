@@ -45,3 +45,21 @@ The subsequent public deployment exposes the new `/auth/reset-password` recovery
 | `/auth/reset-password` | Safe “Link needs attention” recovery state renders successfully with no token in the visible address. | No password change happens without a valid Supabase recovery session. |
 | `/request?item=solar%20lantern` | The item field safely pre-fills as “solar lantern”; the form explains collection/data-minimisation limits. | No request, order, payment, vendor action, or delivery promise was submitted. |
 | `/manifest.webmanifest` | Returns `200` with MtaaMarket app metadata after the latest GitHub-triggered deployment. | No service worker or protected-data caching is enabled. |
+
+## Current production-route recheck
+
+After the isolated governance and password-minimum hardening milestone, the public Vercel site was rechecked without submitting an account, request, basket, payment, or vendor action. The homepage continues to render the Siaya-focused public experience. The reset-password route again displayed its intentional no-code “Link needs attention” state. The Request Desk prefilled `solar lantern` from its public query parameter and continued to require sign-in before a request could be sent, while clearly prohibiting exact-address and payment-detail entry. The manifest remained available as a minimal standalone configuration with no service worker declaration or protected-data cache instruction.
+
+These checks confirm that the currently deployed public boundary remains intact. The newer governance migration and hosted password minimum are production database/Auth configuration changes and will require the next GitHub/Vercel synchronization before the site’s deployed source record reflects the updated documentation and checklist.
+
+The deployed homepage browser console was also reviewed immediately after this route recheck and had no current console output.
+
+### Current mobile visual recheck
+
+The current checkpoint was reviewed at a 375px-wide mobile viewport across Home, reset-password, Request Desk with a prefilled item, basket, and Seller Studio. Navigation, typography, buttons, and footer links remained readable without overlap. The reset page continued to expose only its safe no-code recovery state. The Request Desk showed the prefilling safely and retained a sign-in gate before sending. The empty basket had no checkout path. Seller Studio continued to state that seller applications are owner-invited while the protected UUID migration is verified. No visual check submitted a form or activated a protected operation.
+
+## Runtime defect follow-up
+
+The current Product Detail no-record route was rechecked after historic log review. The historic hooks-order error did not reproduce, but the route exposed a current query-client warning because the Supabase adapter returned `undefined` for a missing product. The adapter now returns explicit `null`, which is handled by the existing not-found page. A regression test covers the no-record response, TypeScript validation passed, and the page rendered correctly after the fix without a new matching console error.
+
+Historic Google Maps script-load failures came from an optional pickup-map enhancement. MtaaMarket does not yet have verified public collection points or a configured production Maps provider, so the external map loader is now explicitly opt-in. The pickup-stations route retains its accessible text/card fallback and produced no new Maps load error during the current recheck. A future provider activation must be separately configured and verified; it is not required for the present public pickup-station boundary.

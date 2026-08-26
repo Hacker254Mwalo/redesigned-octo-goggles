@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mapSupabaseCategory, mapSupabasePublicProduct } from "./supabase-marketplace";
+import { mapOptionalSupabasePublicProduct, mapSupabaseCategory, mapSupabasePublicProduct } from "./supabase-marketplace";
 
 describe("Supabase public marketplace adapter", () => {
   it("maps the isolated PostgreSQL category shape to the existing public catalogue contract", () => {
@@ -53,5 +53,9 @@ describe("Supabase public marketplace adapter", () => {
     expect(entry.product).toMatchObject({ id: "5e33d1ac-a841-4994-a5e5-ca3fb59128bf", price: 1250, stockQuantity: 3 });
     expect(entry.category.slug).toBe("phones-electronics");
     expect(entry.vendor).toBeNull();
+  });
+
+  it("returns explicit null when no public product record exists so the client query never resolves undefined", () => {
+    expect(mapOptionalSupabasePublicProduct(null)).toBeNull();
   });
 });

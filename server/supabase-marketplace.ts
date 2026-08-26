@@ -138,6 +138,10 @@ export function mapSupabasePublicProduct(row: SupabasePublicProductRow) {
   };
 }
 
+export function mapOptionalSupabasePublicProduct(row: SupabasePublicProductRow | null) {
+  return row ? mapSupabasePublicProduct(row) : null;
+}
+
 const PUBLIC_PRODUCT_SELECT = "id,vendor_id,category_id,title,slug,description,price,stock_quantity,image_url,image_key,image_alt,is_local_inventory,source_type,item_condition,availability_status,payment_timing,fulfilment_options,moderation_status,status,created_at,updated_at,categories!inner(id,name,slug,icon,description,sort_order,is_active,created_at),vendors(id,store_name,store_slug,approval_status,is_active)";
 
 function safeSearchTerm(search?: string) {
@@ -174,7 +178,7 @@ export async function getSupabasePublicProductBySlug(slug: string) {
     .eq("moderation_status", "visible")
     .maybeSingle();
   if (error) throw new Error(`MtaaMarket product could not be read from Supabase: ${error.message}`);
-  return data ? mapSupabasePublicProduct(data as SupabasePublicProductRow) : undefined;
+  return mapOptionalSupabasePublicProduct(data as SupabasePublicProductRow | null);
 }
 
 type SupabasePickupStationRow = {
