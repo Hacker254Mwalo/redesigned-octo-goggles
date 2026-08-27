@@ -211,6 +211,21 @@ describe("public performance and mobile foundations", () => {
     expect(detail).not.toMatch(/\.from\("orders"\)|insert\(.*orders/i);
   });
 
+  it("keeps V3 product moderation behind a server-side owner role check", () => {
+    const app = readFileSync(resolve(projectRoot, "client/src/App.tsx"), "utf8");
+    const admin = readFileSync(resolve(projectRoot, "client/src/pages/Admin.tsx"), "utf8");
+    const moderation = readFileSync(resolve(projectRoot, "server/v3-moderation.ts"), "utf8");
+
+    expect(app).toContain('path={"/admin"}');
+    expect(admin).toContain("v3PendingProducts.useQuery");
+    expect(admin).toContain("Approve");
+    expect(admin).toContain("Reject");
+    expect(moderation).toContain('data?.role !== "admin"');
+    expect(moderation).toContain('eq("status", "PENDING")');
+    expect(moderation).toContain('status: "ACTIVE" | "REJECTED"');
+    expect(admin).not.toMatch(/\.from\("products"\)|\.update\(/);
+  });
+
   it("keeps a conservative vendor-chunk strategy for public performance", () => {
     const config = readFileSync(resolve(projectRoot, "vite.config.ts"), "utf8");
 

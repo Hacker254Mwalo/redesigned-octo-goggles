@@ -49,6 +49,7 @@ import { createItemRequestDraft, createListingDraft } from "./marketplace-ai";
 import { getProductionReadiness } from "./production-readiness";
 import { ensureSupabaseMarketplaceProfile } from "./supabase-profiles";
 import { createV3HubOrder } from "./v3-orders";
+import { listV3PendingProducts, moderateV3Product } from "./v3-moderation";
 
 const safeSearch = z.string().trim().max(100);
 const phone = z.string().trim().regex(/^\+?254[17]\d{8}$/, "Use a Kenyan number beginning with 254.").optional();
@@ -88,6 +89,8 @@ export const appRouter = router({
       if (!ctx.supabaseIdentity) throw new Error("Sign in with your verified MtaaMarket email session before confirming an order.");
       return createV3HubOrder(input);
     }),
+    v3PendingProducts: publicProcedure.query(({ ctx }) => listV3PendingProducts(ctx.supabaseIdentity)),
+    moderateV3Product: publicProcedure.input(z.object({ productId: z.string().uuid(), status: z.enum(["ACTIVE", "REJECTED"]) })).mutation(({ ctx, input }) => moderateV3Product(ctx.supabaseIdentity, input.productId, input.status)),
 
     myProfile: protectedProcedure.query(({ ctx }) => ensureMarketplaceProfile(ctx.user.id, ctx.user.name)),
     buyerWorkspace: protectedProcedure.query(async ({ ctx }) => {

@@ -18,6 +18,7 @@ const RequestDeskPage = lazy(() => import("./pages/RequestDeskPage"));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
 const SupabaseAuthCallbackPage = lazy(() => import("./pages/SupabaseAuthCallbackPage"));
 const VendorPage = lazy(() => import("./pages/VendorPage"));
+const Admin = lazy(() => import("./pages/Admin"));
 
 function RouteLoadingState() {
   return <div className="min-h-screen bg-[#f9f7f2] px-6 py-24 text-center text-sm text-[#35584a]" role="status">Loading MtaaMarket…</div>;
@@ -38,6 +39,7 @@ function Router() {
         <Route path={"/auth/callback"} component={SupabaseAuthCallbackPage} />
         <Route path={"/auth/reset-password"} component={ResetPasswordPage} />
         <Route path={"/vendor"} component={VendorPage} />
+        <Route path={"/admin"} component={Admin} />
         <Route path={"/dashboard"} component={DashboardPage} />
         <Route path={"/404"} component={NotFound} />
         {/* Final fallback route */}
