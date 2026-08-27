@@ -13,11 +13,12 @@ export async function createV3HubOrder(identity: SupabaseIdentity | null, input:
   if (buyerError || !buyer?.full_name || !buyer.phone_number) throw new Error("Save your name and verified Kenyan order contact before confirming hub pickup.");
   const { data: product, error: productError } = await client
     .from("products")
-    .select("id,final_price,status,allow_pay_on_pickup")
+    .select("id,final_price,status,category_slug,allow_pay_on_pickup")
     .eq("id", input.productId)
     .eq("status", "ACTIVE")
     .maybeSingle();
   if (productError || !product) throw new Error("This product is no longer available for hub pickup.");
+  if (product.category_slug === "poultry-livestock") throw new Error("Poultry and livestock handovers require MtaaMarket confirmation and cannot use the hub-pickup order path.");
   if (!product.allow_pay_on_pickup) throw new Error("This product does not currently offer pay on pickup. Ask MtaaMarket to confirm the available options.");
 
   const { data: existingOrder, error: existingOrderError } = await client

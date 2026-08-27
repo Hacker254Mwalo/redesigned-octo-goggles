@@ -23,6 +23,10 @@ export type V3ListingSubmission = {
   price: number;
   stockQuantity: number;
   allowPayOnPickup: boolean;
+  livestockType?: string;
+  livestockDetails?: string;
+  livestockWelfareAttested?: boolean;
+  livestockMovementAcknowledged?: boolean;
   imageData: string;
   imageType: string;
 };
@@ -97,20 +101,30 @@ function decodeVendorImage(imageData: string, imageType: string) {
 function normalizeListingSubmission(input: V3ListingSubmission) {
   const title = input.title.trim();
   const description = input.description?.trim() || null;
+  const isLivestock = input.categorySlug === "poultry-livestock";
+  const livestockType = input.livestockType?.trim() || null;
+  const livestockDetails = input.livestockDetails?.trim() || null;
   if (title.length < 3 || title.length > 180) throw new Error("Use a product title between 3 and 180 characters.");
   if (description && description.length > 1_600) throw new Error("Keep the product description within 1,600 characters.");
   if (!V3_LISTING_CATEGORY_SLUGS.includes(input.categorySlug)) throw new Error("Choose a valid MtaaMarket category.");
   if (!Number.isFinite(input.price) || input.price <= 0 || input.price > 10_000_000) throw new Error("Enter a valid price in Kenyan shillings.");
   if (!Number.isSafeInteger(input.stockQuantity) || input.stockQuantity < 1 || input.stockQuantity > 100_000) throw new Error("Enter an available quantity between 1 and 100,000.");
-  return { title, description };
+  if (isLivestock) {
+    if (!livestockType || livestockType.length < 2 || livestockType.length > 80) throw new Error("Describe the poultry or livestock type in 2 to 80 characters.");
+    if (!livestockDetails || livestockDetails.length < 10 || livestockDetails.length > 500) throw new Error("Add 10 to 500 characters of factual animal details for owner review.");
+    if (!input.livestockWelfareAttested) throw new Error("Confirm the poultry or livestock welfare statement before submitting.");
+    if (!input.livestockMovementAcknowledged) throw new Error("Acknowledge that MtaaMarket does not arrange animal transport or confirm movement requirements.");
+    if (input.allowPayOnPickup) throw new Error("Poultry and livestock listings must use manual MtaaMarket handover confirmation, not hub pickup.");
+  }
+  return { title, description, livestockType: isLivestock ? livestockType : null, livestockDetails: isLivestock ? livestockDetails : null, livestockWelfareAttested: isLivestock, livestockMovementAcknowledged: isLivestock };
 }
 
 async function createV3PendingListing(input: V3ListingSubmission, options: { vendorId: string | null; isAdminConcierge: boolean; storagePrefix: "vendor-listings" | "owner-listings"; storageOwnerId: string }) {
-  const { title, description } = normalizeListingSubmission(input);
+  const { title, description, livestockType, livestockDetails, livestockWelfareAttested, livestockMovementAcknowledged } = normalizeListingSubmission(input);
   const client = getSupabaseServiceClient();
   const { image, extension } = decodeVendorImage(input.imageData, input.imageType);
   const { url } = await storagePut(`${options.storagePrefix}/${options.storageOwnerId}/${randomUUID()}.${extension}`, image, input.imageType);
-  const { data, error } = await client.from("products").insert({ vendor_id: options.vendorId, title, description, category_slug: input.categorySlug, image_url: url, base_price: input.price, final_price: input.price, stock_quantity: input.stockQuantity, is_admin_concierge: options.isAdminConcierge, allow_pay_on_pickup: input.allowPayOnPickup, status: "PENDING" }).select("id,status").single();
+  const { data, error } = await client.from("products").insert({ vendor_id: options.vendorId, title, description, category_slug: input.categorySlug, image_url: url, base_price: input.price, final_price: input.price, stock_quantity: input.stockQuantity, is_admin_concierge: options.isAdminConcierge, allow_pay_on_pickup: input.allowPayOnPickup, livestock_type: livestockType, livestock_details: livestockDetails, livestock_welfare_attested: livestockWelfareAttested, livestock_movement_acknowledged: livestockMovementAcknowledged, status: "PENDING" }).select("id,status").single();
   if (error || !data) throw new Error("MtaaMarket could not submit this listing.");
   return data;
 }

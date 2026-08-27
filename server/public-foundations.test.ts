@@ -239,6 +239,20 @@ describe("public performance and mobile foundations", () => {
     expect(admin).not.toMatch(/\.from\("products"\)|\.update\(/);
   });
 
+  it("keeps poultry and livestock listings owner-reviewed and outside the automated hub-order path", () => {
+    const vendorUpload = readFileSync(resolve(projectRoot, "client/src/pages/VendorUpload.tsx"), "utf8");
+    const admin = readFileSync(resolve(projectRoot, "client/src/pages/Admin.tsx"), "utf8");
+    const vendor = readFileSync(resolve(projectRoot, "server/v3-vendor.ts"), "utf8");
+    const orders = readFileSync(resolve(projectRoot, "server/v3-orders.ts"), "utf8");
+
+    expect(vendorUpload).toContain("livestockWelfareAttested");
+    expect(vendorUpload).toContain("livestockMovementAcknowledged");
+    expect(admin).toContain("Manual handover only.");
+    expect(vendor).toContain('categorySlug === "poultry-livestock"');
+    expect(vendor).toContain("Poultry and livestock listings must use manual MtaaMarket handover confirmation");
+    expect(orders).toContain("Poultry and livestock handovers require MtaaMarket confirmation");
+  });
+
   it("keeps a conservative vendor-chunk strategy for public performance", () => {
     const config = readFileSync(resolve(projectRoot, "vite.config.ts"), "utf8");
 

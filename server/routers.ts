@@ -57,7 +57,7 @@ import { applyForV3Vendor, bootstrapV3Owner, getV3BuyerOrderAccess, getV3VendorA
 const safeSearch = z.string().trim().max(100);
 const phone = z.string().trim().regex(/^\+?254[17]\d{8}$/, "Use a Kenyan number beginning with 254.").optional();
 const orderItemSchema = z.object({ productId: z.number().int().positive(), quantity: z.number().int().min(1).max(20) });
-const v3ListingSubmission = z.object({ title: z.string().trim().min(3).max(180), description: z.string().trim().max(1_600).optional(), categorySlug: z.enum(V3_LISTING_CATEGORY_SLUGS), price: z.number().positive().max(10_000_000), stockQuantity: z.number().int().min(1).max(100_000), allowPayOnPickup: z.boolean(), imageData: z.string().max(7_000_000), imageType: z.enum(["image/jpeg", "image/png", "image/webp"]) });
+const v3ListingSubmission = z.object({ title: z.string().trim().min(3).max(180), description: z.string().trim().max(1_600).optional(), categorySlug: z.enum(V3_LISTING_CATEGORY_SLUGS), price: z.number().positive().max(10_000_000), stockQuantity: z.number().int().min(1).max(100_000), allowPayOnPickup: z.boolean(), livestockType: z.string().trim().min(2).max(80).optional(), livestockDetails: z.string().trim().min(10).max(500).optional(), livestockWelfareAttested: z.boolean().optional(), livestockMovementAcknowledged: z.boolean().optional(), imageData: z.string().max(7_000_000), imageType: z.enum(["image/jpeg", "image/png", "image/webp"]) });
 
 export const appRouter = router({
   system: systemRouter,

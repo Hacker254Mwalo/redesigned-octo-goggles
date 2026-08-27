@@ -26,6 +26,10 @@ type ModerationProduct = {
   vendor_id: string | null;
   final_price: string | number;
   allow_pay_on_pickup: boolean;
+  livestock_type: string | null;
+  livestock_details: string | null;
+  livestock_welfare_attested: boolean;
+  livestock_movement_acknowledged: boolean;
   status: "PENDING" | "ACTIVE" | "FLAGGED";
 };
 
@@ -46,13 +50,17 @@ function OwnerListingIntake({ onSubmitted }: { onSubmitted: () => void }) {
   const [price, setPrice] = useState("");
   const [stockQuantity, setStockQuantity] = useState("1");
   const [allowPayOnPickup, setAllowPayOnPickup] = useState(true);
+  const [livestockType, setLivestockType] = useState("");
+  const [livestockDetails, setLivestockDetails] = useState("");
+  const [livestockWelfareAttested, setLivestockWelfareAttested] = useState(false);
+  const [livestockMovementAcknowledged, setLivestockMovementAcknowledged] = useState(false);
   const [imageData, setImageData] = useState("");
   const [imageType, setImageType] = useState<(typeof ACCEPTED_IMAGE_TYPES)[number] | null>(null);
   const [fileName, setFileName] = useState("");
   const [formError, setFormError] = useState("");
   const submit = trpc.marketplace.submitV3OwnerProduct.useMutation({
     onSuccess: () => {
-      setTitle(""); setDescription(""); setCategorySlug(""); setPrice(""); setStockQuantity("1"); setAllowPayOnPickup(true); setImageData(""); setImageType(null); setFileName(""); setFormError("");
+      setTitle(""); setDescription(""); setCategorySlug(""); setPrice(""); setStockQuantity("1"); setAllowPayOnPickup(true); setLivestockType(""); setLivestockDetails(""); setLivestockWelfareAttested(false); setLivestockMovementAcknowledged(false); setImageData(""); setImageType(null); setFileName(""); setFormError("");
       if (fileInput.current) fileInput.current.value = "";
       onSubmitted();
       toast.success("Owner listing sent to the moderation queue.");
@@ -78,7 +86,9 @@ function OwnerListingIntake({ onSubmitted }: { onSubmitted: () => void }) {
     if (!imageData || !imageType) return setFormError("Choose an original product image.");
     const quantity = Number(stockQuantity);
     if (!Number.isSafeInteger(quantity) || quantity < 1) return setFormError("Enter at least one available item.");
-    submit.mutate({ title, description: description || undefined, categorySlug, price: Number(price), stockQuantity: quantity, allowPayOnPickup, imageData, imageType });
+    const isLivestock = categorySlug === "poultry-livestock";
+    if (isLivestock && allowPayOnPickup) return setFormError("Poultry and livestock listings use manual MtaaMarket handover confirmation, not hub pickup.");
+    submit.mutate({ title, description: description || undefined, categorySlug, price: Number(price), stockQuantity: quantity, allowPayOnPickup, livestockType: isLivestock ? livestockType : undefined, livestockDetails: isLivestock ? livestockDetails : undefined, livestockWelfareAttested: isLivestock ? livestockWelfareAttested : undefined, livestockMovementAcknowledged: isLivestock ? livestockMovementAcknowledged : undefined, imageData, imageType });
   }
 
   return (
@@ -100,11 +110,12 @@ function OwnerListingIntake({ onSubmitted }: { onSubmitted: () => void }) {
             <textarea className="mt-2 min-h-28 w-full rounded-lg border border-border bg-white p-3 text-base" value={description} onChange={event => setDescription(event.target.value)} maxLength={1600} placeholder="Describe only facts you can confirm." />
           </label>
           <label className="block text-sm font-medium">Category
-            <select className="mt-2 w-full rounded-lg border border-border bg-white p-3 text-base" value={categorySlug} onChange={event => setCategorySlug(event.target.value as V3ListingCategorySlug | "")} required>
+            <select className="mt-2 w-full rounded-lg border border-border bg-white p-3 text-base" value={categorySlug} onChange={event => { const nextCategory = event.target.value as V3ListingCategorySlug | ""; setCategorySlug(nextCategory); if (nextCategory === "poultry-livestock") setAllowPayOnPickup(false); else { setLivestockType(""); setLivestockDetails(""); setLivestockWelfareAttested(false); setLivestockMovementAcknowledged(false); } }} required>
               <option value="" disabled>Choose a category</option>
               {V3_LISTING_CATEGORIES.map(category => <option key={category.slug} value={category.slug}>{category.name}</option>)}
             </select>
           </label>
+          {categorySlug === "poultry-livestock" && <fieldset className="space-y-4 rounded-xl border border-amber-200 bg-amber-50/50 p-4"><legend className="px-1 text-sm font-semibold">Poultry &amp; livestock safeguards</legend><p className="text-sm text-muted-foreground">MtaaMarket does not arrange animal transport, confirm permits, or offer hub pickup for live animals. Owner review and separate manual confirmation are required.</p><label className="block text-sm font-medium">Animal type<input className="mt-2 w-full rounded-lg border border-border bg-white p-3 text-base" required minLength={2} maxLength={80} value={livestockType} onChange={event => setLivestockType(event.target.value)} /></label><label className="block text-sm font-medium">Factual animal details<textarea className="mt-2 min-h-24 w-full rounded-lg border border-border bg-white p-3 text-base" required minLength={10} maxLength={500} value={livestockDetails} onChange={event => setLivestockDetails(event.target.value)} placeholder="Describe only facts you can confirm for owner review." /></label><label className="flex items-start gap-3 text-sm"><input className="mt-0.5 size-4" type="checkbox" checked={livestockWelfareAttested} onChange={event => setLivestockWelfareAttested(event.target.checked)} required /><span>I confirm this animal is listed with welfare in mind and the facts provided are accurate to my knowledge.</span></label><label className="flex items-start gap-3 text-sm"><input className="mt-0.5 size-4" type="checkbox" checked={livestockMovementAcknowledged} onChange={event => setLivestockMovementAcknowledged(event.target.checked)} required /><span>I understand that MtaaMarket does not arrange animal transport or confirm movement requirements; handover requires separate owner confirmation.</span></label></fieldset>}
           <div className="grid gap-5 sm:grid-cols-2">
             <label className="block text-sm font-medium">Price (KES)
               <input className="mt-2 w-full rounded-lg border border-border bg-white p-3 text-base" type="number" inputMode="decimal" min="1" max="10000000" step="1" value={price} onChange={event => setPrice(event.target.value)} required />
@@ -113,7 +124,7 @@ function OwnerListingIntake({ onSubmitted }: { onSubmitted: () => void }) {
               <input className="mt-2 w-full rounded-lg border border-border bg-white p-3 text-base" type="number" inputMode="numeric" min="1" max="100000" step="1" value={stockQuantity} onChange={event => setStockQuantity(event.target.value)} required />
             </label>
           </div>
-          <label className="flex items-start gap-3 rounded-xl border bg-muted/40 p-4 text-sm"><input className="mt-0.5 size-4" type="checkbox" checked={allowPayOnPickup} onChange={event => setAllowPayOnPickup(event.target.checked)} /><span><strong>Offer pay on pickup</strong><br /><span className="text-muted-foreground">MtaaMarket confirms the collection point and payment details before any buyer order.</span></span></label>
+          {categorySlug === "poultry-livestock" ? <p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950"><strong>Manual handover only.</strong> This listing cannot offer pay on pickup or use the hub-order path.</p> : <label className="flex items-start gap-3 rounded-xl border bg-muted/40 p-4 text-sm"><input className="mt-0.5 size-4" type="checkbox" checked={allowPayOnPickup} onChange={event => setAllowPayOnPickup(event.target.checked)} /><span><strong>Offer pay on pickup</strong><br /><span className="text-muted-foreground">MtaaMarket confirms the collection point and payment details before any buyer order.</span></span></label>}
           {formError && <p role="alert" className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">{formError}</p>}
           <button className="primary-cta" type="submit" disabled={submit.isPending || !imageData || !imageType}>{submit.isPending ? "Sending for review…" : "Add to moderation queue"}</button>
         </fieldset>
@@ -185,6 +196,7 @@ export default function Admin() {
                 <p className="mt-1 text-sm text-muted-foreground">Category: {getV3ListingCategory(product.category_slug)?.name ?? "Uncategorised"}</p>
                 <p className="mt-1 text-sm text-muted-foreground">Available quantity: {product.stock_quantity.toLocaleString("en-KE")}</p>
                 {product.description && <p className="mt-3 text-sm text-muted-foreground">{product.description}</p>}
+                {product.category_slug === "poultry-livestock" && <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950"><p><strong>Animal type:</strong> {product.livestock_type || "Missing"}</p><p className="mt-1"><strong>Details:</strong> {product.livestock_details || "Missing"}</p><p className="mt-1"><strong>Welfare statement:</strong> {product.livestock_welfare_attested ? "Recorded" : "Missing"}</p><p className="mt-1"><strong>Manual-handover acknowledgement:</strong> {product.livestock_movement_acknowledged ? "Recorded" : "Missing"}</p></div>}
                 <p className="mt-1 text-sm text-muted-foreground">Pay on pickup: {product.allow_pay_on_pickup ? "Requested — confirm collection details" : "Not requested"}</p>
                 <p className="mt-1 font-medium">KES {Number(product.final_price).toLocaleString("en-KE")}</p>
                 <div className="mt-5 flex flex-wrap gap-2">

@@ -82,6 +82,12 @@ describe("V3 vendor product submission", () => {
     await expect(submitV3VendorProduct(vendorIdentity, { ...validVendorListing, stockQuantity: 0 })).rejects.toThrow("available quantity");
     expect(getSupabaseServiceClient).not.toHaveBeenCalled();
   });
+
+  it("requires poultry and livestock welfare, movement, factual-details, and manual-handover safeguards before querying a profile", async () => {
+    await expect(submitV3VendorProduct(vendorIdentity, { ...validVendorListing, categorySlug: "poultry-livestock", allowPayOnPickup: false })).rejects.toThrow("Describe the poultry or livestock type");
+    await expect(submitV3VendorProduct(vendorIdentity, { ...validVendorListing, categorySlug: "poultry-livestock", allowPayOnPickup: true, livestockType: "Kienyeji chicken", livestockDetails: "Healthy adult chicken available for owner review.", livestockWelfareAttested: true, livestockMovementAcknowledged: true })).rejects.toThrow("manual MtaaMarket handover confirmation");
+    expect(getSupabaseServiceClient).not.toHaveBeenCalled();
+  });
 });
 
 describe("V3 owner product intake", () => {
@@ -131,6 +137,7 @@ describe("V3 owner moderation", () => {
     expect(queue.in).toHaveBeenCalledWith("status", ["PENDING", "ACTIVE", "FLAGGED"]);
     expect(queue.select).toHaveBeenCalledWith(expect.stringContaining("description,category_slug,stock_quantity"));
     expect(queue.select).toHaveBeenCalledWith(expect.stringContaining("allow_pay_on_pickup"));
+    expect(queue.select).toHaveBeenCalledWith(expect.stringContaining("livestock_type,livestock_details,livestock_welfare_attested,livestock_movement_acknowledged"));
     expect(update.update).toHaveBeenCalledWith({ status: "ACTIVE" });
   });
 
@@ -145,8 +152,8 @@ describe("V3 owner moderation", () => {
 });
 
 describe("V3 controlled hub orders", () => {
-  function activeProduct(allowPayOnPickup: boolean) {
-    return { id: "55555555-5555-4555-8555-555555555555", final_price: "2750.00", status: "ACTIVE", allow_pay_on_pickup: allowPayOnPickup };
+  function activeProduct(allowPayOnPickup: boolean, categorySlug = "home-kitchen") {
+    return { id: "55555555-5555-4555-8555-555555555555", final_price: "2750.00", status: "ACTIVE", category_slug: categorySlug, allow_pay_on_pickup: allowPayOnPickup };
   }
 
   it("derives the buyer contact, amount, active state, and pay-on-pickup availability server-side before recording an order", async () => {
@@ -169,7 +176,7 @@ describe("V3 controlled hub orders", () => {
 
     await expect(createV3HubOrder(vendorIdentity, { productId: "55555555-5555-4555-8555-555555555555" })).resolves.toMatchObject({ payment_status: "PENDING", order_status: "PENDING_DROPOFF", pickup_pin: expect.stringMatching(/^\d{4}$/) });
 
-    expect(product.select).toHaveBeenCalledWith("id,final_price,status,allow_pay_on_pickup");
+    expect(product.select).toHaveBeenCalledWith("id,final_price,status,category_slug,allow_pay_on_pickup");
     expect(product.eq).toHaveBeenNthCalledWith(1, "id", "55555555-5555-4555-8555-555555555555");
     expect(product.eq).toHaveBeenNthCalledWith(2, "status", "ACTIVE");
     expect(existingOrder.in).toHaveBeenCalledWith("order_status", ["PENDING_DROPOFF", "RECEIVED_AT_HUB"]);
@@ -203,6 +210,19 @@ describe("V3 controlled hub orders", () => {
     vi.mocked(getSupabaseServiceClient).mockReturnValue(client as never);
 
     await expect(createV3HubOrder(vendorIdentity, { productId: "55555555-5555-4555-8555-555555555555" })).rejects.toThrow("does not currently offer pay on pickup");
+    expect(client.from).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not create a hub-pickup order for a poultry or livestock listing even when malformed data claims pickup is available", async () => {
+    const buyer = profileQuery({ id: vendorIdentity.subject, full_name: "Siaya Buyer", phone_number: "254711281501" });
+    const product = { select: vi.fn(), eq: vi.fn(), maybeSingle: vi.fn() };
+    product.select.mockReturnValue(product);
+    product.eq.mockReturnValue(product);
+    product.maybeSingle.mockResolvedValue({ data: activeProduct(true, "poultry-livestock"), error: null });
+    const client = { from: vi.fn().mockImplementation((table: string) => table === "profiles" ? buyer : product) };
+    vi.mocked(getSupabaseServiceClient).mockReturnValue(client as never);
+
+    await expect(createV3HubOrder(vendorIdentity, { productId: "55555555-5555-4555-8555-555555555555" })).rejects.toThrow("require MtaaMarket confirmation");
     expect(client.from).toHaveBeenCalledTimes(2);
   });
 });
