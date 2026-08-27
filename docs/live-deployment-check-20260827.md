@@ -23,3 +23,8 @@ At 2026-08-27 16:44 GMT+3, `https://siayaonlinemarket.vercel.app/jumia` served t
 ## Google discovery deployment check
 
 At 2026-08-27 16:55 GMT+3, the live `/jumia` route served the latest storefront build with the new customer search panel, normal unpaid order form, collection/home-delivery options, and three-working-day refund copy. The Google discovery query is present in the deployed client/server build; result cards remain dependent on the server-only Google Custom Search credentials being configured in Vercel.
+
+
+## Premium search deployment check
+
+At 2026-08-27 17:06 GMT+3, the live `/jumia` route was checked with a cache-busting query after commit `331284f`. It was still serving the prior Jumia copy and did not yet show the new embedded Google search component or the refreshed hero wording. The latest local code and GitHub `main` contain the premium search redesign; Vercel had not switched the live domain to that commit at the time of this check.
