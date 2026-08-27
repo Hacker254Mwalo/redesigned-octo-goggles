@@ -107,3 +107,9 @@ The deployed unknown-route path was opened at `https://siayaonlinemarket.vercel.
 | Default document head | Siaya-focused title, description, canonical, robots, Open Graph, and social summary are present; browser zoom remains user-controlled. | Metadata describes only public discovery and owner-managed item requests; it does not claim checkout, delivery, inventory, or provider approval. |
 | Unknown application route | The deployed SPA presents a branded recovery screen with a route back to public discovery. | No debug data, account information, role hint, or protected action is exposed. |
 | Unexpected client render failure | The global fallback no longer prints JavaScript stack traces and says that the request was not sent. | Users can retry or return to the public market without implying an order, request, or payment state. |
+
+## Public analytics-reference cleanup
+
+The deployed page source previously retained an unresolved analytics-template script reference. Because no privacy-reviewed analytics provider has been selected or configured for the production site, that reference could only produce a malformed browser request rather than measured analytics. The script was removed instead of silently substituting a provider, preserving the current no-new-provider and no-unreviewed-data-sharing boundary.
+
+GitHub/Vercel deployment `144c83d` completed successfully. A live source inspection confirmed that the document now contains neither the `VITE_ANALYTICS` placeholder nor a `/umami` script reference. The Content Security Policy, anti-framing, nosniff, referrer, and device-permission response headers remained present after the release. Analytics is therefore intentionally **inactive**, not partially configured, until a separate privacy notice, provider assessment, and explicit activation decision are complete.
