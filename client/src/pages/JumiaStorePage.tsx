@@ -6,7 +6,7 @@ import { ArrowRight, CheckCircle2, MapPin, Minus, Package, Plus, Search, ShieldC
 import { useMemo, useState } from "react";
 import { Link } from "wouter";
 
- type OrderItem = { title: string; details: string; quantity: number };
+ type OrderItem = { title: string; details: string; quantity: number; sourceUrl?: string; imageUrl?: string | null; price?: number | null; currency?: string | null };
 
 const statusCopy: Record<string, string> = {
   placed: "Order placed",
@@ -24,6 +24,8 @@ export default function JumiaStorePage() {
   const [accountOpen, setAccountOpen] = useState(false);
   const [submittedOrder, setSubmittedOrder] = useState<{ order_number: string; status: string } | null>(null);
   const [searchTerm, setSearchTerm] = useState(() => new URLSearchParams(window.location.search).get("item")?.slice(0, 180) || "");
+  const [searchQuery, setSearchQuery] = useState(() => new URLSearchParams(window.location.search).get("item")?.slice(0, 120) || "");
+  const [selectedResult, setSelectedResult] = useState<{ title: string; url: string; snippet: string; imageUrl: string | null; price: number | null; currency: string | null } | null>(null);
   const [itemDetails, setItemDetails] = useState("");
   const [quantity, setQuantity] = useState("1");
   const [items, setItems] = useState<OrderItem[]>([]);
@@ -40,18 +42,30 @@ export default function JumiaStorePage() {
     },
   });
   const buyerOrders = trpc.marketplace.v3BuyerJumiaOrders.useQuery(undefined, { enabled: Boolean(session), retry: false });
+  const searchResults = trpc.marketplace.jumiaSearch.useQuery({ query: searchQuery }, { enabled: searchQuery.trim().length >= 3, retry: false });
   const paymentTiming = fulfilmentMethod === "home_delivery" ? "pay_on_delivery" : "pay_on_collection";
   const canSubmit = items.length > 0 && (fulfilmentMethod !== "home_delivery" || preferredLocation.trim().length > 0);
 
   const recentOrders = useMemo(() => (buyerOrders.data ?? []).slice(0, 4), [buyerOrders.data]);
+
+  function runSearch() {
+    const query = searchTerm.trim();
+    if (query.length >= 3) setSearchQuery(query);
+  }
+
+  function selectResult(result: NonNullable<typeof searchResults.data>["results"][number]) {
+    setSelectedResult(result);
+    setSearchTerm(result.title);
+    setItemDetails(`${result.snippet} Please confirm the exact variant, colour, or size before fulfilment.`);
+  }
 
   function addItem() {
     const title = searchTerm.trim();
     const details = itemDetails.trim();
     const parsedQuantity = Number(quantity);
     if (title.length < 4 || details.length < 10 || !Number.isSafeInteger(parsedQuantity) || parsedQuantity < 1 || parsedQuantity > 20) return;
-    setItems(current => [...current, { title, details, quantity: parsedQuantity }]);
-    setSearchTerm(""); setItemDetails(""); setQuantity("1");
+    setItems(current => [...current, { title, details, quantity: parsedQuantity, sourceUrl: selectedResult?.url, imageUrl: selectedResult?.imageUrl, price: selectedResult?.price, currency: selectedResult?.currency }]);
+    setSearchTerm(""); setItemDetails(""); setQuantity("1"); setSelectedResult(null);
   }
 
   function submit(event: React.FormEvent<HTMLFormElement>) {
@@ -76,8 +90,8 @@ export default function JumiaStorePage() {
       {submittedOrder ? <section className="mt-10 rounded-3xl border border-[#b9dcc5] bg-white p-6 shadow-sm sm:p-8" aria-live="polite"><div className="flex items-start gap-4"><div className="rounded-full bg-[#e8f4ec] p-3 text-[#0e7c5a]"><CheckCircle2 size={25} /></div><div><p className="eyebrow">Order received</p><h2 className="mt-1 text-2xl font-semibold">{submittedOrder.order_number} is in the fulfilment queue.</h2><p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">Your order is now being prepared. No payment was collected. You will pay at collection or delivery after the parcel and hand-off are confirmed.</p></div></div><div className="mt-6 flex flex-wrap gap-3"><button className="primary-cta" type="button" onClick={() => setSubmittedOrder(null)}>Place another order <ArrowRight size={17} /></button><Link className="secondary-cta" href="/dashboard">View my orders</Link></div></section> : <form className="mt-10 grid gap-8 lg:grid-cols-[1fr_0.78fr]" onSubmit={submit}>
         <section className="rounded-3xl border bg-white p-6 shadow-sm sm:p-8">
           <div className="flex items-start justify-between gap-4"><div><p className="eyebrow">Step 1</p><h2 className="mt-1 text-2xl font-semibold">Build your Jumia order</h2></div><Search className="text-[#1b6a55]" /></div>
-          <p className="mt-3 text-sm leading-6 text-muted-foreground">Search by item name, add it to your order, and describe the exact option you want. No product link or separate vendor account is needed.</p>
-          <div className="mt-6 space-y-5"><label className="block text-sm font-medium">Search for an item<input className="mt-2 w-full rounded-xl border border-border bg-white p-3 text-base" value={searchTerm} onChange={event => setSearchTerm(event.target.value)} placeholder="e.g. 43 inch smart TV" autoComplete="off" /></label><label className="block text-sm font-medium">Item option, size, colour, or preferred brand<textarea className="mt-2 min-h-24 w-full rounded-xl border border-border bg-white p-3 text-base" value={itemDetails} onChange={event => setItemDetails(event.target.value)} placeholder="e.g. Hisense or Samsung, black, with delivery to Siaya Town" /></label><div className="grid gap-4 sm:grid-cols-[1fr_auto]"><label className="block text-sm font-medium">Quantity<input className="mt-2 w-full rounded-xl border border-border bg-white p-3 text-base" type="number" min="1" max="20" value={quantity} onChange={event => setQuantity(event.target.value)} /></label><button className="secondary-cta self-end" type="button" onClick={addItem} disabled={searchTerm.trim().length < 4 || itemDetails.trim().length < 10}>Add item <Plus size={17} /></button></div></div>
+          <p className="mt-3 text-sm leading-6 text-muted-foreground">Search public Jumia Kenya pages inside MtaaMarket, choose a result, and add it to your order. The displayed price and availability are checked before fulfilment.</p>
+          <div className="mt-6 rounded-2xl border border-[#cfe3d7] bg-[#f4faf5] p-4"><div className="flex items-center justify-between gap-3"><p className="text-sm font-semibold text-[#0e2f27]">Search Jumia Kenya</p><span className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-[#245441]">Public results</span></div><div className="mt-3 flex gap-2"><input className="min-w-0 flex-1 rounded-xl border border-border bg-white p-3 text-base" value={searchTerm} onChange={event => { setSearchTerm(event.target.value); setSelectedResult(null); }} onKeyDown={event => { if (event.key === "Enter") { event.preventDefault(); runSearch(); } }} placeholder="e.g. 43 inch smart TV" autoComplete="off" aria-label="Search Jumia Kenya" /><button className="secondary-cta shrink-0" type="button" onClick={runSearch} disabled={searchTerm.trim().length < 3 || searchResults.isFetching}><Search size={17} />{searchResults.isFetching ? "Searching…" : "Search"}</button></div><p className="mt-3 text-xs leading-5 text-[#35584a]">Results come from public Jumia Kenya pages. Final price, stock, variant, and delivery are confirmed before fulfilment.</p>{searchResults.isError && <p className="mt-3 rounded-xl bg-white p-3 text-sm text-destructive" role="alert">{searchResults.error.message}</p>}{searchResults.data && <p className="mt-3 text-sm text-[#35584a]">{searchResults.data.message}</p>}{searchResults.data?.results.length ? <div className="mt-4 grid gap-3 md:grid-cols-2">{searchResults.data.results.map(result => <article className="rounded-2xl border border-white bg-white p-3 shadow-sm" key={result.id}>{result.imageUrl && <img className="h-36 w-full rounded-xl object-cover" src={result.imageUrl} alt="" loading="lazy" />}<h3 className="mt-3 line-clamp-2 font-semibold text-[#0e2f27]">{result.title}</h3><p className="mt-2 line-clamp-3 text-sm text-muted-foreground">{result.snippet}</p><div className="mt-3 flex items-center justify-between gap-3"><strong className="text-sm text-[#0e7c5a]">{result.price ? `KES ${result.price.toLocaleString("en-KE")}` : "Price to confirm"}</strong><button className="primary-cta px-3 py-2 text-xs" type="button" onClick={() => selectResult(result)}>Use this item</button></div><a className="mt-2 inline-block text-xs font-semibold text-[#0e7c5a] underline" href={result.url} target="_blank" rel="noreferrer">View Jumia page</a></article>)}</div> : null}</div><div className="mt-6 space-y-5"><label className="block text-sm font-medium">Selected item<input className="mt-2 w-full rounded-xl border border-border bg-white p-3 text-base" value={searchTerm} onChange={event => { setSearchTerm(event.target.value); setSelectedResult(null); }} placeholder="Search above or enter an item name" autoComplete="off" /></label>{selectedResult && <div className="rounded-xl border border-[#b9dcc5] bg-white p-3 text-sm"><p className="font-semibold text-[#0e2f27]">Jumia result selected</p><p className="mt-1 text-muted-foreground">{selectedResult.price ? `Displayed price: KES ${selectedResult.price.toLocaleString("en-KE")}` : "Price will be confirmed before fulfilment."}</p></div>}<label className="block text-sm font-medium">Item option, size, colour, or preferred brand<textarea className="mt-2 min-h-24 w-full rounded-xl border border-border bg-white p-3 text-base" value={itemDetails} onChange={event => setItemDetails(event.target.value)} placeholder="e.g. black, size 38, or preferred brand" /></label><div className="grid gap-4 sm:grid-cols-[1fr_auto]"><label className="block text-sm font-medium">Quantity<input className="mt-2 w-full rounded-xl border border-border bg-white p-3 text-base" type="number" min="1" max="20" value={quantity} onChange={event => setQuantity(event.target.value)} /></label><button className="secondary-cta self-end" type="button" onClick={addItem} disabled={searchTerm.trim().length < 4 || itemDetails.trim().length < 10}>Add item <Plus size={17} /></button></div></div>
           {items.length > 0 && <div className="mt-7 space-y-3"><p className="text-sm font-semibold text-[#0e2f27]">Items in this order</p>{items.map((item, index) => <article className="flex items-start justify-between gap-4 rounded-2xl bg-[#f4faf5] p-4" key={`${item.title}-${index}`}><div><h3 className="font-semibold">{item.title}</h3><p className="mt-1 text-sm text-muted-foreground">{item.details}</p><p className="mt-2 text-xs font-medium text-[#35584a]">Quantity: {item.quantity}</p></div><button className="rounded-full p-2 text-destructive hover:bg-white" type="button" onClick={() => setItems(current => current.filter((_, itemIndex) => itemIndex !== index))} aria-label={`Remove ${item.title}`}><Trash2 size={16} /></button></article>)}</div>}
         </section>
 

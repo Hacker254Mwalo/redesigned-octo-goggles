@@ -18,6 +18,10 @@ export type JumiaOrderItemInput = {
   title: string;
   details: string;
   quantity: number;
+  sourceUrl?: string;
+  imageUrl?: string | null;
+  price?: number | null;
+  currency?: string | null;
 };
 
 export type CreateJumiaOrderInput = {
@@ -60,6 +64,27 @@ function normalizePhone(value: string) {
   return normalized;
 }
 
+function normalizeJumiaSourceUrl(value: string | undefined) {
+  if (!value) return null;
+  try {
+    const parsed = new URL(value);
+    if (parsed.protocol !== "https:" || !["jumia.co.ke", "www.jumia.co.ke"].includes(parsed.hostname.toLowerCase())) throw new Error();
+    return parsed.toString().slice(0, 2_000);
+  } catch {
+    throw new Error("The selected Jumia result is not a valid Jumia Kenya page.");
+  }
+}
+
+function normalizeImageUrl(value: string | null | undefined) {
+  if (!value) return null;
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "https:" ? parsed.toString().slice(0, 1_000) : null;
+  } catch {
+    return null;
+  }
+}
+
 function makeOrderNumber(now = new Date()) {
   const date = [String(now.getFullYear()).slice(-2), String(now.getMonth() + 1).padStart(2, "0"), String(now.getDate()).padStart(2, "0")].join("");
   return `JM-${date}-${randomUUID().replace(/-/g, "").slice(0, 6).toUpperCase()}`;
@@ -96,6 +121,10 @@ function validateCreateInput(input: CreateJumiaOrderInput) {
     title: normalizedText(item.title, 4, 180, "Each item needs a name between 4 and 180 characters."),
     details: normalizedText(item.details, 10, 3_000, "Add at least 10 characters describing each item, size, colour, or preferred option."),
     quantity: item.quantity,
+    sourceUrl: normalizeJumiaSourceUrl(item.sourceUrl),
+    imageUrl: normalizeImageUrl(item.imageUrl),
+    price: item.price === null || item.price === undefined ? null : Number.isFinite(item.price) && item.price >= 0 ? Number(item.price) : (() => { throw new Error("The selected Jumia price is invalid."); })(),
+    currency: item.currency?.trim().slice(0, 8) || null,
   }));
   if (items.some(item => !Number.isSafeInteger(item.quantity) || item.quantity < 1 || item.quantity > 20)) throw new Error("Each Jumia item quantity must be between 1 and 20.");
   if (!JUMIA_FULFILMENT_METHODS.includes(input.fulfilmentMethod)) throw new Error("Choose a valid MtaaMarket fulfilment method.");

@@ -55,12 +55,13 @@ import { submitV3OwnerProduct, submitV3VendorProduct } from "./v3-vendor";
 import { applyForV3Vendor, bootstrapV3Owner, getV3BuyerOrderAccess, getV3VendorAccess, listV3VendorApplications, saveV3BuyerOrderProfile, updateV3VendorApproval } from "./v3-profiles";
 import { createV3AssistedOrderFromRequest, createV3ItemRequest, listV3OwnerAssistedOrders, listV3OwnerItemRequests, updateV3AssistedOrder, updateV3ItemRequest } from "./v3-requests";
 import { createV3JumiaOrder, listV3BuyerJumiaOrders, listV3OwnerJumiaOrders, updateV3OwnerJumiaOrder } from "./v3-jumia-orders";
+import { searchJumiaPublicProducts } from "./jumia-search";
 
 const safeSearch = z.string().trim().max(100);
 const phone = z.string().trim().regex(/^\+?254[17]\d{8}$/, "Use a Kenyan number beginning with 254.").optional();
 const orderItemSchema = z.object({ productId: z.number().int().positive(), quantity: z.number().int().min(1).max(20) });
 const v3ListingSubmission = z.object({ title: z.string().trim().min(3).max(180), description: z.string().trim().max(1_600).optional(), categorySlug: z.enum(V3_LISTING_CATEGORY_SLUGS), price: z.number().positive().max(10_000_000), stockQuantity: z.number().int().min(1).max(100_000), allowPayOnPickup: z.boolean(), livestockType: z.string().trim().min(2).max(80).optional(), livestockDetails: z.string().trim().min(10).max(500).optional(), livestockWelfareAttested: z.boolean().optional(), livestockMovementAcknowledged: z.boolean().optional(), imageData: z.string().max(7_000_000), imageType: z.enum(["image/jpeg", "image/png", "image/webp"]) });
-const jumiaOrderItem = z.object({ title: z.string().trim().min(4).max(180), details: z.string().trim().min(10).max(3_000), quantity: z.number().int().min(1).max(20) });
+const jumiaOrderItem = z.object({ title: z.string().trim().min(4).max(180), details: z.string().trim().min(10).max(3_000), quantity: z.number().int().min(1).max(20), sourceUrl: z.string().url().max(2_000).optional(), imageUrl: z.string().url().max(1_000).nullable().optional(), price: z.number().nonnegative().max(10_000_000).nullable().optional(), currency: z.string().trim().max(8).nullable().optional() });
 const jumiaOrderInput = z.object({ items: z.array(jumiaOrderItem).min(1).max(20), fulfilmentMethod: z.enum(["siaya_pickup", "home_delivery", "collection_point"]), paymentTiming: z.enum(["pay_on_collection", "pay_on_delivery"]), preferredLocation: z.string().trim().max(180).optional(), deliverySchedule: z.string().trim().max(120).optional(), orderNote: z.string().trim().max(1_200).optional(), fullName: z.string().trim().min(2).max(90).optional(), phone: z.string().trim().regex(/^\+?254[17]\d{8}$/, "Use a Kenyan number beginning with 254.").optional() });
 
 export const appRouter = router({
@@ -110,6 +111,7 @@ export const appRouter = router({
     v3OwnerItemRequests: publicProcedure.query(({ ctx }) => listV3OwnerItemRequests(ctx.supabaseIdentity)),
     updateV3ItemRequest: publicProcedure.input(z.object({ requestId: z.string().uuid(), status: z.enum(["submitted", "reviewing", "quoted", "accepted", "sourcing", "completed", "unavailable", "cancelled"]), sourceRoute: z.enum(["mtaa_select", "approved_vendor", "supplier", "external_marketplace", "other"]).optional(), quotedPrice: z.number().positive().max(10_000_000).optional(), platformReply: z.string().trim().max(3_000).optional() })).mutation(({ ctx, input }) => updateV3ItemRequest(ctx.supabaseIdentity, input)),
     createV3AssistedOrderFromRequest: publicProcedure.input(z.object({ requestId: z.string().uuid(), externalSourceDisclosure: z.string().trim().max(600).optional(), externalContentAttestation: z.boolean().optional() })).mutation(({ ctx, input }) => createV3AssistedOrderFromRequest(ctx.supabaseIdentity, input.requestId, input.externalSourceDisclosure, input.externalContentAttestation)),
+    jumiaSearch: publicProcedure.input(z.object({ query: safeSearch })).query(({ input }) => searchJumiaPublicProducts(input.query)),
     createV3JumiaOrder: publicProcedure.input(jumiaOrderInput).mutation(({ ctx, input }) => createV3JumiaOrder(ctx.supabaseIdentity, input)),
     v3BuyerJumiaOrders: publicProcedure.query(({ ctx }) => listV3BuyerJumiaOrders(ctx.supabaseIdentity)),
     v3OwnerJumiaOrders: publicProcedure.query(({ ctx }) => listV3OwnerJumiaOrders(ctx.supabaseIdentity)),
