@@ -69,6 +69,19 @@ describe("public performance and mobile foundations", () => {
     expect(styles).toContain(".skip-link:focus-visible");
   });
 
+  it("exposes clear current-page and mobile-menu semantics in the shared public navigation", () => {
+    const layout = readFileSync(resolve(projectRoot, "client/src/components/MarketplaceLayout.tsx"), "utf8");
+
+    expect(layout).toContain('aria-current={location === href ? "page" : undefined}');
+    expect(layout).toContain('aria-expanded={open}');
+    expect(layout).toContain('aria-controls="mtaa-market-mobile-menu"');
+    expect(layout).toContain('id="mtaa-market-mobile-menu"');
+    expect(layout).toContain('aria-label={open ? "Close navigation" : "Open navigation"}');
+    expect(layout).toContain('event.key === "Escape"');
+    expect(layout).toContain("window.addEventListener(\"keydown\", closeOnEscape)");
+    expect(layout).toContain("setOpen(false);");
+  });
+
   it("publishes a truthful privacy route before public Google sign-in is enabled", () => {
     const app = readFileSync(resolve(projectRoot, "client/src/App.tsx"), "utf8");
     const layout = readFileSync(resolve(projectRoot, "client/src/components/MarketplaceLayout.tsx"), "utf8");
