@@ -28,6 +28,7 @@ export function MarketplaceLayout({ children }: { children: React.ReactNode }) {
   };
   return (
     <div className="market-shell">
+      <a className="skip-link" href="#main-content">Skip to market content</a>
       <div className="top-note"><span className="note-dot" /> Siaya-served market · platform-managed support · physical products</div>
       <header className="site-header">
         <div className="header-inner">
@@ -51,7 +52,7 @@ export function MarketplaceLayout({ children }: { children: React.ReactNode }) {
         {open && <nav className="mobile-menu">{navItems.map(({ href, label, icon: Icon }) => <Link onClick={() => setOpen(false)} key={href} href={href} className="mobile-menu-link"><Icon size={18} />{label}</Link>)}<Link onClick={() => setOpen(false)} href="/cart" className="mobile-menu-link"><ShoppingBag size={18} />Basket ({count})</Link></nav>}
       </header>
       <MtaaAccountDialog open={emailOpen} onClose={() => setEmailOpen(false)} />
-      <main>{children}</main>
+      <main id="main-content" tabIndex={-1}>{children}</main>
       <footer className="site-footer">
         <div><div className="brand footer-brand"><span className="brand-mark">M</span><span><small>Siaya Online</small>Mtaa<span>Market</span></span></div><p>A local market platform for products, assisted orders, and carefully managed fulfilment.</p></div>
         <div className="footer-links"><Link href="/request">Request an item</Link><Link href="/vendor">Seller Studio</Link><Link href="/cart">Your basket</Link></div>

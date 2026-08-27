@@ -59,6 +59,16 @@ describe("public performance and mobile foundations", () => {
     expect(notFound).toContain("Return to MtaaMarket");
   });
 
+  it("provides a shared keyboard skip path past repeated MtaaMarket navigation", () => {
+    const layout = readFileSync(resolve(projectRoot, "client/src/components/MarketplaceLayout.tsx"), "utf8");
+    const styles = readFileSync(resolve(projectRoot, "client/src/index.css"), "utf8");
+
+    expect(layout).toContain('href="#main-content"');
+    expect(layout).toContain('id="main-content" tabIndex={-1}');
+    expect(styles).toContain(".skip-link");
+    expect(styles).toContain(".skip-link:focus-visible");
+  });
+
   it("keeps a conservative vendor-chunk strategy for public performance", () => {
     const config = readFileSync(resolve(projectRoot, "vite.config.ts"), "utf8");
 
