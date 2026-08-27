@@ -61,6 +61,14 @@ The configured Supabase management connector was inspected before the requested 
 
 The compatible foundation from this directive is therefore its **approval-before-visibility** intent, already represented by the current vendor-application governance and product moderation schema. No new `001_schema.sql` file was created, no existing migration was overwritten, no data was changed, and no V3 page component was added.
 
+## Confirmed core-replacement execution
+
+After an explicit confirmation to proceed with the irreversible operation, the active isolated project `mfgjpjtlmfdtsnkoluco` was re-identified and its schema was inventoried. The replacement migration `20260827055000_v3_core_replacement.sql` then ran successfully. At the time of the inventory, the affected `products`, `orders`, and directly dependent operational tables had no rows. `products` and `orders` were dropped with `CASCADE`, and the V3 `profiles`, `products`, and `orders` tables were created.
+
+The applied migration enables RLS on all three V3 tables. It creates no public profile, vendor, order, payment, settlement, or update policy; only `ACTIVE` V3 products can be read publicly. A post-migration schema inspection confirmed the three tables exist with RLS enabled and zero rows. The Supabase security advisor reports the expected informational RLS-without-policy notices for the intentionally closed `profiles` and `orders` tables, plus legacy removed-dependency tables; it also continues to report the pre-existing optional leaked-password-protection setting.
+
+The repository now contains a compatible public discovery adapter for the V3 product columns. It keeps V3 products as an empty launch-stage catalogue until an owner-controlled write path is separately implemented. TypeScript, 22 Vitest files / 76 tests, the Vercel production build, and the production dependency audit all pass after the reconciliation.
+
 ## References
 
 [1]: https://www.centralbank.go.ke/national-payments-system/ "Central Bank of Kenya — National Payments System and authorised PSP directory"

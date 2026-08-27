@@ -57,39 +57,15 @@ export async function listSupabasePublicCategories(): Promise<PublicMarketplaceC
 type SupabasePublicProductRow = {
   id: string;
   vendor_id: string | null;
-  category_id: string;
   title: string;
-  slug: string;
-  description: string;
-  price: string | number;
-  stock_quantity: number;
-  image_url: string | null;
-  image_key: string | null;
-  image_alt: string | null;
-  is_local_inventory: boolean;
-  source_type: "mtaa_select" | "approved_seller" | "special_order";
-  item_condition: "new" | "used" | "refurbished";
-  availability_status: "ready" | "seller_confirmed" | "special_order";
-  payment_timing: "pay_before" | "pay_on_collection" | "pay_on_delivery" | "confirm_with_mtaamarket";
-  fulfilment_options: string[];
-  moderation_status: "visible" | "paused" | "removed";
-  status: "draft" | "active" | "archived";
+  description: string | null;
+  image_url: string;
+  base_price: string | number;
+  final_price: string | number;
+  is_admin_concierge: boolean;
+  status: "PENDING" | "ACTIVE" | "REJECTED";
+  allow_pay_on_pickup: boolean;
   created_at: string;
-  updated_at: string;
-  categories: SupabaseCategoryRow | SupabaseCategoryRow[] | null;
-  vendors: {
-    id: string;
-    store_name: string;
-    store_slug: string;
-    approval_status: "pending" | "approved" | "suspended" | "rejected";
-    is_active: boolean;
-  } | Array<{
-    id: string;
-    store_name: string;
-    store_slug: string;
-    approval_status: "pending" | "approved" | "suspended" | "rejected";
-    is_active: boolean;
-  }> | null;
 };
 
 function first<T>(value: T | T[] | null): T | null {
@@ -97,44 +73,43 @@ function first<T>(value: T | T[] | null): T | null {
 }
 
 export function mapSupabasePublicProduct(row: SupabasePublicProductRow) {
-  const category = first(row.categories);
-  if (!category) throw new Error("Public product is missing its category.");
-  const vendor = first(row.vendors);
+  const category: PublicMarketplaceCategory = {
+    id: "v3-general-goods",
+    name: "General goods",
+    slug: "general-goods",
+    icon: "Package",
+    description: "Owner-reviewed physical products for Siaya buyers.",
+    sortOrder: 999,
+    isActive: true,
+    createdAt: new Date(row.created_at),
+  };
 
   return {
     product: {
       id: row.id,
       vendorId: row.vendor_id,
-      categoryId: row.category_id,
+      categoryId: category.id,
       title: row.title,
-      slug: row.slug,
-      description: row.description,
-      price: Number(row.price),
-      stockQuantity: row.stock_quantity,
+      slug: `v3-${row.id}`,
+      description: row.description ?? "Owner-reviewed listing details are being prepared.",
+      price: Number(row.final_price),
+      stockQuantity: 0,
       imageUrl: row.image_url,
-      imageKey: row.image_key,
-      imageAlt: row.image_alt,
-      isLocalInventory: row.is_local_inventory,
-      sourceType: row.source_type,
-      itemCondition: row.item_condition,
-      availabilityStatus: row.availability_status,
-      paymentTiming: row.payment_timing,
-      fulfilmentOptions: row.fulfilment_options,
-      moderationStatus: row.moderation_status,
-      status: row.status,
+      imageKey: null,
+      imageAlt: row.title,
+      isLocalInventory: row.is_admin_concierge,
+      sourceType: row.is_admin_concierge ? "mtaa_select" : "approved_seller",
+      itemCondition: "new",
+      availabilityStatus: "seller_confirmed",
+      paymentTiming: row.allow_pay_on_pickup ? "pay_on_collection" : "confirm_with_mtaamarket",
+      fulfilmentOptions: row.allow_pay_on_pickup ? ["siaya_pickup"] : [],
+      moderationStatus: "visible",
+      status: row.status === "ACTIVE" ? "active" : "draft",
       createdAt: new Date(row.created_at),
-      updatedAt: new Date(row.updated_at),
+      updatedAt: new Date(row.created_at),
     },
-    category: mapSupabaseCategory(category),
-    vendor: vendor
-      ? {
-          id: vendor.id,
-          storeName: vendor.store_name,
-          storeSlug: vendor.store_slug,
-          approvalStatus: vendor.approval_status,
-          isActive: vendor.is_active,
-        }
-      : null,
+    category,
+    vendor: null,
   };
 }
 
@@ -142,7 +117,7 @@ export function mapOptionalSupabasePublicProduct(row: SupabasePublicProductRow |
   return row ? mapSupabasePublicProduct(row) : null;
 }
 
-const PUBLIC_PRODUCT_SELECT = "id,vendor_id,category_id,title,slug,description,price,stock_quantity,image_url,image_key,image_alt,is_local_inventory,source_type,item_condition,availability_status,payment_timing,fulfilment_options,moderation_status,status,created_at,updated_at,categories!inner(id,name,slug,icon,description,sort_order,is_active,created_at),vendors(id,store_name,store_slug,approval_status,is_active)";
+const PUBLIC_PRODUCT_SELECT = "id,vendor_id,title,description,image_url,base_price,final_price,is_admin_concierge,status,allow_pay_on_pickup,created_at";
 
 function safeSearchTerm(search?: string) {
   return search?.trim().replace(/[%,_()]/g, " ").replace(/\s+/g, " ").slice(0, 100) || undefined;
@@ -159,7 +134,6 @@ export async function listSupabasePublicProducts(input?: { categorySlug?: string
     .order("created_at", { ascending: false })
     .limit(limit);
 
-  if (input?.categorySlug) query = query.eq("categories.slug", input.categorySlug);
   const search = safeSearchTerm(input?.search);
   if (search) query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%`);
 
@@ -170,12 +144,13 @@ export async function listSupabasePublicProducts(input?: { categorySlug?: string
 
 export async function getSupabasePublicProductBySlug(slug: string) {
   if (!isSupabaseConfigured()) return null;
+  const v3Id = slug.startsWith("v3-") ? slug.slice(3) : null;
+  if (!v3Id) return null;
   const { data, error } = await getSupabaseServiceClient()
     .from("products")
     .select(PUBLIC_PRODUCT_SELECT)
-    .eq("slug", slug)
-    .eq("status", "active")
-    .eq("moderation_status", "visible")
+    .eq("id", v3Id)
+    .eq("status", "ACTIVE")
     .maybeSingle();
   if (error) throw new Error(`MtaaMarket product could not be read from Supabase: ${error.message}`);
   return mapOptionalSupabasePublicProduct(data as SupabasePublicProductRow | null);

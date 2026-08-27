@@ -24,7 +24,7 @@ describe("isolated MtaaMarket Supabase connection", () => {
     const secretKey = process.env.SUPABASE_SECRET_KEY!;
     const headers = { apikey: secretKey, Authorization: `Bearer ${secretKey}` };
     const resources = [
-      "products?select=id,category:categories!inner(id),vendor:vendors(id)&status=eq.active&moderation_status=eq.visible&limit=1",
+      "products?select=id&status=eq.ACTIVE&limit=1",
       "pickup_stations?select=id&is_active=eq.true&county=eq.Siaya&limit=1",
       "vendors?select=id&approval_status=eq.approved&is_active=eq.true&limit=1",
       "reviews?select=id,reviewer:marketplace_profiles!inner(id)&limit=1",
