@@ -75,7 +75,7 @@ export default function JumiaStorePage() {
     },
   });
   const buyerOrders = trpc.marketplace.v3BuyerJumiaOrders.useQuery(undefined, { enabled: Boolean(session), retry: false });
-  const browseQuery = searchQuery.trim() || "smartphone";
+  const browseQuery = searchQuery.trim() || "smartphone 2026";
   const searchResults = trpc.marketplace.jumiaSearch.useQuery({ query: browseQuery }, { enabled: browseQuery.length >= 3 && !googleSearchEnabled, retry: false });
   const paymentTiming = fulfilmentMethod === "home_delivery" ? "pay_on_delivery" : "pay_on_collection";
   const canSubmit = items.length > 0 && (fulfilmentMethod !== "home_delivery" || preferredLocation.trim().length > 0);

@@ -216,8 +216,19 @@ function isSearchLandingUrl(url: string) {
   }
 }
 
+function isGenericCatalogLandingResult(result: JumiaSearchResult) {
+  const title = result.title.trim();
+  const hasCategoryLanguage = /\b(?:smartphones?|mobile phones?|phones?|smart tvs?|televisions?|laptops?|shoes?)\b/i.test(title);
+  const hasLandingLanguage = /\b(?:online|store|latest|best\s+(?:price|prices)|buy|shop|range|collection)\b/i.test(title);
+  const hasConcreteModelSignal = /\d{2,}/.test(title);
+  const genericTitle = hasCategoryLanguage && hasLandingLanguage && !hasConcreteModelSignal && title.length <= 120;
+  const genericCopy = /\b(?:buy|shop\s+for)\s+(?:the\s+)?(?:latest\s+)?(?:smartphones?|mobile phones?|phones?|smart tvs?|televisions?|laptops?)\s+(?:in\s+kenya\s+)?online\b/i.test(result.snippet)
+    || /\b(?:widest|wide|huge|large)\s+range\b.{0,70}\b(?:smartphones?|mobile phones?|phones?|kenya)\b/i.test(result.snippet);
+  return genericTitle || genericCopy;
+}
+
 function prioritizeVisualResults(results: JumiaSearchResult[]) {
-  const filtered = results.filter(result => !isSearchLandingUrl(result.url));
+  const filtered = results.filter(result => !isSearchLandingUrl(result.url) && !isGenericCatalogLandingResult(result));
   const sorted = [...filtered].sort((left, right) => {
     const leftScore = Number(isLikelyProductUrl(left.url)) * 4 + Number(Boolean(left.imageUrl)) * 2 + Number(Boolean(left.price));
     const rightScore = Number(isLikelyProductUrl(right.url)) * 4 + Number(Boolean(right.imageUrl)) * 2 + Number(Boolean(right.price));

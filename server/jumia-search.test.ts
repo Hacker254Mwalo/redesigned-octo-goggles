@@ -168,6 +168,20 @@ describe("Jumia public discovery", () => {
     expect(result.message).toContain("individual product pages");
   });
 
+  it("removes generic category and brand pages even when their URLs end in html", async () => {
+    process.env.TAVILY_API_KEY = "test-key";
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ results: [
+      { title: "Shop & Buy Latest Smartphones Online", url: "https://www.jumia.co.ke/shop-buy-latest-smartphones-online-123456.html", content: "Buy smartphones in Kenya online at Jumia." },
+      { title: "Infinix Smartphones Online", url: "https://www.jumia.co.ke/infinix-smartphones-online-123457.html", content: "Buy Infinix smartphones online at Jumia Kenya." },
+      { title: "Samsung 50U8000 50 Inches Crystal UHD 4K Smart TV", url: "https://www.jumia.co.ke/samsung-50u8000-smart-tv-123458.html", content: "Samsung 50U8000 50 Inches Crystal UHD 4K Smart TV" },
+    ] }), { status: 200 }));
+
+    const result = await searchJumiaPublicProducts("smartphones kenya");
+
+    expect(result.results).toHaveLength(1);
+    expect(result.results[0]?.title).toContain("Samsung 50U8000");
+  });
+
   it("uses Brave Web Search when configured and keeps only HTTPS Jumia Kenya results", async () => {
     process.env.BRAVE_SEARCH_API_KEY = "test-key";
     vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ web: { results: [
