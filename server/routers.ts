@@ -50,6 +50,7 @@ import { getProductionReadiness } from "./production-readiness";
 import { ensureSupabaseMarketplaceProfile } from "./supabase-profiles";
 import { createV3HubOrder } from "./v3-orders";
 import { listV3PendingProducts, moderateV3Product } from "./v3-moderation";
+import { submitV3VendorProduct } from "./v3-vendor";
 
 const safeSearch = z.string().trim().max(100);
 const phone = z.string().trim().regex(/^\+?254[17]\d{8}$/, "Use a Kenyan number beginning with 254.").optional();
@@ -91,6 +92,7 @@ export const appRouter = router({
     }),
     v3PendingProducts: publicProcedure.query(({ ctx }) => listV3PendingProducts(ctx.supabaseIdentity)),
     moderateV3Product: publicProcedure.input(z.object({ productId: z.string().uuid(), status: z.enum(["ACTIVE", "REJECTED"]) })).mutation(({ ctx, input }) => moderateV3Product(ctx.supabaseIdentity, input.productId, input.status)),
+    submitV3VendorProduct: publicProcedure.input(z.object({ title: z.string().trim().min(3).max(180), price: z.number().positive().max(10_000_000), imageData: z.string().max(7_000_000), imageType: z.enum(["image/jpeg", "image/png", "image/webp"]) })).mutation(({ ctx, input }) => submitV3VendorProduct(ctx.supabaseIdentity, input)),
 
     myProfile: protectedProcedure.query(({ ctx }) => ensureMarketplaceProfile(ctx.user.id, ctx.user.name)),
     buyerWorkspace: protectedProcedure.query(async ({ ctx }) => {
