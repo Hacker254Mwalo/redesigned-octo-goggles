@@ -81,3 +81,17 @@ The authenticated Supabase Storage verification creates and removes a temporary 
 The deployed public Sign in dialog was opened without entering an email, password, code, or recovery request. It rendered the verified email-link method and the email/password route, disclosed that Google remains unavailable until a secure provider configuration exists, and repeated that the protected workspace remains unavailable pending the separate role migration. The deployed dialog’s close control and email input were present, and a direct Escape-key check closed the dialog without submitting an action. No sign-in, signup, reset, order, vendor, payment, delivery, or role action was submitted during this check.
 
 The subsequent email-first guidance update was also checked on the deployed Vercel site. The account dialog now visibly identifies the email-link flow as the recommended working method and labels its action as **Send secure sign-in link**. It continues to disclose the unavailable Google-provider boundary rather than displaying a non-functional Google sign-in control. No account form was submitted during this review.
+
+## Browser-security header deployment verification
+
+The browser-security hardening configuration was deployed through GitHub commit `136db47`, whose Vercel status reported a successful completed deployment. A non-mutating `HEAD` inspection then verified the expected headers on the homepage, `/auth/callback`, and the public category tRPC route. The compatibility-oriented policy intentionally constrains only browser capabilities that are not required by current public routes; it does **not** set a network-restrictive `default-src`, script policy, or connection policy before the exact Supabase, analytics, and future approved OAuth endpoints are fully catalogued.
+
+| Header | Deployed value | Verified protection and compatibility boundary |
+|---|---|---|
+| `Content-Security-Policy` | `base-uri 'self'; frame-ancestors 'none'; form-action 'self'; object-src 'none'` | Prevents base-tag injection, embedding, off-site form posts, and plugin/object embedding without imposing an unverified restriction on public scripts or provider connections. |
+| `X-Content-Type-Options` | `nosniff` | Stops MIME sniffing for the public static and API responses. |
+| `X-Frame-Options` | `DENY` | Provides legacy clickjacking protection alongside CSP framing protection. |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` | Limits cross-origin referrer detail while retaining normal same-origin navigation context. |
+| `Permissions-Policy` | `camera=(), geolocation=(), microphone=(), payment=(), usb=()` | Disables browser capabilities that no current MtaaMarket public route needs. |
+
+The deployment also retained Vercel’s HTTPS transport header. The Auth callback returned `200` with the configured headers, and the public category tRPC route returned its expected `204` response with the same controls. No account action, request submission, seller write, role assignment, payment, delivery, Google OAuth, or provider configuration was activated during this verification.
