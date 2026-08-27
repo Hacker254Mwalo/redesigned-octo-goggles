@@ -48,6 +48,7 @@ import { initiateMpesaStkPush, isMpesaConfigured } from "./payments";
 import { createItemRequestDraft, createListingDraft } from "./marketplace-ai";
 import { getProductionReadiness } from "./production-readiness";
 import { ensureSupabaseMarketplaceProfile } from "./supabase-profiles";
+import { createV3HubOrder } from "./v3-orders";
 
 const safeSearch = z.string().trim().max(100);
 const phone = z.string().trim().regex(/^\+?254[17]\d{8}$/, "Use a Kenyan number beginning with 254.").optional();
@@ -83,6 +84,10 @@ export const appRouter = router({
     approvedVendors: publicProcedure.query(() => listApprovedVendors()),
     reviewsByProduct: publicProcedure.input(z.object({ productId: z.union([z.number().int().positive(), z.string().uuid()]) })).query(({ input }) => listVerifiedReviewsForProduct(input.productId)),
     mpesaStatus: publicProcedure.query(() => ({ configured: isMpesaConfigured(), environment: "sandbox" as const })),
+    createV3HubOrder: publicProcedure.input(z.object({ productId: z.string().uuid(), buyerPhone: z.string().trim().regex(/^\+?254[17]\d{8}$/, "Use a Kenyan number beginning with 254.") })).mutation(async ({ ctx, input }) => {
+      if (!ctx.supabaseIdentity) throw new Error("Sign in with your verified MtaaMarket email session before confirming an order.");
+      return createV3HubOrder(input);
+    }),
 
     myProfile: protectedProcedure.query(({ ctx }) => ensureMarketplaceProfile(ctx.user.id, ctx.user.name)),
     buyerWorkspace: protectedProcedure.query(async ({ ctx }) => {

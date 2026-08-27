@@ -197,6 +197,20 @@ describe("public performance and mobile foundations", () => {
     expect(cart).not.toMatch(/\.from\("orders"\)|insert\(.*orders/i);
   });
 
+  it("uses the server-authorized V3 hub-order contract rather than a direct client database write", () => {
+    const router = readFileSync(resolve(projectRoot, "server/routers.ts"), "utf8");
+    const orders = readFileSync(resolve(projectRoot, "server/v3-orders.ts"), "utf8");
+    const detail = readFileSync(resolve(projectRoot, "client/src/pages/ProductDetail.tsx"), "utf8");
+
+    expect(router).toContain("createV3HubOrder");
+    expect(router).toContain("ctx.supabaseIdentity");
+    expect(orders).toContain('payment_status: "PENDING"');
+    expect(orders).toContain("randomInt(0, 10_000)");
+    expect(detail).toContain("Confirm Order for Hub Pickup");
+    expect(detail).toContain("Your Siaya Hub Pickup PIN is:");
+    expect(detail).not.toMatch(/\.from\("orders"\)|insert\(.*orders/i);
+  });
+
   it("keeps a conservative vendor-chunk strategy for public performance", () => {
     const config = readFileSync(resolve(projectRoot, "vite.config.ts"), "utf8");
 
