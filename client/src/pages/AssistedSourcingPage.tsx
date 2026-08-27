@@ -12,7 +12,7 @@ const steps = [
   {
     number: "02",
     title: "MtaaMarket checks possible routes",
-    copy: "The owner reviews realistic local or external options manually. A request is not a stock reservation, price quote, or purchase.",
+    copy: "The owner reviews realistic local options manually. A request is not a stock reservation, price quote, or purchase.",
     icon: Search,
   },
   {

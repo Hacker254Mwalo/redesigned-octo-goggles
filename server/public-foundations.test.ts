@@ -152,7 +152,14 @@ describe("public performance and mobile foundations", () => {
     expect(home).toContain("as owner-reviewed listings are added");
     expect(home).toContain("Owner-reviewed local market");
     expect(home).toContain("Built for Siaya buyers and sellers");
-    expect(home).toContain("Search current listings");
+    expect(home).toContain("Search current listings or use the Request Desk");
+    expect(home).toContain("Search physical products, livestock, accessories, home items and more");
+    expect(home).toContain("Tell MtaaMarket what you need and we will begin with a managed request");
+    expect(home).toContain("Ask MtaaMarket for this item");
+    expect(home).toContain("Shop local categories");
+    expect(home).toContain("Swipe to explore");
+    expect(home).toContain('aria-label="Browse local product categories"');
+    expect(home).toContain("aria-pressed={!category}");
     expect(home).not.toContain("Many approved local sellers");
     expect(home).not.toContain("Sellers serve Siaya buyers");
   });
@@ -185,6 +192,16 @@ describe("public performance and mobile foundations", () => {
     expect(guide).not.toContain("<p><span><ShieldCheck size={16} /></span><div>");
     expect(styles).toContain(".guide-boundary-list li{");
     expect(styles).toContain(".guide-boundary-list li>div{min-width:0}");
+  });
+
+  it("keeps the public Request Desk separate from any future supplier-sourced collection", () => {
+    const requestDesk = readFileSync(resolve(projectRoot, "client/src/pages/RequestDeskPage.tsx"), "utf8");
+
+    expect(requestDesk).toContain("MtaaMarket checks a real route.");
+    expect(requestDesk).toContain("availability, the actual hand-off route, and payment timing");
+    expect(requestDesk).not.toContain("separate external route");
+    expect(requestDesk).not.toContain("source route, availability");
+    expect(requestDesk).not.toMatch(/(?:fetch\(|axios|invokeLLM|checkout\()/);
   });
 
   it("keeps the Siaya hub and payment choices as confirmation-gated basket preferences", () => {
