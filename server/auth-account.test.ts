@@ -52,4 +52,11 @@ describe("MtaaMarket email/password account safeguards", () => {
     expect(accountDialogSource).toContain("Google sign-in will appear only after the MtaaMarket Google provider is securely configured.");
     expect(accountDialogSource).not.toContain("signInWithGoogle");
   });
+
+  it("keeps the Google OAuth bridge dormant until the provider is configured", () => {
+    expect(supabaseAuthContextSource).toContain('provider: "google"');
+    expect(supabaseAuthContextSource).toContain('redirectTo: `${window.location.origin}/auth/callback`');
+    expect(accountDialogSource).toContain("Google sign-in will appear only after the MtaaMarket Google provider is securely configured.");
+    expect(accountDialogSource).not.toContain("signInWithGoogle");
+  });
 });
