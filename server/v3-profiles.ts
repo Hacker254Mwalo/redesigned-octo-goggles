@@ -92,6 +92,7 @@ export async function saveV3BuyerOrderProfile(identity: SupabaseIdentity | null,
   const result = existing.data
     ? await client.from("profiles").update({ ...(existing.data.full_name ? {} : { full_name: fullName }), ...(existing.data.phone_number ? {} : { phone_number: phoneNumber }) }).eq("id", identity.subject).select("id,full_name,phone_number").maybeSingle()
     : await client.from("profiles").insert({ id: identity.subject, full_name: fullName, phone_number: phoneNumber, role: "buyer" }).select("id,full_name,phone_number").maybeSingle();
+  if (result.error?.code === "23505") throw new Error("This Kenyan contact number is already linked to another MtaaMarket account. Sign in to that account or contact MtaaMarket support.");
   if (result.error || !result.data?.full_name || !result.data.phone_number) throw new Error("MtaaMarket could not save your protected pickup details.");
   return { hasName: true, hasPhone: true, maskedPhone: maskPhone(result.data.phone_number) };
 }

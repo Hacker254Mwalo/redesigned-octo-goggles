@@ -22,6 +22,14 @@ The hosted Supabase **Magic link or OTP**, **Confirm sign up**, and **Reset pass
 
 No Clerk project, Clerk key, provider migration, SMS, Google OAuth change, new account, or customer data transfer was created by this decision. A real end-to-end signup or recovery verification remains a founder-controlled browser test; no account, email code, password, or recovery action was submitted as part of the implementation review.
 
+## Low-friction repeat-account safeguards
+
+MtaaMarket does not add a CAPTCHA, ID check, or phone requirement to normal browsing and password sign-in. Supabase already limits signup-confirmation and password-recovery email requests to a 60-second window for the same user, and applies verification request limits by IP address.[7] The customer interface preserves that cooldown and uses generic account-failure wording to avoid revealing whether an email address is registered.
+
+For the stronger controlled hub-pickup action only, one canonical Kenyan contact number may belong to one verified buyer profile. PostgreSQL’s existing unique phone constraint is enforced through the server-side UUID-bound profile operation. A duplicate contact attempt returns a general instruction to use the already-linked account or contact MtaaMarket support; it does not reveal the other account’s name, email, or identifier. This discourages duplicate buyer identities at the point where a private fulfilment contact becomes necessary, while leaving ordinary local shopping simple.
+
+> CAPTCHA is deferred rather than silently enabled. Supabase supports CAPTCHA for sign-up, sign-in, and recovery, but it would add an external bot-check experience and new configuration. MtaaMarket can enable it only after abuse evidence and a founder-approved provider configuration justify that additional friction.[8]
+
 ## References
 
 [1]: https://supabase.com/docs/guides/auth/auth-email-passwordless "Supabase — Passwordless email logins"
@@ -35,3 +43,7 @@ No Clerk project, Clerk key, provider migration, SMS, Google OAuth change, new a
 [5]: https://supabase.com/docs/guides/auth/third-party/clerk "Supabase — Clerk third-party authentication"
 
 [6]: https://supabase.com/pricing "Supabase — Pricing"
+
+[7]: https://supabase.com/docs/guides/auth/rate-limits "Supabase — Auth rate limits"
+
+[8]: https://supabase.com/docs/guides/auth/auth-captcha "Supabase — CAPTCHA protection"

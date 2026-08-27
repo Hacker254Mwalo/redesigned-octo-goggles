@@ -91,4 +91,17 @@ describe("V3 buyer pickup profile", () => {
     await expect(saveV3BuyerOrderProfile(vendor, { fullName: "Siaya Buyer" })).rejects.toThrow("Kenyan contact number");
     await expect(saveV3BuyerOrderProfile(vendor, { phone: "254711281501" })).rejects.toThrow("name");
   });
+
+  it("rejects an attempt to reuse a Kenyan pickup number without exposing the other account", async () => {
+    const existing = readQuery(null);
+    const insert = { insert: vi.fn(), select: vi.fn(), maybeSingle: vi.fn() };
+    insert.insert.mockReturnValue(insert);
+    insert.select.mockReturnValue(insert);
+    insert.maybeSingle.mockResolvedValue({ data: null, error: { code: "23505" } });
+    const client = { from: vi.fn().mockImplementation(() => client.from.mock.calls.length === 1 ? existing : insert) };
+    vi.mocked(getSupabaseServiceClient).mockReturnValue(client as never);
+
+    await expect(saveV3BuyerOrderProfile(vendor, { fullName: "Siaya Buyer", phone: "254711281501" })).rejects.toThrow("already linked to another MtaaMarket account");
+    expect(insert.insert).toHaveBeenCalledWith(expect.objectContaining({ full_name: "Siaya Buyer", phone_number: "254711281501" }));
+  });
 });
