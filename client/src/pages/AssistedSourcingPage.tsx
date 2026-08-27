@@ -85,12 +85,12 @@ export default function AssistedSourcingPage() {
             <p className="eyebrow">Built on clear boundaries</p>
             <h2>What assisted sourcing does not do.</h2>
           </div>
-          <div className="guide-boundary-list">
-            <p><span><ShieldCheck size={16} /></span><div><strong>No affiliation claim.</strong> MtaaMarket does not present itself as a partner of another marketplace or supplier unless a real agreement exists.</div></p>
-            <p><span><ShieldCheck size={16} /></span><div><strong>No copied catalogue content.</strong> MtaaMarket uses its own original descriptions and does not copy supplier photos, reviews, titles, or prices.</div></p>
-            <p><span><ShieldCheck size={16} /></span><div><strong>No live-source promise.</strong> A request does not claim real-time availability or pricing; the owner confirms any current details before you decide.</div></p>
-            <p><span><ShieldCheck size={16} /></span><div><strong>No automatic checkout.</strong> A managed request never places a supplier order or sends a payment instruction by itself.</div></p>
-          </div>
+          <ul className="guide-boundary-list">
+            <li><span><ShieldCheck size={16} /></span><div><strong>No affiliation claim.</strong> MtaaMarket does not present itself as a partner of another marketplace or supplier unless a real agreement exists.</div></li>
+            <li><span><ShieldCheck size={16} /></span><div><strong>No copied catalogue content.</strong> MtaaMarket uses its own original descriptions and does not copy supplier photos, reviews, titles, or prices.</div></li>
+            <li><span><ShieldCheck size={16} /></span><div><strong>No live-source promise.</strong> A request does not claim real-time availability or pricing; the owner confirms any current details before you decide.</div></li>
+            <li><span><ShieldCheck size={16} /></span><div><strong>No automatic checkout.</strong> A managed request never places a supplier order or sends a payment instruction by itself.</div></li>
+          </ul>
         </section>
 
         <section className="guide-closing">

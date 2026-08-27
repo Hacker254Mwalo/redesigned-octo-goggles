@@ -161,3 +161,9 @@ The deployed guide explicitly states that MtaaMarket does not claim supplier aff
 GitHub/Vercel deployment `b6dda66` completed successfully. A non-mutating live review of the public assisted-sourcing guide confirmed that the shared navigation retains the new **How it works** route alongside the public market, Request Desk, and Seller Studio paths. The release adds semantic current-page information to public links and gives the mobile navigation control an explicit open/close label plus expanded-state and menu relationship metadata.
 
 The mobile menu is also designed to close on Escape and when its route changes, avoiding a stale open menu after navigation. Responsive Home and assisted-sourcing guide reviews remained visually clear at a 375px viewport. No account, request, supplier, payment, delivery, seller, role, data, or background-operation action was submitted during the verification.
+
+## Post-release public-route audit and semantic markup repair
+
+A local post-release runtime review identified a React DOM-nesting warning in the public assisted-sourcing guide: its boundary rows placed a `div` inside a `p`, which could produce a hydration mismatch. The affected boundary content is now a semantic unordered list with list items; the responsive grid styling, visible wording, and launch-stage limits are preserved.
+
+The repair adds regression coverage that rejects the invalid paragraph pattern and requires the semantic list and its mobile layout rule. TypeScript, all 22 test files / 76 tests, the Vercel build, and the zero-vulnerability production dependency audit pass. A full mobile guide review after the repair retained the readable four-step and boundary layout. Existing console entries preserve the original warning for diagnostic history; no new occurrence was emitted after the corrected guide was rendered.

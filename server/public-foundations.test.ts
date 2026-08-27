@@ -176,6 +176,17 @@ describe("public performance and mobile foundations", () => {
     expect(guide).not.toMatch(/(?:fetch\(|axios|invokeLLM|signIn|checkout\()/);
   });
 
+  it("uses hydration-safe semantic list markup for assisted-sourcing boundaries", () => {
+    const guide = readFileSync(resolve(projectRoot, "client/src/pages/AssistedSourcingPage.tsx"), "utf8");
+    const styles = readFileSync(resolve(projectRoot, "client/src/index.css"), "utf8");
+
+    expect(guide).toContain('<ul className="guide-boundary-list">');
+    expect(guide).toContain("<li><span><ShieldCheck size={16} /></span><div>");
+    expect(guide).not.toContain("<p><span><ShieldCheck size={16} /></span><div>");
+    expect(styles).toContain(".guide-boundary-list li{");
+    expect(styles).toContain(".guide-boundary-list li>div{min-width:0}");
+  });
+
   it("keeps a conservative vendor-chunk strategy for public performance", () => {
     const config = readFileSync(resolve(projectRoot, "vite.config.ts"), "utf8");
 
