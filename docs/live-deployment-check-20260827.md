@@ -47,7 +47,7 @@ The public account dialog opened from the same header and showed the existing ve
 
 Vercel Logs for the selected last-30-minute window showed 37 warnings, 0 errors, and 0 fatal entries. The warnings were successful HTTP 200 requests with expected optional-auth messages (`Missing session cookie`) and legacy-session verification noise when a Supabase bearer token is tested against the legacy HS256 verifier; they did not block the verified public Jumia routes. Supabase advisors reported informational RLS-without-policy notices on service-managed tables and performance notices for unindexed foreign keys/unused or duplicate legacy indexes, plus a warning that leaked-password protection is disabled. These are follow-up hardening items, not deployment failures; no broad production DDL was applied during this verification.
 
-Local validation before this final source update passed: `pnpm check`, `pnpm test` with 124 passed and 5 skipped, `pnpm build`, and `git diff --check`. The repository remains pushed to GitHub `main` at `1390cc8`; the parameter-removal fix and corrected documentation are pending the next commit and production deployment.
+Local validation before the final source update passed: `pnpm check`, `pnpm test` with 124 passed and 5 skipped, `pnpm build`, and `git diff --check`. This pre-rotation note is superseded by the post-rotation production verification below; the parameter-removal fix was released in `a4b6b38`, the Supabase/legacy-auth log cleanup in `ea10ecb`, and the completed audit in `798ca5c`.
 
 
 ## Post-rotation Tavily fix verification
