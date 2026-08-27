@@ -145,11 +145,15 @@ function cleanSnippet(value: string, title: string) {
   snippet = snippet.replace(/this website uses cookies[\s\S]*?(?=category|home|$)/i, " ");
   snippet = snippet.replace(/\bbuy\b[^|]{2,160}\bonline\b\s*\|\s*jumia kenya\b/gi, " ");
   snippet = snippet.replace(/@\s*best price.*?(?:\|\s*)?jumia kenya\s*[-–|]?/gi, " ");
+  snippet = snippet.replace(/for further information on how we use cookies.*?(?:privacy and cookie notice|cookie notice|$)/gi, " ");
+  snippet = snippet.replace(/^[\s.\-–—|]+/, "");
+  snippet = snippet.replace(/^(?:home)?phones\s*&\s*tabletsmobile phones?smartphones?android phones?/i, " ");
   snippet = stripCatalogArtifacts(snippet);
   snippet = snippet.replace(/\b(?:our categories|our services|help center|place your order|payment options|delivery timelines?\s*&\s*track your order|returns\s*&\s*refunds|warranty|category|add to cart|official stores|phones\s*&\s*tablets|tvs\s*&\s*audio|appliances|health\s*&\s*beauty|home\s*&\s*office|fashion|computing|gaming|supermarket|baby products|other categories)\b[.:]?/gi, " ");
   snippet = snippet.replace(/\s+/g, " ").replace(/([a-z0-9)])(?=(?:If you are|This |The |Some of |It is)\b)/g, "$1. ").replace(/^[\s|–—-]+|[\s|–—-]+$/g, "").trim();
   snippet = collapseRepeatedTitle(snippet);
   if (snippet.toLowerCase().startsWith(title.toLowerCase())) snippet = snippet.slice(title.length).trim();
+  if (!/[a-z0-9]{3}/i.test(snippet)) snippet = "";
   const firstSentence = snippet.match(/^.{35,220}?(?:[.!?](?=\s|$)|$)/)?.[0]?.trim() || snippet.slice(0, 220).trim();
   return (firstSentence || "View current product details.").slice(0, 220);
 }

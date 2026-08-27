@@ -117,6 +117,18 @@ describe("Jumia public discovery", () => {
     expect(result.results[0]?.snippet).toContain("View current product details");
   });
 
+  it("removes cookie notices and concatenated phone navigation from live snippets", async () => {
+    process.env.TAVILY_API_KEY = "test-key";
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ results: [
+      { title: "Renewed Oppo A31 smartphone", url: "https://www.jumia.co.ke/renewed-oppo-a31-123456.html", content: "For further information on how we use cookies you can read our Privacy and Cookie notice. HomePhones & TabletsMobile PhonesSmartphonesAndroid PhonesRenewed Oppo A31 smartphone." },
+    ] }), { status: 200 }));
+
+    const result = await searchJumiaPublicProducts("smartphone");
+
+    expect(result.results[0]?.snippet).toBe("View current product details.");
+    expect(result.results[0]?.snippet).not.toMatch(/cookies|phones\s*&\s*tabletsmobile/i);
+  });
+
   it("collapses repeated indexed titles and keeps the first useful description sentence", async () => {
     process.env.TAVILY_API_KEY = "test-key";
     vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ results: [
