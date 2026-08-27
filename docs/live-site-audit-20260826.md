@@ -96,6 +96,12 @@ The browser-security hardening configuration was deployed through GitHub commit 
 
 The deployment also retained Vercel’s HTTPS transport header. The Auth callback returned `200` with the configured headers, and the public category tRPC route returned its expected `204` response with the same controls. No account action, request submission, seller write, role assignment, payment, delivery, Google OAuth, or provider configuration was activated during this verification.
 
+## V3 core schema release verification
+
+GitHub/Vercel deployment `7606126` completed successfully. A non-mutating live homepage review confirmed that the public Siaya discovery page loads, retains the owner-reviewed launch-stage catalogue language, exposes its existing category filters and Request Desk hand-off, and shows an empty basket. No account, vendor, product, order, payment, supplier, or delivery action was submitted during the verification.
+
+The deployed public adapter now reads V3 products only when their state is `ACTIVE`. Profiles and orders remain closed by row-level security, and the initial V3 catalogue has no listings. The site therefore continues to present an honest launch-stage discovery surface until an owner-controlled listing workflow is separately completed.
+
 ## Public recovery and discoverability deployment verification
 
 The MtaaMarket public resilience and metadata update was released through commit `060c151`, and its Vercel deployment completed successfully. The default domain now serves a Siaya-specific document title, a truthful public description, a canonical URL, indexing guidance, and Open Graph/social summary metadata. The viewport no longer prevents browser zoom, preserving a user-controlled accessibility feature. The existing browser-security headers continued to be served after the release.
