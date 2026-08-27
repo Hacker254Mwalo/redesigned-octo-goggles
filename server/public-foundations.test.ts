@@ -99,13 +99,16 @@ describe("public performance and mobile foundations", () => {
     expect(callback).not.toContain("You are signed in with email.");
   });
 
-  it("distinguishes the public Seller Studio guide from the protected legacy workspace", () => {
+  it("keeps the public dashboard route on a V3 transition gate instead of invoking legacy protected operations", () => {
     const dashboard = readFileSync(resolve(projectRoot, "client/src/pages/DashboardPage.tsx"), "utf8");
 
     expect(dashboard).toContain("Workspace access is being prepared.");
     expect(dashboard).toContain("Open Seller Studio guide");
-    expect(dashboard).toContain("protected account and role migration is complete");
-    expect(dashboard).not.toContain("Sign in to manage orders and listings.");
+    expect(dashboard).toContain("protected V3 account and role migration is independently verified");
+    expect(dashboard).toContain("does not open an older profile, order, seller, payment, or operations system");
+    expect(dashboard).not.toMatch(/trpc\.marketplace\./);
+    expect(dashboard).not.toContain("VendorProductForm");
+    expect(dashboard).not.toContain("AdminOperationsPanel");
   });
 
   it("provides a user-controlled no-tracking public market share prompt", () => {
