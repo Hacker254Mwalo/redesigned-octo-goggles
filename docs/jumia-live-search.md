@@ -29,7 +29,17 @@ The server normalizes public provider metadata before it reaches the customer pa
 
 Product images are accepted only from strict HTTPS `ke.jumia.is` product paths. Indexed paths may be converted into a token-free, validated Jumia CDN fallback; if no trusted image exists or the browser cannot load it, the UI shows a branded unavailable-photo state rather than unrelated stock art. Exact KES prices are displayed only when the provider exposes a parseable price for a product-like result; otherwise the customer sees `Price on product page`.
 
-This is public discovery rather than a first-party Jumia catalogue feed. The provider index can return category, search, or landing pages, and may omit current photos, prices, stock, variants, and delivery information. The customer flow therefore preserves the selected public URL, image, and price as reference data without fabricating missing values. Exact first-party catalogue fidelity requires a permitted Jumia catalogue feed, partner endpoint, or other approved data source.
+This is public discovery rather than a first-party Jumia catalogue feed. The provider index can return category, search, or landing pages, and may omit current photos, prices, stock, variants, and delivery information. The customer flow therefore preserves the selected public URL, image, and price as reference data without fabricating missing values. The server now removes known `/slp`, `/mlp`, category, search, and brand landing-page URLs from customer cards; if the provider returns only those pages, the customer receives a clear prompt to search for a more specific product or model.
+
+## Official permitted feed path
+
+Jumia’s official Vendor Center documentation describes `GET https://vendor-api.jumia.com/catalog/products` as a paginated catalogue endpoint for an authenticated seller/mastershop. It returns seller-managed product records with names, descriptions, images, variations, and price fields, and supports filters such as shop, status, QC status, visibility, and pagination. Every request requires an OAuth2 bearer token. Jumia documents two application types: **Self Authorization** for unattended integrations, which uses a rotating refresh token, and **Web Application** for an interactive login flow, which must send the user through login again when its access token expires.[5]
+
+This is the permitted integration route only when the founder has a Jumia Vendor Center seller/mastershop account and registers an application in Vendor Center. JForce access by itself is not documented as Vendor Center catalogue API access. The official catalogue endpoint has no buyer keyword-search parameter, so an approved integration would retrieve the authorized seller/mastershop catalogue, paginate it, and perform local product-name/category matching. It would not expose Jumia’s entire public marketplace unless the authorized account is entitled to those records.
+
+Do not place a client secret, refresh token, or access token in the browser or GitHub. Once the founder provides the official Vendor Center application authorization through the registered callback—or supplies a permitted server-side feed/export—the provider adapter can replace Tavily without changing the customer basket, delivery, order, cancellation, or refund workflow. Exact first-party catalogue fidelity requires that approved access; until then, the safer public-discovery fallback remains active.
+
+Exact first-party catalogue fidelity requires a permitted Jumia catalogue feed, partner endpoint, or other approved data source.
 
 ## Important provider status
 
@@ -50,3 +60,5 @@ A customer searches for a product inside MtaaMarket and selects a public result.
 - Brave Search API pricing: https://api-dashboard.search.brave.com/documentation/pricing
 - Jumia Vendor Center API documentation: https://vendorcenter.jumia.com/api-docs/
 - Jumia JForce: https://jforce.jumia.co.ke/
+
+[5]: https://vendorcenter.jumia.com/api-docs/ "Jumia Vendor Center GPM/GOP API documentation"
