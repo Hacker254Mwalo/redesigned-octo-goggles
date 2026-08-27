@@ -133,6 +133,17 @@ describe("public performance and mobile foundations", () => {
     expect(requestDesk).toContain("MtaaMarket will review every request manually.");
   });
 
+  it("keeps launch-stage seller and catalogue messaging truthful while the first listings are being prepared", () => {
+    const home = readFileSync(resolve(projectRoot, "client/src/pages/Home.tsx"), "utf8");
+
+    expect(home).toContain("as owner-reviewed listings are added");
+    expect(home).toContain("Owner-reviewed local market");
+    expect(home).toContain("Built for Siaya buyers and sellers");
+    expect(home).toContain("Search current listings");
+    expect(home).not.toContain("Many approved local sellers");
+    expect(home).not.toContain("Sellers serve Siaya buyers");
+  });
+
   it("keeps a conservative vendor-chunk strategy for public performance", () => {
     const config = readFileSync(resolve(projectRoot, "vite.config.ts"), "utf8");
 
