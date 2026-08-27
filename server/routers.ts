@@ -49,7 +49,7 @@ import { createItemRequestDraft, createListingDraft } from "./marketplace-ai";
 import { getProductionReadiness } from "./production-readiness";
 import { ensureSupabaseMarketplaceProfile } from "./supabase-profiles";
 import { createV3HubOrder } from "./v3-orders";
-import { listV3PendingProducts, moderateV3Product } from "./v3-moderation";
+import { deleteV3Product, listV3PendingProducts, moderateV3Product } from "./v3-moderation";
 import { submitV3VendorProduct } from "./v3-vendor";
 
 const safeSearch = z.string().trim().max(100);
@@ -91,7 +91,8 @@ export const appRouter = router({
       return createV3HubOrder(input);
     }),
     v3PendingProducts: publicProcedure.query(({ ctx }) => listV3PendingProducts(ctx.supabaseIdentity)),
-    moderateV3Product: publicProcedure.input(z.object({ productId: z.string().uuid(), status: z.enum(["ACTIVE", "REJECTED"]) })).mutation(({ ctx, input }) => moderateV3Product(ctx.supabaseIdentity, input.productId, input.status)),
+    moderateV3Product: publicProcedure.input(z.object({ productId: z.string().uuid(), status: z.enum(["ACTIVE", "REJECTED", "FLAGGED"]) })).mutation(({ ctx, input }) => moderateV3Product(ctx.supabaseIdentity, input.productId, input.status)),
+    deleteV3Product: publicProcedure.input(z.object({ productId: z.string().uuid() })).mutation(({ ctx, input }) => deleteV3Product(ctx.supabaseIdentity, input.productId)),
     submitV3VendorProduct: publicProcedure.input(z.object({ title: z.string().trim().min(3).max(180), price: z.number().positive().max(10_000_000), imageData: z.string().max(7_000_000), imageType: z.enum(["image/jpeg", "image/png", "image/webp"]) })).mutation(({ ctx, input }) => submitV3VendorProduct(ctx.supabaseIdentity, input)),
 
     myProfile: protectedProcedure.query(({ ctx }) => ensureMarketplaceProfile(ctx.user.id, ctx.user.name)),

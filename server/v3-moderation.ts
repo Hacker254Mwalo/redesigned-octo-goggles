@@ -9,14 +9,21 @@ async function requireV3Owner(identity: SupabaseIdentity | null) {
 
 export async function listV3PendingProducts(identity: SupabaseIdentity | null) {
   await requireV3Owner(identity);
-  const { data, error } = await getSupabaseServiceClient().from("products").select("id,title,image_url,vendor_id,final_price,status,created_at").eq("status", "PENDING").order("created_at", { ascending: true });
+  const { data, error } = await getSupabaseServiceClient().from("products").select("id,title,image_url,vendor_id,final_price,status,created_at").in("status", ["PENDING", "ACTIVE", "FLAGGED"]).order("created_at", { ascending: true });
   if (error) throw new Error("MtaaMarket could not load pending products.");
   return data ?? [];
 }
 
-export async function moderateV3Product(identity: SupabaseIdentity | null, productId: string, status: "ACTIVE" | "REJECTED") {
+export async function moderateV3Product(identity: SupabaseIdentity | null, productId: string, status: "ACTIVE" | "REJECTED" | "FLAGGED") {
   await requireV3Owner(identity);
-  const { data, error } = await getSupabaseServiceClient().from("products").update({ status }).eq("id", productId).eq("status", "PENDING").select("id,status").maybeSingle();
+  const { data, error } = await getSupabaseServiceClient().from("products").update({ status }).eq("id", productId).select("id,status").maybeSingle();
   if (error || !data) throw new Error("This product could not be moderated. Refresh and try again.");
   return data;
+}
+
+export async function deleteV3Product(identity: SupabaseIdentity | null, productId: string) {
+  await requireV3Owner(identity);
+  const { error } = await getSupabaseServiceClient().from("products").delete().eq("id", productId);
+  if (error) throw new Error("This product could not be permanently removed.");
+  return { success: true as const };
 }

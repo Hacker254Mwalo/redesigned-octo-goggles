@@ -221,8 +221,9 @@ describe("public performance and mobile foundations", () => {
     expect(admin).toContain("Approve");
     expect(admin).toContain("Reject");
     expect(moderation).toContain('data?.role !== "admin"');
-    expect(moderation).toContain('eq("status", "PENDING")');
-    expect(moderation).toContain('status: "ACTIVE" | "REJECTED"');
+    expect(moderation).toContain('in("status", ["PENDING", "ACTIVE", "FLAGGED"])');
+    expect(moderation).toContain('status: "ACTIVE" | "REJECTED" | "FLAGGED"');
+    expect(moderation).toContain("deleteV3Product");
     expect(admin).not.toMatch(/\.from\("products"\)|\.update\(/);
   });
 
