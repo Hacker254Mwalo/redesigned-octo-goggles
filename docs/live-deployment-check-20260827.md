@@ -28,3 +28,8 @@ At 2026-08-27 16:55 GMT+3, the live `/jumia` route served the latest storefront 
 ## Premium search deployment check
 
 At 2026-08-27 17:06 GMT+3, the live `/jumia` route was checked with a cache-busting query after commit `331284f`. It was still serving the prior Jumia copy and did not yet show the new embedded Google search component or the refreshed hero wording. The latest local code and GitHub `main` contain the premium search redesign; Vercel had not switched the live domain to that commit at the time of this check.
+
+
+## Final premium storefront verification
+
+At 2026-08-27 17:07 GMT+3, the live `/jumia` route served the latest premium storefront build. The hero now reads “Shop Jumia, made easy in Siaya”, the page uses “Find what you want” and “Your selection”, and the public page no longer exposes founder, JForce, approval, or fulfilment-queue language. The live search panel is present; its result cards depend on the configured search-engine ID or server provider credentials.
