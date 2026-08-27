@@ -95,3 +95,15 @@ The browser-security hardening configuration was deployed through GitHub commit 
 | `Permissions-Policy` | `camera=(), geolocation=(), microphone=(), payment=(), usb=()` | Disables browser capabilities that no current MtaaMarket public route needs. |
 
 The deployment also retained Vercel’s HTTPS transport header. The Auth callback returned `200` with the configured headers, and the public category tRPC route returned its expected `204` response with the same controls. No account action, request submission, seller write, role assignment, payment, delivery, Google OAuth, or provider configuration was activated during this verification.
+
+## Public recovery and discoverability deployment verification
+
+The MtaaMarket public resilience and metadata update was released through commit `060c151`, and its Vercel deployment completed successfully. The default domain now serves a Siaya-specific document title, a truthful public description, a canonical URL, indexing guidance, and Open Graph/social summary metadata. The viewport no longer prevents browser zoom, preserving a user-controlled accessibility feature. The existing browser-security headers continued to be served after the release.
+
+The deployed unknown-route path was opened at `https://siayaonlinemarket.vercel.app/route-that-does-not-exist`. It rendered the new MtaaMarket-branded recovery page with the route-guide label, plain-language explanation, and a **Return to MtaaMarket** action. The client error boundary now follows the same safe approach: it confirms that a request was not sent, provides retry and market-return routes, and deliberately does not render an internal stack trace or other technical diagnostics. This change does not submit a request, sign in a user, create an order, or expose a protected workflow.
+
+| Public surface | Verified improvement | Boundary preserved |
+|---|---|---|
+| Default document head | Siaya-focused title, description, canonical, robots, Open Graph, and social summary are present; browser zoom remains user-controlled. | Metadata describes only public discovery and owner-managed item requests; it does not claim checkout, delivery, inventory, or provider approval. |
+| Unknown application route | The deployed SPA presents a branded recovery screen with a route back to public discovery. | No debug data, account information, role hint, or protected action is exposed. |
+| Unexpected client render failure | The global fallback no longer prints JavaScript stack traces and says that the request was not sent. | Users can retry or return to the public market without implying an order, request, or payment state. |
