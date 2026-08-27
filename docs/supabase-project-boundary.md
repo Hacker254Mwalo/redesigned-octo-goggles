@@ -23,10 +23,10 @@ The source-controlled baseline migration is [`supabase/migrations/20260826112501
 
 | Layer | Verified now | Still required before accepting protected Vercel marketplace traffic |
 |---|---|---|
-| Database | Isolated PostgreSQL tables, categories, indexes, constraints, and RLS are applied. | Replace the current MySQL/TiDB server adapter and port every data procedure to PostgreSQL. |
-| Authentication | Schema is ready for Supabase Auth UUIDs. | Build Supabase Auth session validation, founder owner-role assignment, and Vercel-compatible account flows. |
-| Storage | `catalogue-media` and `marketplace-private` buckets and scoped file policies exist. | Replace the Manus storage adapter and validate original-photo uploads, private files, and owner access. |
-| Public storefront | The visual MtaaMarket storefront remains live on `siayaonlinemarket.vercel.app`. | Configure secure Vercel environment values and test protected API, sign-in, listing, request, order, and upload flows. |
+| Database | Isolated PostgreSQL tables, categories, indexes, constraints, RLS, V3 public discovery, and controlled V3 listing/order procedures are applied. | Retire or isolate any remaining legacy MySQL/TiDB-only protected procedure before treating it as a V3 operation. |
+| Authentication | Supabase JWT verification, founder-only owner bootstrap, vendor agreement/approval, and password-first account flows are implemented. | Run the deliberately separate founder-controlled end-to-end account, owner, vendor, listing, and order tests without collecting credentials in chat. |
+| Storage | The server-only `storagePut` adapter uses the isolated public `catalogue-media` bucket when MtaaMarket is configured. A bounded integration test has uploaded and removed an original WebP verification object, and has uploaded, signed, and removed a private verification object from `marketplace-private`. | Run one founder-controlled authenticated Vercel listing upload after owner/vendor activation; keep private operational-record access behind a separately scoped workflow. |
+| Public storefront | The visual MtaaMarket storefront remains live on `siayaonlinemarket.vercel.app`; public V3 catalogue reads are ACTIVE-only. | Test protected API, account, owner, vendor, listing, and order journeys only through controlled founder browser sessions. |
 | Payments and delivery | Future preference/status fields exist only. | Keep external payment, courier, and supplier integrations disabled until each provider and legal/operational workflow is approved. |
 
 ## Security model
@@ -39,7 +39,7 @@ The migration creates a **public** product-media bucket and a **private** market
 
 MtaaMarket must never access the Dumiropay database, its Edge Function, its Auth users, storage, data, service credentials, or application configuration. Likewise, Dumiropay must never point to the MtaaMarket Supabase URL or use MtaaMarket secrets.
 
-No current claim should say that protected MtaaMarket login, transactions, product uploads, vendor onboarding, or checkout are fully migrated to Supabase/Vercel. The database foundation is complete; the application adapters and end-to-end validation remain the next gate.
+No current claim should say that protected MtaaMarket login, transactions, product uploads, vendor onboarding, or checkout are fully operational. The V3 Supabase adapters are deployed, but founder activation, real inventory, and controlled authenticated end-to-end validation remain the next gate.
 
 ## Reference
 
