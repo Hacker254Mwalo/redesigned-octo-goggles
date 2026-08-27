@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildMtaaAccountCodeResend,
   buildMtaaAccountCodeVerification,
-  isSixDigitMtaaAccountCode,
+  isMtaaMarketAccountCode,
 } from "../client/src/lib/auth-code-flow";
 
 describe("MtaaMarket account verification contracts", () => {
@@ -22,11 +22,13 @@ describe("MtaaMarket account verification contracts", () => {
     expect(buildMtaaAccountCodeResend("buyer@example.com")).toEqual({ email: "buyer@example.com", type: "signup" });
   });
 
-  it("accepts exactly six numeric code digits", () => {
-    expect(isSixDigitMtaaAccountCode("123456")).toBe(true);
-    expect(isSixDigitMtaaAccountCode("12345")).toBe(false);
-    expect(isSixDigitMtaaAccountCode("1234567")).toBe(false);
-    expect(isSixDigitMtaaAccountCode("12a456")).toBe(false);
+  it("accepts the six- and eight-digit numeric formats supported by the hosted Supabase project", () => {
+    expect(isMtaaMarketAccountCode("123456")).toBe(true);
+    expect(isMtaaMarketAccountCode("73310474")).toBe(true);
+    expect(isMtaaMarketAccountCode("12345")).toBe(false);
+    expect(isMtaaMarketAccountCode("1234567")).toBe(false);
+    expect(isMtaaMarketAccountCode("123456789")).toBe(false);
+    expect(isMtaaMarketAccountCode("12a456")).toBe(false);
   });
 
   it("keeps returning-user sign-in password-based and reserves codes for signup and recovery", () => {
@@ -36,6 +38,8 @@ describe("MtaaMarket account verification contracts", () => {
     expect(dialog).toContain('type AccountMode = "password" | "signup" | "recovery"');
     expect(dialog).toContain("Create account & send code");
     expect(dialog).toContain("Send recovery code");
+    expect(dialog).toContain("maxLength={8}");
+    expect(dialog).toContain("isMtaaMarketAccountCode(emailCode)");
     expect(dialog).not.toContain("Send six-digit sign-in code");
     expect(context).not.toContain("requestEmailCode");
     expect(context).not.toContain("verifyEmailCode");

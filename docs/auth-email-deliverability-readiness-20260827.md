@@ -5,13 +5,13 @@
 
 ## Current assessment
 
-MtaaMarket’s password-first account interface is ready to use six-digit codes only when a new password account must be verified or a password is being recovered. That interface must not be represented as production-email evidence while the site relies on the default Supabase SMTP service. Supabase documents that the default service is intended for exploration and testing, only delivers to pre-authorized project-team addresses, is currently limited to two messages per hour, and provides no delivery or uptime service-level assurance.[1]
+MtaaMarket’s password-first account interface is ready to use six- or eight-digit codes when a new password account must be verified or a password is being recovered. That interface must not be represented as production-email evidence while the site relies on the default Supabase SMTP service. Supabase documents that the default service is intended for exploration and testing, only delivers to pre-authorized project-team addresses, is currently limited to two messages per hour, and provides no delivery or uptime service-level assurance.[1]
 
 The previously verified temporary SMTP sender provides a guarded testing path, but Spam placement is not proof of an inbox-placement solution. It remains a temporary testing configuration, not a public-launch approval. The UI continues to give code-specific Spam/Junk guidance, contains no promotional email content, and does not expose passwordless sign-in or public invitation flows.
 
 | Area | Current decision | Why it remains bounded |
 |---|---|---|
-| Public account model | Retain email/password for returning users; use a six-digit code only for signup verification and recovery. | This remains the implemented product decision and avoids a new authentication provider. |
+| Public account model | Retain email/password for returning users; use a six- or eight-digit code only for signup verification and recovery. | This remains the implemented product decision and avoids a new authentication provider. |
 | Default Supabase SMTP | Do not treat it as a public delivery channel. | It is team-address restricted, heavily rate limited, and documented as non-production.[1] |
 | Existing temporary sender | Retain only as a controlled test configuration. | A temporary sender and a Spam-folder recovery tip do not establish durable sender reputation. |
 | Custom SMTP | Defer configuration until the founder controls a suitable sender domain and directly supplies provider credentials through the secure project setting. | SMTP host, username, password, and from-address are provider credentials and must not be entered in source code or chat. |

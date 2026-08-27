@@ -18,7 +18,7 @@
 
 The hosted Supabase **Magic link or OTP**, **Confirm sign up**, and **Reset password** templates were changed from confirmation URLs to distinct code-only bodies using `{{ .Token }}`. The browser account dialog is password-first for returning users; it uses code entry only after a new password account is created and for a password-recovery request. The resulting code states include an email-dispatch cooldown, resend path, generic failure handling, and Spam/Junk guidance without promising inbox placement.
 
-> A six-digit code is an authentication secret. Users should enter it only in the MtaaMarket account window and should never send it to support, vendors, or the owner.
+> A six- or eight-digit code is an authentication secret. Users should enter it only in the MtaaMarket account window and should never send it to support, vendors, or the owner.
 
 No Clerk project, Clerk key, provider migration, SMS, Google OAuth change, new account, or customer data transfer was created by this decision. A real end-to-end signup or recovery verification remains a founder-controlled browser test; no account, email code, password, or recovery action was submitted as part of the implementation review.
 
