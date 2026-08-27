@@ -187,3 +187,9 @@ GitHub/Vercel deployment `a2b97a9` completed successfully. A non-mutating public
 The local new-account state clearly explains that a six-digit code is sent only to verify that new account after password and confirmation entry. The recovery state similarly states that a six-digit code is required before a new password may be set. The hosted Supabase Magic link/OTP, signup-confirmation, and recovery templates were each configured to use `{{ .Token }}` and to omit `{{ .ConfirmationURL }}`. Spam/Junk and resend guidance appears only in code-related states. No live signup, sign-in, recovery request, OTP entry, password change, vendor request, listing, order, payment, or role assignment was performed.
 
 This deployment provides the production UI and provider-template foundation; a single founder-controlled end-to-end verification is still required before claiming live email delivery or password-recovery completion for an actual account.
+
+## Private buyer-profile hub-order verification
+
+GitHub/Vercel deployment `f84864d` completed successfully. A non-mutating public Home review confirmed that the storefront and honest first-listings state still load normally after strengthening the protected hub-order prerequisite. The release requires the same verified Supabase profile to hold a buyer display name and Kenyan phone number before any controlled hub order is created. The server accepts only missing values through a server-only UUID-bound operation, later browser changes are rejected, and the browser receives only a masked contact ending.
+
+This review did not create or sign in to an account, enter personal details, open a product, submit an order, or initiate payment. The profile and order boundaries are covered by behavioural tests; a full founder-controlled authenticated order journey remains a separate operational test once an owner profile and a deliberately approved test listing exist.
