@@ -201,13 +201,21 @@ describe("public performance and mobile foundations", () => {
     const router = readFileSync(resolve(projectRoot, "server/routers.ts"), "utf8");
     const orders = readFileSync(resolve(projectRoot, "server/v3-orders.ts"), "utf8");
     const detail = readFileSync(resolve(projectRoot, "client/src/pages/ProductDetail.tsx"), "utf8");
+    const profiles = readFileSync(resolve(projectRoot, "server/v3-profiles.ts"), "utf8");
 
     expect(router).toContain("createV3HubOrder");
+    expect(router).toContain("v3BuyerOrderAccess");
+    expect(router).toContain("saveV3BuyerPhone");
     expect(router).toContain("ctx.supabaseIdentity");
     expect(orders).toContain('payment_status: "PENDING"');
     expect(orders).toContain("randomInt(0, 10_000)");
+    expect(orders).toContain('eq("buyer_phone", buyer.phone_number)');
+    expect(orders).toContain('in("order_status", ["PENDING_DROPOFF", "RECEIVED_AT_HUB"])');
+    expect(profiles).toContain("normalizedKenyanPhone");
     expect(detail).toContain("Confirm Order for Hub Pickup");
+    expect(detail).toContain("Save contact & continue");
     expect(detail).toContain("Your Siaya Hub Pickup PIN is:");
+    expect(detail).not.toContain("confirmV3Order.mutate({ productId: product.id, buyerPhone");
     expect(detail).not.toMatch(/\.from\("orders"\)|insert\(.*orders/i);
   });
 

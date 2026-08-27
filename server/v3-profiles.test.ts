@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("./supabase", () => ({ getSupabaseServiceClient: vi.fn() }));
 
 import { getSupabaseServiceClient } from "./supabase";
-import { applyForV3Vendor, bootstrapV3Owner, updateV3VendorApproval } from "./v3-profiles";
+import { applyForV3Vendor, bootstrapV3Owner, saveV3BuyerPhone } from "./v3-profiles";
 
 const founder = { subject: "11111111-1111-4111-8111-111111111111", email: "founder@example.test", issuedAt: 0 };
 const vendor = { subject: "22222222-2222-4222-8222-222222222222", email: "vendor@example.test", issuedAt: 0 };
@@ -64,7 +64,23 @@ describe("V3 vendor activation", () => {
     }) };
     vi.mocked(getSupabaseServiceClient).mockReturnValue(ownerClient as never);
 
+    const { updateV3VendorApproval } = await import("./v3-profiles");
     await expect(updateV3VendorApproval(founder, vendor.subject, true)).resolves.toEqual({ id: vendor.subject, isApproved: true });
     expect(approval.update).toHaveBeenCalledWith({ is_vendor_approved: true });
+  });
+});
+
+describe("V3 buyer order contact", () => {
+  it("writes a canonical phone number only for the same verified buyer identity", async () => {
+    const existing = readQuery(null);
+    const insert = { insert: vi.fn(), select: vi.fn(), maybeSingle: vi.fn() };
+    insert.insert.mockReturnValue(insert);
+    insert.select.mockReturnValue(insert);
+    insert.maybeSingle.mockResolvedValue({ data: { id: vendor.subject, phone_number: "254711281501" }, error: null });
+    const client = { from: vi.fn().mockImplementation(() => client.from.mock.calls.length === 1 ? existing : insert) };
+    vi.mocked(getSupabaseServiceClient).mockReturnValue(client as never);
+
+    await expect(saveV3BuyerPhone(vendor, "+254711281501")).resolves.toEqual({ hasPhone: true, maskedPhone: "25471••••501" });
+    expect(insert.insert).toHaveBeenCalledWith({ id: vendor.subject, phone_number: "254711281501", role: "buyer" });
   });
 });

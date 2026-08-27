@@ -109,22 +109,50 @@ describe("V3 owner moderation", () => {
 });
 
 describe("V3 controlled hub orders", () => {
-  it("derives amount and active state from the server-side product read before recording a pending pay-on-pickup order", async () => {
+  it("derives the buyer contact, amount, and active state server-side before recording a pending pay-on-pickup order", async () => {
+    const buyer = profileQuery({ id: vendorIdentity.subject, phone_number: "254711281501" });
     const product = { select: vi.fn(), eq: vi.fn(), maybeSingle: vi.fn() };
     product.select.mockReturnValue(product);
     product.eq.mockReturnValue(product);
     product.maybeSingle.mockResolvedValue({ data: { id: "55555555-5555-4555-8555-555555555555", final_price: "2750.00", status: "ACTIVE" }, error: null });
+    const existingOrder = { select: vi.fn(), eq: vi.fn(), in: vi.fn(), maybeSingle: vi.fn() };
+    existingOrder.select.mockReturnValue(existingOrder);
+    existingOrder.eq.mockReturnValue(existingOrder);
+    existingOrder.in.mockReturnValue(existingOrder);
+    existingOrder.maybeSingle.mockResolvedValue({ data: null, error: null });
     const orders = { insert: vi.fn(), select: vi.fn(), single: vi.fn() };
     orders.insert.mockReturnValue(orders);
     orders.select.mockReturnValue(orders);
     orders.single.mockImplementation(() => Promise.resolve({ data: { id: "66666666-6666-4666-8666-666666666666", pickup_pin: orders.insert.mock.calls[0][0].pickup_pin, payment_status: "PENDING", order_status: "PENDING_DROPOFF", pickup_station: "Siaya Town collection point — confirm with MtaaMarket" }, error: null }));
-    const client = { from: vi.fn().mockImplementation((table: string) => table === "products" ? product : orders) };
+    const client = { from: vi.fn().mockImplementation((table: string) => {
+      if (table === "profiles") return buyer;
+      if (table === "products") return product;
+      return client.from.mock.calls.filter(call => call[0] === "orders").length === 1 ? existingOrder : orders;
+    }) };
     vi.mocked(getSupabaseServiceClient).mockReturnValue(client as never);
 
-    await expect(createV3HubOrder({ buyerPhone: "254711281501", productId: "55555555-5555-4555-8555-555555555555" })).resolves.toMatchObject({ payment_status: "PENDING", order_status: "PENDING_DROPOFF", pickup_pin: expect.stringMatching(/^\d{4}$/) });
+    await expect(createV3HubOrder(vendorIdentity, { productId: "55555555-5555-4555-8555-555555555555" })).resolves.toMatchObject({ payment_status: "PENDING", order_status: "PENDING_DROPOFF", pickup_pin: expect.stringMatching(/^\d{4}$/) });
 
     expect(product.eq).toHaveBeenNthCalledWith(1, "id", "55555555-5555-4555-8555-555555555555");
     expect(product.eq).toHaveBeenNthCalledWith(2, "status", "ACTIVE");
-    expect(orders.insert).toHaveBeenCalledWith(expect.objectContaining({ amount: "2750.00", payment_method: "PAY_ON_PICKUP", payment_status: "PENDING" }));
+    expect(existingOrder.in).toHaveBeenCalledWith("order_status", ["PENDING_DROPOFF", "RECEIVED_AT_HUB"]);
+    expect(orders.insert).toHaveBeenCalledWith(expect.objectContaining({ buyer_phone: "254711281501", amount: "2750.00", payment_method: "PAY_ON_PICKUP", payment_status: "PENDING" }));
+  });
+
+  it("rejects an existing open order before generating a PIN or creating a second request", async () => {
+    const buyer = profileQuery({ id: vendorIdentity.subject, phone_number: "254711281501" });
+    const product = { select: vi.fn(), eq: vi.fn(), maybeSingle: vi.fn() };
+    product.select.mockReturnValue(product);
+    product.eq.mockReturnValue(product);
+    product.maybeSingle.mockResolvedValue({ data: { id: "55555555-5555-4555-8555-555555555555", final_price: "2750.00", status: "ACTIVE" }, error: null });
+    const existingOrder = { select: vi.fn(), eq: vi.fn(), in: vi.fn(), maybeSingle: vi.fn() };
+    existingOrder.select.mockReturnValue(existingOrder);
+    existingOrder.eq.mockReturnValue(existingOrder);
+    existingOrder.in.mockReturnValue(existingOrder);
+    existingOrder.maybeSingle.mockResolvedValue({ data: { id: "77777777-7777-4777-8777-777777777777" }, error: null });
+    const client = { from: vi.fn().mockImplementation((table: string) => table === "profiles" ? buyer : table === "products" ? product : existingOrder) };
+    vi.mocked(getSupabaseServiceClient).mockReturnValue(client as never);
+
+    await expect(createV3HubOrder(vendorIdentity, { productId: "55555555-5555-4555-8555-555555555555" })).rejects.toThrow("already have an open hub-pickup request");
   });
 });
