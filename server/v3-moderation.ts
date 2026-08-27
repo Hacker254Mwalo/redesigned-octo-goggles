@@ -4,7 +4,7 @@ import { requireV3Owner } from "./v3-profiles";
 
 export async function listV3ModerationProducts(identity: SupabaseIdentity | null) {
   await requireV3Owner(identity);
-  const { data, error } = await getSupabaseServiceClient().from("products").select("id,title,category_slug,stock_quantity,image_url,vendor_id,final_price,status,created_at").in("status", ["PENDING", "ACTIVE", "FLAGGED"]).order("created_at", { ascending: true });
+  const { data, error } = await getSupabaseServiceClient().from("products").select("id,title,description,category_slug,stock_quantity,image_url,vendor_id,final_price,allow_pay_on_pickup,status,created_at").in("status", ["PENDING", "ACTIVE", "FLAGGED"]).order("created_at", { ascending: true });
   if (error) throw new Error("MtaaMarket could not load the moderation queue.");
   return data ?? [];
 }

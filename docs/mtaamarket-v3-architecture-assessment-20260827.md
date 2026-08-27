@@ -115,6 +115,22 @@ The approved-vendor form now collects a title, constrained category, price, avai
 
 Cloudinary’s background-removal pathway remains unconnected because it creates provider-side processing and potentially additional transformed assets; its asynchronous workflow and credit/add-on model require the separate selection described above.[4] [5] Similarly, Vercel AI SDK code is not installed or invoked: any later image-aware text generation must use a selected model with explicit token/credit controls, timeout/retry policy, and privacy review rather than a client-side request.[6] [7] [8]
 
+## Starter catalogue and supplier-linked automation assessment
+
+The proposed “top-selling” starter seed is not implemented. MtaaMarket has no owner-provided, rights-cleared titles, descriptions, prices, images, quantities, or availability confirmations for those purported items. Creating records with invented details would turn the public catalogue into a misleading availability claim. The current storefront therefore retains its explicit first-listings state until the owner records original listing facts through a protected, reviewable workflow.
+
+| Requested capability | Decision | Compatible implementation now |
+| --- | --- | --- |
+| Initial physical-product seed | **Deferred.** There are no source-of-truth owner item facts or original images to insert. | The founder may later provide a structured, rights-cleared item list and original media for a dedicated owner-only catalogue-entry milestone. Each record must use the existing `PENDING` then owner-`ACTIVE` lifecycle. |
+| Jumia name/link sync | **Not implemented.** A product name or public link is not authority to copy catalogue content, state supplier verification, or represent availability. The official Seller API is for authenticated seller shop operations, not an unauthorised public-catalogue import.[2] | Keep the Request Desk and owner-managed manual sourcing process. No supplier page fetch, scrape, copied text/photo/price, automatic checkout, or affiliation claim is added. |
+| Auto-generated localized copy | **Not implemented.** The client has a visible manual writing guide instead of generated English or Sheng. It requires facts the vendor can confirm and prohibits “verified stock,” fixed collection-point, delivery-time, or supplier-relationship claims. | Vendor text is optional, editable, carried to the protected `PENDING` owner queue, and never changes price, quantity, status, availability, or fulfilment. |
+| “APPROVED” public status | **Rejected as incompatible.** The reviewed V3 state machine uses `PENDING`, `ACTIVE`, `REJECTED`, and `FLAGGED`; public discovery accepts only `ACTIVE`. | Continue owner-only `PENDING` → `ACTIVE` moderation. No alias or second status is added. |
+| Live client-side subscription | **Deferred.** It would not create truthful inventory and requires a separately reviewed database publication, client-session boundary, lifecycle/error plan, and a real reason to stream. | The public server query reads `ACTIVE` listings on page load and now respects each V3 category selection. |
+
+The category taxonomy was reconciled to the verified public database list and extended with **Solar & Energy** as an active MtaaMarket category. This permits an approved vendor to categorise an original product accurately and lets the existing public category filter issue a server-side `ACTIVE`-listing query. It does not seed products, change product visibility, or create a product from a category alone.
+
+The vendor’s optional pay-on-pickup selection is a request, not a promise of a named Siaya CBD hub. MtaaMarket still confirms the collection point and payment details before a buyer order. The protected order helper now rejects a listing that did not opt into pay on pickup, preventing the only currently supported order path from overriding that vendor preference.
+
 ## References
 
 [1]: https://www.centralbank.go.ke/national-payments-system/ "Central Bank of Kenya — National Payments System and authorised PSP directory"

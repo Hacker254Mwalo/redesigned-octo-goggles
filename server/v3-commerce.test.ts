@@ -13,9 +13,7 @@ const vendorIdentity = { subject: "11111111-1111-4111-8111-111111111111", email:
 const ownerIdentity = { subject: "22222222-2222-4222-8222-222222222222", email: "owner@example.test", issuedAt: 0 };
 
 function asyncResult<T>(value: T) {
-  return {
-    then: (resolve: (result: T) => unknown, reject: (reason: unknown) => unknown) => Promise.resolve(value).then(resolve, reject),
-  };
+  return { then: (resolve: (result: T) => unknown, reject: (reason: unknown) => unknown) => Promise.resolve(value).then(resolve, reject) };
 }
 
 function profileQuery(data: unknown) {
@@ -34,6 +32,16 @@ function onePixelPng() {
   return `data:image/png;base64,${png.toString("base64")}`;
 }
 
+const validVendorListing = {
+  title: "Local cooking pot",
+  categorySlug: "home-kitchen" as const,
+  price: 1600,
+  stockQuantity: 6,
+  allowPayOnPickup: true,
+  imageData: onePixelPng(),
+  imageType: "image/png",
+};
+
 beforeEach(() => vi.clearAllMocks());
 
 describe("V3 vendor product submission", () => {
@@ -41,8 +49,7 @@ describe("V3 vendor product submission", () => {
     const profile = profileQuery({ id: vendorIdentity.subject, is_vendor: true, is_vendor_approved: true, vendor_agreement_accepted_at: null });
     vi.mocked(getSupabaseServiceClient).mockReturnValue({ from: vi.fn().mockReturnValue(profile) } as never);
 
-    await expect(submitV3VendorProduct(vendorIdentity, { title: "Local cooking pot", categorySlug: "home-kitchen", price: 1600, stockQuantity: 6, imageData: onePixelPng(), imageType: "image/png" })).rejects.toThrow("Accept the vendor agreement");
-
+    await expect(submitV3VendorProduct(vendorIdentity, validVendorListing)).rejects.toThrow("Accept the vendor agreement");
     expect(storagePut).not.toHaveBeenCalled();
   });
 
@@ -56,24 +63,23 @@ describe("V3 vendor product submission", () => {
     vi.mocked(getSupabaseServiceClient).mockReturnValue(client as never);
     vi.mocked(storagePut).mockResolvedValue({ key: "vendor-listings/vendor/listing.png", url: "/manus-storage/vendor-listing.png" });
 
-    await expect(submitV3VendorProduct(vendorIdentity, { title: "Local cooking pot", categorySlug: "home-kitchen", price: 1600, stockQuantity: 6, imageData: onePixelPng(), imageType: "image/png" })).resolves.toEqual({ id: "33333333-3333-4333-8333-333333333333", status: "PENDING" });
+    await expect(submitV3VendorProduct(vendorIdentity, { ...validVendorListing, description: "A sturdy cooking pot with a fitted lid." })).resolves.toEqual({ id: "33333333-3333-4333-8333-333333333333", status: "PENDING" });
 
     expect(storagePut).toHaveBeenCalledWith(expect.stringMatching(new RegExp(`^vendor-listings/${vendorIdentity.subject}/.+\\.png$`)), expect.any(Buffer), "image/png");
-    expect(products.insert).toHaveBeenCalledWith(expect.objectContaining({ vendor_id: vendorIdentity.subject, title: "Local cooking pot", category_slug: "home-kitchen", base_price: 1600, final_price: 1600, stock_quantity: 6, status: "PENDING" }));
+    expect(products.insert).toHaveBeenCalledWith(expect.objectContaining({ vendor_id: vendorIdentity.subject, title: "Local cooking pot", description: "A sturdy cooking pot with a fitted lid.", category_slug: "home-kitchen", base_price: 1600, final_price: 1600, stock_quantity: 6, allow_pay_on_pickup: true, status: "PENDING" }));
   });
 
   it("rejects a data URL whose actual MIME type does not match the declared permitted type", async () => {
     const profile = profileQuery({ id: vendorIdentity.subject, is_vendor: true, is_vendor_approved: true, vendor_agreement_accepted_at: "2026-08-27T00:00:00.000Z" });
     vi.mocked(getSupabaseServiceClient).mockReturnValue({ from: vi.fn().mockReturnValue(profile) } as never);
 
-    await expect(submitV3VendorProduct(vendorIdentity, { title: "Local cooking pot", categorySlug: "home-kitchen", price: 1600, stockQuantity: 6, imageData: onePixelPng(), imageType: "image/jpeg" })).rejects.toThrow("did not match");
-
+    await expect(submitV3VendorProduct(vendorIdentity, { ...validVendorListing, imageType: "image/jpeg" })).rejects.toThrow("did not match");
     expect(storagePut).not.toHaveBeenCalled();
   });
 
   it("rejects a category or available quantity that does not meet the protected listing contract before using a client", async () => {
-    await expect(submitV3VendorProduct(vendorIdentity, { title: "Local cooking pot", categorySlug: "invalid" as never, price: 1600, stockQuantity: 6, imageData: onePixelPng(), imageType: "image/png" })).rejects.toThrow("valid MtaaMarket category");
-    await expect(submitV3VendorProduct(vendorIdentity, { title: "Local cooking pot", categorySlug: "home-kitchen", price: 1600, stockQuantity: 0, imageData: onePixelPng(), imageType: "image/png" })).rejects.toThrow("available quantity");
+    await expect(submitV3VendorProduct(vendorIdentity, { ...validVendorListing, categorySlug: "invalid" as never })).rejects.toThrow("valid MtaaMarket category");
+    await expect(submitV3VendorProduct(vendorIdentity, { ...validVendorListing, stockQuantity: 0 })).rejects.toThrow("available quantity");
     expect(getSupabaseServiceClient).not.toHaveBeenCalled();
   });
 });
@@ -90,17 +96,15 @@ describe("V3 owner moderation", () => {
     update.eq.mockReturnValue(update);
     update.select.mockReturnValue(update);
     update.maybeSingle.mockResolvedValue({ data: { id: "44444444-4444-4444-8444-444444444444", status: "ACTIVE" }, error: null });
-    const client = { from: vi.fn().mockImplementation((table: string) => {
-      if (table === "profiles") return owner;
-      return client.from.mock.calls.filter(call => call[0] === "products").length === 1 ? queue : update;
-    }) };
+    const client = { from: vi.fn().mockImplementation((table: string) => table === "profiles" ? owner : client.from.mock.calls.filter(call => call[0] === "products").length === 1 ? queue : update) };
     vi.mocked(getSupabaseServiceClient).mockReturnValue(client as never);
 
     await expect(listV3ModerationProducts(ownerIdentity)).resolves.toEqual([{ id: "44444444-4444-4444-8444-444444444444", status: "PENDING" }]);
     await expect(moderateV3Product(ownerIdentity, "44444444-4444-4444-8444-444444444444", "ACTIVE")).resolves.toEqual({ id: "44444444-4444-4444-8444-444444444444", status: "ACTIVE" });
 
     expect(queue.in).toHaveBeenCalledWith("status", ["PENDING", "ACTIVE", "FLAGGED"]);
-    expect(queue.select).toHaveBeenCalledWith(expect.stringContaining("category_slug,stock_quantity"));
+    expect(queue.select).toHaveBeenCalledWith(expect.stringContaining("description,category_slug,stock_quantity"));
+    expect(queue.select).toHaveBeenCalledWith(expect.stringContaining("allow_pay_on_pickup"));
     expect(update.update).toHaveBeenCalledWith({ status: "ACTIVE" });
   });
 
@@ -110,18 +114,21 @@ describe("V3 owner moderation", () => {
     vi.mocked(getSupabaseServiceClient).mockReturnValue(client as never);
 
     await expect(deleteV3Product(vendorIdentity, "44444444-4444-4444-8444-444444444444")).rejects.toThrow("Owner access is required");
-
     expect(client.from).toHaveBeenCalledTimes(1);
   });
 });
 
 describe("V3 controlled hub orders", () => {
-  it("derives the buyer contact, amount, and active state server-side before recording a pending pay-on-pickup order", async () => {
+  function activeProduct(allowPayOnPickup: boolean) {
+    return { id: "55555555-5555-4555-8555-555555555555", final_price: "2750.00", status: "ACTIVE", allow_pay_on_pickup: allowPayOnPickup };
+  }
+
+  it("derives the buyer contact, amount, active state, and pay-on-pickup availability server-side before recording an order", async () => {
     const buyer = profileQuery({ id: vendorIdentity.subject, full_name: "Siaya Buyer", phone_number: "254711281501" });
     const product = { select: vi.fn(), eq: vi.fn(), maybeSingle: vi.fn() };
     product.select.mockReturnValue(product);
     product.eq.mockReturnValue(product);
-    product.maybeSingle.mockResolvedValue({ data: { id: "55555555-5555-4555-8555-555555555555", final_price: "2750.00", status: "ACTIVE" }, error: null });
+    product.maybeSingle.mockResolvedValue({ data: activeProduct(true), error: null });
     const existingOrder = { select: vi.fn(), eq: vi.fn(), in: vi.fn(), maybeSingle: vi.fn() };
     existingOrder.select.mockReturnValue(existingOrder);
     existingOrder.eq.mockReturnValue(existingOrder);
@@ -131,15 +138,12 @@ describe("V3 controlled hub orders", () => {
     orders.insert.mockReturnValue(orders);
     orders.select.mockReturnValue(orders);
     orders.single.mockImplementation(() => Promise.resolve({ data: { id: "66666666-6666-4666-8666-666666666666", pickup_pin: orders.insert.mock.calls[0][0].pickup_pin, payment_status: "PENDING", order_status: "PENDING_DROPOFF", pickup_station: "Siaya Town collection point — confirm with MtaaMarket" }, error: null }));
-    const client = { from: vi.fn().mockImplementation((table: string) => {
-      if (table === "profiles") return buyer;
-      if (table === "products") return product;
-      return client.from.mock.calls.filter(call => call[0] === "orders").length === 1 ? existingOrder : orders;
-    }) };
+    const client = { from: vi.fn().mockImplementation((table: string) => table === "profiles" ? buyer : table === "products" ? product : client.from.mock.calls.filter(call => call[0] === "orders").length === 1 ? existingOrder : orders) };
     vi.mocked(getSupabaseServiceClient).mockReturnValue(client as never);
 
     await expect(createV3HubOrder(vendorIdentity, { productId: "55555555-5555-4555-8555-555555555555" })).resolves.toMatchObject({ payment_status: "PENDING", order_status: "PENDING_DROPOFF", pickup_pin: expect.stringMatching(/^\d{4}$/) });
 
+    expect(product.select).toHaveBeenCalledWith("id,final_price,status,allow_pay_on_pickup");
     expect(product.eq).toHaveBeenNthCalledWith(1, "id", "55555555-5555-4555-8555-555555555555");
     expect(product.eq).toHaveBeenNthCalledWith(2, "status", "ACTIVE");
     expect(existingOrder.in).toHaveBeenCalledWith("order_status", ["PENDING_DROPOFF", "RECEIVED_AT_HUB"]);
@@ -151,7 +155,7 @@ describe("V3 controlled hub orders", () => {
     const product = { select: vi.fn(), eq: vi.fn(), maybeSingle: vi.fn() };
     product.select.mockReturnValue(product);
     product.eq.mockReturnValue(product);
-    product.maybeSingle.mockResolvedValue({ data: { id: "55555555-5555-4555-8555-555555555555", final_price: "2750.00", status: "ACTIVE" }, error: null });
+    product.maybeSingle.mockResolvedValue({ data: activeProduct(true), error: null });
     const existingOrder = { select: vi.fn(), eq: vi.fn(), in: vi.fn(), maybeSingle: vi.fn() };
     existingOrder.select.mockReturnValue(existingOrder);
     existingOrder.eq.mockReturnValue(existingOrder);
@@ -161,5 +165,18 @@ describe("V3 controlled hub orders", () => {
     vi.mocked(getSupabaseServiceClient).mockReturnValue(client as never);
 
     await expect(createV3HubOrder(vendorIdentity, { productId: "55555555-5555-4555-8555-555555555555" })).rejects.toThrow("already have an open hub-pickup request");
+  });
+
+  it("does not create a hub-pickup order for an active listing whose vendor did not select pay on pickup", async () => {
+    const buyer = profileQuery({ id: vendorIdentity.subject, full_name: "Siaya Buyer", phone_number: "254711281501" });
+    const product = { select: vi.fn(), eq: vi.fn(), maybeSingle: vi.fn() };
+    product.select.mockReturnValue(product);
+    product.eq.mockReturnValue(product);
+    product.maybeSingle.mockResolvedValue({ data: activeProduct(false), error: null });
+    const client = { from: vi.fn().mockImplementation((table: string) => table === "profiles" ? buyer : product) };
+    vi.mocked(getSupabaseServiceClient).mockReturnValue(client as never);
+
+    await expect(createV3HubOrder(vendorIdentity, { productId: "55555555-5555-4555-8555-555555555555" })).rejects.toThrow("does not currently offer pay on pickup");
+    expect(client.from).toHaveBeenCalledTimes(2);
   });
 });

@@ -36,3 +36,10 @@ export type ListingCopyFallback = {
 export async function createEditableMarketCopyDraft(): Promise<ListingCopyFallback> {
   return { mode: "manual", draft: null, message: AI_LISTING_MANUAL_FALLBACK.copy };
 }
+
+export function getManualListingCopyGuidance() {
+  return {
+    english: "Describe the exact item, condition, size, and included parts using only facts you can confirm. MtaaMarket confirms collection and payment details before an order.",
+    localTone: "If you add Sheng or local wording yourself, keep it clear and editable. Do not claim verified stock, a fixed collection point, delivery timing, or a supplier relationship.",
+  } as const;
+}

@@ -1,31 +1,33 @@
 export const V3_LISTING_CATEGORY_SLUGS = [
-  "phones-electronics",
-  "computing",
   "home-kitchen",
-  "fashion-accessories",
+  "phones-electronics",
+  "solar-energy",
+  "fashion",
+  "groceries-pantry",
   "beauty-personal-care",
-  "groceries-household",
-  "baby-kids-toys",
+  "baby-kids",
   "farm-garden",
   "poultry-livestock",
-  "tools-building",
-  "automotive-parts",
+  "building-tools",
+  "school-office",
+  "auto-motorbike",
 ] as const;
 
 export type V3ListingCategorySlug = (typeof V3_LISTING_CATEGORY_SLUGS)[number];
 
 export const V3_LISTING_CATEGORIES: ReadonlyArray<{ slug: V3ListingCategorySlug; name: string }> = [
-  { slug: "phones-electronics", name: "Phones & Electronics" },
-  { slug: "computing", name: "Computing" },
   { slug: "home-kitchen", name: "Home & Kitchen" },
-  { slug: "fashion-accessories", name: "Fashion & Accessories" },
+  { slug: "phones-electronics", name: "Phones & Electronics" },
+  { slug: "solar-energy", name: "Solar & Energy" },
+  { slug: "fashion", name: "Fashion" },
+  { slug: "groceries-pantry", name: "Groceries & Pantry" },
   { slug: "beauty-personal-care", name: "Beauty & Personal Care" },
-  { slug: "groceries-household", name: "Groceries & Household" },
-  { slug: "baby-kids-toys", name: "Baby, Kids & Toys" },
+  { slug: "baby-kids", name: "Baby & Kids" },
   { slug: "farm-garden", name: "Farm & Garden" },
   { slug: "poultry-livestock", name: "Poultry & Livestock" },
-  { slug: "tools-building", name: "Tools & Building" },
-  { slug: "automotive-parts", name: "Automotive & Parts" },
+  { slug: "building-tools", name: "Building & Tools" },
+  { slug: "school-office", name: "School & Office" },
+  { slug: "auto-motorbike", name: "Auto & Motorbike" },
 ];
 
 export function getV3ListingCategory(slug: string) {

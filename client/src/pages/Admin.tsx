@@ -19,11 +19,13 @@ import { toast } from "sonner";
 type ModerationProduct = {
   id: string;
   title: string;
+  description: string | null;
   category_slug: string;
   stock_quantity: number;
   image_url: string;
   vendor_id: string | null;
   final_price: string | number;
+  allow_pay_on_pickup: boolean;
   status: "PENDING" | "ACTIVE" | "FLAGGED";
 };
 
@@ -94,6 +96,8 @@ export default function Admin() {
                 <p className="mt-2 text-sm text-muted-foreground">Vendor: {product.vendor_id ? "Approved vendor listing" : "Owner listing"}</p>
                 <p className="mt-1 text-sm text-muted-foreground">Category: {getV3ListingCategory(product.category_slug)?.name ?? "Uncategorised"}</p>
                 <p className="mt-1 text-sm text-muted-foreground">Available quantity: {product.stock_quantity.toLocaleString("en-KE")}</p>
+                {product.description && <p className="mt-3 text-sm text-muted-foreground">{product.description}</p>}
+                <p className="mt-1 text-sm text-muted-foreground">Pay on pickup: {product.allow_pay_on_pickup ? "Requested — confirm collection details" : "Not requested"}</p>
                 <p className="mt-1 font-medium">KES {Number(product.final_price).toLocaleString("en-KE")}</p>
                 <div className="mt-5 flex flex-wrap gap-2">
                   {product.status !== "ACTIVE" && <button className="primary-cta" disabled={actionPending} onClick={() => updateProduct(product.id, "ACTIVE")}>{product.status === "FLAGGED" ? "Restore active" : "Approve listing"}</button>}

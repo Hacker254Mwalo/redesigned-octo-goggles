@@ -1,6 +1,6 @@
 import { MarketplaceLayout } from "@/components/MarketplaceLayout";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
-import { AI_LISTING_MANUAL_FALLBACK, prepareListingImageForSubmission } from "@/lib/ai-listing";
+import { AI_LISTING_MANUAL_FALLBACK, getManualListingCopyGuidance, prepareListingImageForSubmission } from "@/lib/ai-listing";
 import { trpc } from "@/lib/trpc";
 import { V3_LISTING_CATEGORIES, type V3ListingCategorySlug } from "@shared/v3-listing";
 import { useRef, useState } from "react";
@@ -13,9 +13,12 @@ export default function VendorUpload() {
   const { configured, loading, session } = useSupabaseAuth();
   const fileInput = useRef<HTMLInputElement>(null);
   const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [categorySlug, setCategorySlug] = useState<V3ListingCategorySlug | "">("");
   const [price, setPrice] = useState("");
   const [stockQuantity, setStockQuantity] = useState("1");
+  const [allowPayOnPickup, setAllowPayOnPickup] = useState(true);
+  const [showDescriptionGuidance, setShowDescriptionGuidance] = useState(false);
   const [imageData, setImageData] = useState("");
   const [imageType, setImageType] = useState<(typeof ACCEPTED_IMAGE_TYPES)[number] | null>(null);
   const [selectedFileName, setSelectedFileName] = useState("");
@@ -35,9 +38,12 @@ export default function VendorUpload() {
   const submit = trpc.marketplace.submitV3VendorProduct.useMutation({
     onSuccess: () => {
       setTitle("");
+      setDescription("");
       setCategorySlug("");
       setPrice("");
       setStockQuantity("1");
+      setAllowPayOnPickup(true);
+      setShowDescriptionGuidance(false);
       setImageData("");
       setImageType(null);
       setSelectedFileName("");
@@ -86,7 +92,7 @@ export default function VendorUpload() {
     if (!categorySlug) return setFormError("Choose the product category before submitting.");
     const quantity = Number(stockQuantity);
     if (!Number.isSafeInteger(quantity) || quantity < 1) return setFormError("Enter at least one available item.");
-    submit.mutate({ title, categorySlug, price: Number(price), stockQuantity: quantity, imageData, imageType });
+    submit.mutate({ title, description: description || undefined, categorySlug, price: Number(price), stockQuantity: quantity, allowPayOnPickup, imageData, imageType });
   }
 
   return (
@@ -123,6 +129,11 @@ export default function VendorUpload() {
               <label className="block text-sm font-medium">Listing title
                 <input className="mt-2 w-full rounded-lg border border-border bg-white p-3 text-base" required minLength={3} maxLength={180} value={title} onChange={event => setTitle(event.target.value)} autoComplete="off" />
               </label>
+              <div className="rounded-xl border bg-white p-4">
+                <div className="flex items-center justify-between gap-3"><span className="text-sm font-medium">Listing description</span><button className="text-sm font-medium text-primary underline-offset-4 hover:underline" type="button" onClick={() => setShowDescriptionGuidance(current => !current)}>{showDescriptionGuidance ? "Hide writing guide" : "Show writing guide"}</button></div>
+                {showDescriptionGuidance && <div className="mt-3 space-y-2 rounded-lg bg-muted p-3 text-sm text-muted-foreground"><p><strong className="text-foreground">English:</strong> {getManualListingCopyGuidance().english}</p><p><strong className="text-foreground">Local wording:</strong> {getManualListingCopyGuidance().localTone}</p></div>}
+                <textarea className="mt-3 min-h-28 w-full rounded-lg border border-border bg-white p-3 text-base" maxLength={1600} value={description} onChange={event => setDescription(event.target.value)} placeholder="Optional: add only accurate product facts for owner review." />
+              </div>
               <label className="block text-sm font-medium">Category
                 <select className="mt-2 w-full rounded-lg border border-border bg-white p-3 text-base" required value={categorySlug} onChange={event => setCategorySlug(event.target.value as V3ListingCategorySlug | "")}>
                   <option value="" disabled>Choose a category</option>
@@ -135,6 +146,7 @@ export default function VendorUpload() {
               <label className="block text-sm font-medium">Quantity available
                 <input className="mt-2 w-full rounded-lg border border-border bg-white p-3 text-base" type="number" inputMode="numeric" min="1" max="100000" step="1" required value={stockQuantity} onChange={event => setStockQuantity(event.target.value)} />
               </label>
+              <label className="flex items-start gap-3 rounded-xl border bg-white p-4 text-sm"><input className="mt-0.5 size-4" type="checkbox" checked={allowPayOnPickup} onChange={event => setAllowPayOnPickup(event.target.checked)} /><span><strong>Available for pay on pickup</strong><br /><span className="text-muted-foreground">MtaaMarket confirms the collection point and payment details before an order. Do not promise a specific hub or collection time in your listing.</span></span></label>
               <p className="rounded-xl border border-[#d5e8de] bg-[#f1f8f4] p-4 text-sm text-[#275847]">Your profile, owner approval, and vendor agreement are checked securely when you submit. The original photo and manual listing facts create a <strong>PENDING</strong> record for owner review; image cleanup and automatic Sheng/English copy are not active.</p>
               {formError && <p role="alert" className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">{formError}</p>}
               <button className="primary-cta" type="submit" disabled={submit.isPending || !imageData || !imageType}>{submit.isPending ? "Submitting securely…" : "Submit for owner review"}</button>
