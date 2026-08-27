@@ -36,7 +36,7 @@ describe("Jumia public discovery", () => {
   it("uses Tavily when configured and maps product metadata", async () => {
     process.env.TAVILY_API_KEY = "test-key";
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ results: [
-      { title: "Samsung TV Jumia Kenya", url: "https://www.jumia.co.ke/samsung-tv", content: "Samsung smart TV from KES 34,999", images: [{ url: "https://ke.jumia.is/p_9n_2Fk5GQPGkotcccQ5cDtlHA=/fit-in/500x500/filters:fill(white)/product/31/8481392/1.jpg?7944" }] },
+      { title: "Samsung 65DU7010 Smart TV Jumia Kenya", url: "https://www.jumia.co.ke/samsung-65du7010-smart-tv", content: "Samsung 65DU7010 smart TV from KES 34,999", images: [{ url: "https://ke.jumia.is/p_9n_2Fk5GQPGkotcccQ5cDtlHA=/fit-in/500x500/filters:fill(white)/product/31/8481392/1.jpg?7944" }] },
       { title: "Outside result", url: "https://example.com/item", content: "Should be removed" },
     ] }), { status: 200 }));
 
@@ -51,7 +51,7 @@ describe("Jumia public discovery", () => {
     expect(result.configured).toBe(true);
     expect(result.provider).toBe("tavily_public_search");
     expect(result.results).toHaveLength(1);
-    expect(result.results[0]).toMatchObject({ title: "Samsung TV", url: "https://www.jumia.co.ke/samsung-tv", price: 34999, currency: "KES", imageUrl: "https://ke.jumia.is/p_9n_2Fk5GQPGkotcccQ5cDtlHA=/fit-in/500x500/filters:fill(white)/product/31/8481392/1.jpg?7944" });
+    expect(result.results[0]).toMatchObject({ title: "Samsung 65DU7010 Smart TV", url: "https://www.jumia.co.ke/samsung-65du7010-smart-tv", price: 34999, currency: "KES", imageUrl: "https://ke.jumia.is/p_9n_2Fk5GQPGkotcccQ5cDtlHA=/fit-in/500x500/filters:fill(white)/product/31/8481392/1.jpg?7944" });
   });
 
   it("puts image-bearing Jumia cards first while retaining text-only results", async () => {
@@ -188,7 +188,7 @@ describe("Jumia public discovery", () => {
   it("uses Brave Web Search when configured and keeps only HTTPS Jumia Kenya results", async () => {
     process.env.BRAVE_SEARCH_API_KEY = "test-key";
     vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ web: { results: [
-      { title: "Samsung TV Jumia Kenya", url: "https://www.jumia.co.ke/samsung-tv", description: "Samsung smart TV from KES 34,999" },
+      { title: "Samsung 65DU7010 Smart TV Jumia Kenya", url: "https://www.jumia.co.ke/samsung-65du7010-smart-tv", description: "Samsung 65DU7010 smart TV from KES 34,999" },
       { title: "Outside result", url: "https://example.com/item", description: "Should be removed" },
       { title: "Unsafe result", url: "http://www.jumia.co.ke/item", description: "Should be removed" },
     ] } }), { status: 200 }));
@@ -198,7 +198,7 @@ describe("Jumia public discovery", () => {
     expect(result.configured).toBe(true);
     expect(result.provider).toBe("brave_public_search");
     expect(result.results).toHaveLength(1);
-    expect(result.results[0]).toMatchObject({ title: "Samsung TV", url: "https://www.jumia.co.ke/samsung-tv", price: 34999, currency: "KES" });
+    expect(result.results[0]).toMatchObject({ title: "Samsung 65DU7010 Smart TV", url: "https://www.jumia.co.ke/samsung-65du7010-smart-tv", price: 34999, currency: "KES" });
   });
 
   it("keeps only HTTPS Jumia Kenya results and sanitizes public metadata", async () => {
