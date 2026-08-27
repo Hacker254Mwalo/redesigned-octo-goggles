@@ -51,12 +51,13 @@ import { V3_LISTING_CATEGORY_SLUGS } from "@shared/v3-listing";
 import { ensureSupabaseMarketplaceProfile } from "./supabase-profiles";
 import { createV3HubOrder } from "./v3-orders";
 import { deleteV3Product, listV3ModerationProducts, moderateV3Product } from "./v3-moderation";
-import { submitV3VendorProduct } from "./v3-vendor";
+import { submitV3OwnerProduct, submitV3VendorProduct } from "./v3-vendor";
 import { applyForV3Vendor, bootstrapV3Owner, getV3BuyerOrderAccess, getV3VendorAccess, listV3VendorApplications, saveV3BuyerOrderProfile, updateV3VendorApproval } from "./v3-profiles";
 
 const safeSearch = z.string().trim().max(100);
 const phone = z.string().trim().regex(/^\+?254[17]\d{8}$/, "Use a Kenyan number beginning with 254.").optional();
 const orderItemSchema = z.object({ productId: z.number().int().positive(), quantity: z.number().int().min(1).max(20) });
+const v3ListingSubmission = z.object({ title: z.string().trim().min(3).max(180), description: z.string().trim().max(1_600).optional(), categorySlug: z.enum(V3_LISTING_CATEGORY_SLUGS), price: z.number().positive().max(10_000_000), stockQuantity: z.number().int().min(1).max(100_000), allowPayOnPickup: z.boolean(), imageData: z.string().max(7_000_000), imageType: z.enum(["image/jpeg", "image/png", "image/webp"]) });
 
 export const appRouter = router({
   system: systemRouter,
@@ -94,7 +95,8 @@ export const appRouter = router({
     v3ModerationProducts: publicProcedure.query(({ ctx }) => listV3ModerationProducts(ctx.supabaseIdentity)),
     moderateV3Product: publicProcedure.input(z.object({ productId: z.string().uuid(), status: z.enum(["ACTIVE", "REJECTED", "FLAGGED"]) })).mutation(({ ctx, input }) => moderateV3Product(ctx.supabaseIdentity, input.productId, input.status)),
     deleteV3Product: publicProcedure.input(z.object({ productId: z.string().uuid() })).mutation(({ ctx, input }) => deleteV3Product(ctx.supabaseIdentity, input.productId)),
-    submitV3VendorProduct: publicProcedure.input(z.object({ title: z.string().trim().min(3).max(180), description: z.string().trim().max(1_600).optional(), categorySlug: z.enum(V3_LISTING_CATEGORY_SLUGS), price: z.number().positive().max(10_000_000), stockQuantity: z.number().int().min(1).max(100_000), allowPayOnPickup: z.boolean(), imageData: z.string().max(7_000_000), imageType: z.enum(["image/jpeg", "image/png", "image/webp"]) })).mutation(({ ctx, input }) => submitV3VendorProduct(ctx.supabaseIdentity, input)),
+    submitV3VendorProduct: publicProcedure.input(v3ListingSubmission).mutation(({ ctx, input }) => submitV3VendorProduct(ctx.supabaseIdentity, input)),
+    submitV3OwnerProduct: publicProcedure.input(v3ListingSubmission).mutation(({ ctx, input }) => submitV3OwnerProduct(ctx.supabaseIdentity, input)),
     bootstrapV3Owner: publicProcedure.mutation(({ ctx }) => bootstrapV3Owner(ctx.supabaseIdentity)),
     v3VendorAccess: publicProcedure.query(({ ctx }) => getV3VendorAccess(ctx.supabaseIdentity)),
     applyForV3Vendor: publicProcedure.input(z.object({ agreementAccepted: z.literal(true) })).mutation(({ ctx, input }) => applyForV3Vendor(ctx.supabaseIdentity, input.agreementAccepted)),

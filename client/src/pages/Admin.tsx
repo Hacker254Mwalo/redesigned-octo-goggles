@@ -11,9 +11,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import { trpc } from "@/lib/trpc";
-import { getV3ListingCategory } from "@shared/v3-listing";
+import { getV3ListingCategory, V3_LISTING_CATEGORIES, type V3ListingCategorySlug } from "@shared/v3-listing";
 import { ShieldCheck } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 
 type ModerationProduct = {
@@ -34,6 +34,93 @@ const statusText = {
   ACTIVE: "Publicly visible",
   FLAGGED: "Hidden for review",
 } as const;
+
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
+const MAX_IMAGE_BYTES = 5_000_000;
+
+function OwnerListingIntake({ onSubmitted }: { onSubmitted: () => void }) {
+  const fileInput = useRef<HTMLInputElement>(null);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [categorySlug, setCategorySlug] = useState<V3ListingCategorySlug | "">("");
+  const [price, setPrice] = useState("");
+  const [stockQuantity, setStockQuantity] = useState("1");
+  const [allowPayOnPickup, setAllowPayOnPickup] = useState(true);
+  const [imageData, setImageData] = useState("");
+  const [imageType, setImageType] = useState<(typeof ACCEPTED_IMAGE_TYPES)[number] | null>(null);
+  const [fileName, setFileName] = useState("");
+  const [formError, setFormError] = useState("");
+  const submit = trpc.marketplace.submitV3OwnerProduct.useMutation({
+    onSuccess: () => {
+      setTitle(""); setDescription(""); setCategorySlug(""); setPrice(""); setStockQuantity("1"); setAllowPayOnPickup(true); setImageData(""); setImageType(null); setFileName(""); setFormError("");
+      if (fileInput.current) fileInput.current.value = "";
+      onSubmitted();
+      toast.success("Owner listing sent to the moderation queue.");
+    },
+    onError: error => setFormError(error.message),
+  });
+
+  function chooseImage(file: File | undefined) {
+    setFormError("");
+    if (!file) return;
+    if (!ACCEPTED_IMAGE_TYPES.includes(file.type as (typeof ACCEPTED_IMAGE_TYPES)[number])) return setFormError("Choose an original JPEG, PNG, or WebP image.");
+    if (file.size > MAX_IMAGE_BYTES) return setFormError("Choose an image smaller than 5 MB.");
+    const reader = new FileReader();
+    reader.onload = () => { setImageData(String(reader.result)); setImageType(file.type as (typeof ACCEPTED_IMAGE_TYPES)[number]); setFileName(file.name); };
+    reader.onerror = () => setFormError("MtaaMarket could not read that image. Please choose another file.");
+    reader.readAsDataURL(file);
+  }
+
+  function submitListing(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setFormError("");
+    if (!categorySlug) return setFormError("Choose a MtaaMarket category.");
+    if (!imageData || !imageType) return setFormError("Choose an original product image.");
+    const quantity = Number(stockQuantity);
+    if (!Number.isSafeInteger(quantity) || quantity < 1) return setFormError("Enter at least one available item.");
+    submit.mutate({ title, description: description || undefined, categorySlug, price: Number(price), stockQuantity: quantity, allowPayOnPickup, imageData, imageType });
+  }
+
+  return (
+    <section className="mt-8 rounded-2xl border bg-white p-5 shadow-sm sm:p-6">
+      <p className="eyebrow">Founder inventory intake</p>
+      <h2 className="mt-2 text-2xl font-semibold">Add an owner-provided listing</h2>
+      <p className="mt-2 max-w-2xl text-sm text-muted-foreground">Use only facts, price, quantity, and original media you are authorised to publish. This does not seed a catalogue or publish an item: it creates a <strong>PENDING</strong> owner listing for the same review controls below.</p>
+      <form className="mt-6 space-y-5" onSubmit={submitListing}>
+        <fieldset className="space-y-5" disabled={submit.isPending}>
+          <label className="block text-sm font-medium">Original product photo
+            <input ref={fileInput} className="mt-2 block w-full rounded-lg border border-border bg-white p-2 text-sm" type="file" accept="image/jpeg,image/png,image/webp" required onChange={event => chooseImage(event.target.files?.[0])} />
+            <span className="mt-2 block text-xs font-normal text-muted-foreground">JPEG, PNG, or WebP only. Up to 5 MB; no supplier-page or copied media.</span>
+          </label>
+          {fileName && <p className="rounded-lg bg-muted px-3 py-2 text-sm" aria-live="polite">Selected: {fileName}</p>}
+          <label className="block text-sm font-medium">Listing title
+            <input className="mt-2 w-full rounded-lg border border-border bg-white p-3 text-base" value={title} onChange={event => setTitle(event.target.value)} required minLength={3} maxLength={180} autoComplete="off" />
+          </label>
+          <label className="block text-sm font-medium">Accurate description <span className="font-normal text-muted-foreground">(optional)</span>
+            <textarea className="mt-2 min-h-28 w-full rounded-lg border border-border bg-white p-3 text-base" value={description} onChange={event => setDescription(event.target.value)} maxLength={1600} placeholder="Describe only facts you can confirm." />
+          </label>
+          <label className="block text-sm font-medium">Category
+            <select className="mt-2 w-full rounded-lg border border-border bg-white p-3 text-base" value={categorySlug} onChange={event => setCategorySlug(event.target.value as V3ListingCategorySlug | "")} required>
+              <option value="" disabled>Choose a category</option>
+              {V3_LISTING_CATEGORIES.map(category => <option key={category.slug} value={category.slug}>{category.name}</option>)}
+            </select>
+          </label>
+          <div className="grid gap-5 sm:grid-cols-2">
+            <label className="block text-sm font-medium">Price (KES)
+              <input className="mt-2 w-full rounded-lg border border-border bg-white p-3 text-base" type="number" inputMode="decimal" min="1" max="10000000" step="1" value={price} onChange={event => setPrice(event.target.value)} required />
+            </label>
+            <label className="block text-sm font-medium">Quantity available
+              <input className="mt-2 w-full rounded-lg border border-border bg-white p-3 text-base" type="number" inputMode="numeric" min="1" max="100000" step="1" value={stockQuantity} onChange={event => setStockQuantity(event.target.value)} required />
+            </label>
+          </div>
+          <label className="flex items-start gap-3 rounded-xl border bg-muted/40 p-4 text-sm"><input className="mt-0.5 size-4" type="checkbox" checked={allowPayOnPickup} onChange={event => setAllowPayOnPickup(event.target.checked)} /><span><strong>Offer pay on pickup</strong><br /><span className="text-muted-foreground">MtaaMarket confirms the collection point and payment details before any buyer order.</span></span></label>
+          {formError && <p role="alert" className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">{formError}</p>}
+          <button className="primary-cta" type="submit" disabled={submit.isPending || !imageData || !imageType}>{submit.isPending ? "Sending for review…" : "Add to moderation queue"}</button>
+        </fieldset>
+      </form>
+    </section>
+  );
+}
 
 export default function Admin() {
   const { configured, loading: sessionLoading, session } = useSupabaseAuth();
@@ -85,6 +172,7 @@ export default function Admin() {
 
         {moderationQueue.isError && <section className="mt-8 rounded-2xl border bg-white p-6"><ShieldCheck className="mb-3" aria-hidden="true" /><h2 className="font-semibold">Owner access required</h2><p className="mt-2 text-sm text-muted-foreground">Sign in with the verified founder email session to review listings. No product data is shown until the server confirms the owner role.</p>{configured && !sessionLoading && !session && <p className="mt-4 text-sm font-medium">Use the Account menu in the header to sign in first.</p>}{configured && !sessionLoading && session && <button className="primary-cta mt-5" disabled={bootstrapOwner.isPending} onClick={() => bootstrapOwner.mutate()}>{bootstrapOwner.isPending ? "Activating…" : "Founder: activate owner access"}</button>}</section>}
         {moderationQueue.isLoading && <section className="mt-8 rounded-2xl border bg-white p-6" aria-live="polite"><h2 className="font-semibold">Loading the moderation queue</h2><p className="mt-2 text-sm text-muted-foreground">Checking your owner access and current listing states.</p></section>}
+        {!moderationQueue.isError && !moderationQueue.isLoading && moderationQueue.data && <OwnerListingIntake onSubmitted={() => moderationQueue.refetch()} />}
         {!moderationQueue.isError && !moderationQueue.isLoading && moderationQueue.data?.length === 0 && <section className="mt-8 rounded-2xl border bg-white p-6"><h2 className="font-semibold">No listings need review</h2><p className="mt-2 text-sm text-muted-foreground">New approved-vendor submissions will appear here as awaiting review.</p></section>}
 
         {!moderationQueue.isError && moderationQueue.data && moderationQueue.data.length > 0 && (

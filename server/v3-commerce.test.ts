@@ -7,7 +7,7 @@ import { getSupabaseServiceClient } from "./supabase";
 import { storagePut } from "./storage";
 import { deleteV3Product, listV3ModerationProducts, moderateV3Product } from "./v3-moderation";
 import { createV3HubOrder } from "./v3-orders";
-import { submitV3VendorProduct } from "./v3-vendor";
+import { submitV3OwnerProduct, submitV3VendorProduct } from "./v3-vendor";
 
 const vendorIdentity = { subject: "11111111-1111-4111-8111-111111111111", email: "vendor@example.test", issuedAt: 0 };
 const ownerIdentity = { subject: "22222222-2222-4222-8222-222222222222", email: "owner@example.test", issuedAt: 0 };
@@ -81,6 +81,32 @@ describe("V3 vendor product submission", () => {
     await expect(submitV3VendorProduct(vendorIdentity, { ...validVendorListing, categorySlug: "invalid" as never })).rejects.toThrow("valid MtaaMarket category");
     await expect(submitV3VendorProduct(vendorIdentity, { ...validVendorListing, stockQuantity: 0 })).rejects.toThrow("available quantity");
     expect(getSupabaseServiceClient).not.toHaveBeenCalled();
+  });
+});
+
+describe("V3 owner product intake", () => {
+  it("requires the verified owner role and creates only a PENDING owner listing from the supplied original facts", async () => {
+    const owner = profileQuery({ id: ownerIdentity.subject, role: "admin" });
+    const products = { insert: vi.fn(), select: vi.fn(), single: vi.fn() };
+    products.insert.mockReturnValue(products);
+    products.select.mockReturnValue(products);
+    products.single.mockResolvedValue({ data: { id: "33333333-3333-4333-8333-333333333333", status: "PENDING" }, error: null });
+    const client = { from: vi.fn().mockImplementation((table: string) => table === "profiles" ? owner : products) };
+    vi.mocked(getSupabaseServiceClient).mockReturnValue(client as never);
+    vi.mocked(storagePut).mockResolvedValue({ key: "owner-listings/owner/listing.png", url: "/manus-storage/owner-listing.png" });
+
+    await expect(submitV3OwnerProduct(ownerIdentity, validVendorListing)).resolves.toEqual({ id: "33333333-3333-4333-8333-333333333333", status: "PENDING" });
+
+    expect(storagePut).toHaveBeenCalledWith(expect.stringMatching(new RegExp(`^owner-listings/${ownerIdentity.subject}/.+\\.png$`)), expect.any(Buffer), "image/png");
+    expect(products.insert).toHaveBeenCalledWith(expect.objectContaining({ vendor_id: null, is_admin_concierge: true, status: "PENDING", title: "Local cooking pot" }));
+  });
+
+  it("rejects a non-owner before handling original image bytes", async () => {
+    const nonOwner = profileQuery({ id: vendorIdentity.subject, role: "vendor" });
+    vi.mocked(getSupabaseServiceClient).mockReturnValue({ from: vi.fn().mockReturnValue(nonOwner) } as never);
+
+    await expect(submitV3OwnerProduct(vendorIdentity, validVendorListing)).rejects.toThrow("Owner access is required");
+    expect(storagePut).not.toHaveBeenCalled();
   });
 });
 

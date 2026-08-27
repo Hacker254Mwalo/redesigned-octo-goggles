@@ -1,6 +1,7 @@
 import { storagePut } from "./storage";
 import { getSupabaseServiceClient } from "./supabase";
 import type { SupabaseIdentity } from "./supabase-auth";
+import { requireV3Owner } from "./v3-profiles";
 import { V3_LISTING_CATEGORY_SLUGS, type V3ListingCategorySlug } from "@shared/v3-listing";
 import { randomUUID } from "node:crypto";
 
@@ -14,6 +15,17 @@ const imageExtensions = {
 } as const;
 
 type SupportedImageType = keyof typeof imageExtensions;
+
+export type V3ListingSubmission = {
+  title: string;
+  description?: string;
+  categorySlug: V3ListingCategorySlug;
+  price: number;
+  stockQuantity: number;
+  allowPayOnPickup: boolean;
+  imageData: string;
+  imageType: string;
+};
 
 function imageDimensions(image: Buffer, imageType: SupportedImageType) {
   if (imageType === "image/png") {
@@ -82,8 +94,7 @@ function decodeVendorImage(imageData: string, imageType: string) {
   return { image, extension: imageExtensions[imageType as SupportedImageType] };
 }
 
-export async function submitV3VendorProduct(identity: SupabaseIdentity | null, input: { title: string; description?: string; categorySlug: V3ListingCategorySlug; price: number; stockQuantity: number; allowPayOnPickup: boolean; imageData: string; imageType: string }) {
-  if (!identity) throw new Error("Sign in with your verified vendor email session.");
+function normalizeListingSubmission(input: V3ListingSubmission) {
   const title = input.title.trim();
   const description = input.description?.trim() || null;
   if (title.length < 3 || title.length > 180) throw new Error("Use a product title between 3 and 180 characters.");
@@ -91,13 +102,32 @@ export async function submitV3VendorProduct(identity: SupabaseIdentity | null, i
   if (!V3_LISTING_CATEGORY_SLUGS.includes(input.categorySlug)) throw new Error("Choose a valid MtaaMarket category.");
   if (!Number.isFinite(input.price) || input.price <= 0 || input.price > 10_000_000) throw new Error("Enter a valid price in Kenyan shillings.");
   if (!Number.isSafeInteger(input.stockQuantity) || input.stockQuantity < 1 || input.stockQuantity > 100_000) throw new Error("Enter an available quantity between 1 and 100,000.");
+  return { title, description };
+}
+
+async function createV3PendingListing(input: V3ListingSubmission, options: { vendorId: string | null; isAdminConcierge: boolean; storagePrefix: "vendor-listings" | "owner-listings"; storageOwnerId: string }) {
+  const { title, description } = normalizeListingSubmission(input);
+  const client = getSupabaseServiceClient();
+  const { image, extension } = decodeVendorImage(input.imageData, input.imageType);
+  const { url } = await storagePut(`${options.storagePrefix}/${options.storageOwnerId}/${randomUUID()}.${extension}`, image, input.imageType);
+  const { data, error } = await client.from("products").insert({ vendor_id: options.vendorId, title, description, category_slug: input.categorySlug, image_url: url, base_price: input.price, final_price: input.price, stock_quantity: input.stockQuantity, is_admin_concierge: options.isAdminConcierge, allow_pay_on_pickup: input.allowPayOnPickup, status: "PENDING" }).select("id,status").single();
+  if (error || !data) throw new Error("MtaaMarket could not submit this listing.");
+  return data;
+}
+
+export async function submitV3VendorProduct(identity: SupabaseIdentity | null, input: V3ListingSubmission) {
+  if (!identity) throw new Error("Sign in with your verified vendor email session.");
+  normalizeListingSubmission(input);
   const client = getSupabaseServiceClient();
   const { data: profile } = await client.from("profiles").select("id,is_vendor,is_vendor_approved,vendor_agreement_accepted_at").eq("id", identity.subject).maybeSingle();
   if (!profile?.is_vendor || !profile.is_vendor_approved) throw new Error("Your vendor profile must be approved by the MtaaMarket owner before you can submit a listing.");
   if (!profile.vendor_agreement_accepted_at) throw new Error("Accept the vendor agreement with the MtaaMarket owner before submitting a listing.");
-  const { image, extension } = decodeVendorImage(input.imageData, input.imageType);
-  const { url } = await storagePut(`vendor-listings/${identity.subject}/${randomUUID()}.${extension}`, image, input.imageType);
-  const { data, error } = await client.from("products").insert({ vendor_id: identity.subject, title, description, category_slug: input.categorySlug, image_url: url, base_price: input.price, final_price: input.price, stock_quantity: input.stockQuantity, allow_pay_on_pickup: input.allowPayOnPickup, status: "PENDING" }).select("id,status").single();
-  if (error || !data) throw new Error("MtaaMarket could not submit this listing.");
-  return data;
+  return createV3PendingListing(input, { vendorId: identity.subject, isAdminConcierge: false, storagePrefix: "vendor-listings", storageOwnerId: identity.subject });
+}
+
+/** Founder-only intake for original MtaaMarket-owned goods. It still enters owner moderation as PENDING. */
+export async function submitV3OwnerProduct(identity: SupabaseIdentity | null, input: V3ListingSubmission) {
+  await requireV3Owner(identity);
+  if (!identity) throw new Error("Sign in with a verified owner email session.");
+  return createV3PendingListing(input, { vendorId: null, isAdminConcierge: true, storagePrefix: "owner-listings", storageOwnerId: identity.subject });
 }
