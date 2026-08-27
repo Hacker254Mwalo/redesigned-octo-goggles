@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /cart
+Disallow: /auth/callback
+Disallow: /auth/reset-password
+Sitemap: https://siayaonlinemarket.vercel.app/sitemap.xml

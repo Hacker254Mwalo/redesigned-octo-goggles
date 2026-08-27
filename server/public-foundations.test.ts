@@ -107,6 +107,32 @@ describe("public performance and mobile foundations", () => {
     expect(sharePrompt).not.toMatch(/(?:fetch|axios|analytics|pixel|advertis)/i);
   });
 
+  it("publishes public-only crawl guidance while excluding protected and account-action routes", () => {
+    const robots = readFileSync(resolve(projectRoot, "client/public/robots.txt"), "utf8");
+    const sitemap = readFileSync(resolve(projectRoot, "client/public/sitemap.xml"), "utf8");
+
+    expect(robots).toContain("Sitemap: https://siayaonlinemarket.vercel.app/sitemap.xml");
+    expect(robots).toContain("Disallow: /dashboard");
+    expect(robots).toContain("Disallow: /cart");
+    expect(robots).toContain("Disallow: /auth/callback");
+    expect(robots).toContain("Disallow: /auth/reset-password");
+    expect(sitemap).toContain("https://siayaonlinemarket.vercel.app/");
+    expect(sitemap).toContain("https://siayaonlinemarket.vercel.app/vendor");
+    expect(sitemap).toContain("https://siayaonlinemarket.vercel.app/privacy");
+    expect(sitemap).not.toContain("/dashboard");
+    expect(sitemap).not.toContain("/cart");
+    expect(sitemap).not.toContain("/auth/");
+  });
+
+  it("does not expose a Request Desk AI action that relies on the pending protected account migration", () => {
+    const requestDesk = readFileSync(resolve(projectRoot, "client/src/pages/RequestDeskPage.tsx"), "utf8");
+
+    expect(requestDesk).not.toContain("draftItemRequest.useMutation");
+    expect(requestDesk).not.toContain("Use AI to organise these facts");
+    expect(requestDesk).toContain("Before you send:");
+    expect(requestDesk).toContain("MtaaMarket will review every request manually.");
+  });
+
   it("keeps a conservative vendor-chunk strategy for public performance", () => {
     const config = readFileSync(resolve(projectRoot, "vite.config.ts"), "utf8");
 
