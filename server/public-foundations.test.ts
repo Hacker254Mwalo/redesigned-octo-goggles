@@ -28,6 +28,29 @@ describe("public performance and mobile foundations", () => {
     expect(manifest).not.toHaveProperty("icons");
   });
 
+  it("uses truthful Siaya-focused public metadata without disabling browser zoom", () => {
+    const head = readFileSync(resolve(projectRoot, "client/index.html"), "utf8");
+
+    expect(head).toContain("Siaya Online MtaaMarket");
+    expect(head).toContain('name="description"');
+    expect(head).toContain('name="robots" content="index,follow"');
+    expect(head).toContain('rel="canonical" href="https://siayaonlinemarket.vercel.app/"');
+    expect(head).toContain('property="og:type" content="website"');
+    expect(head).not.toContain("maximum-scale=1");
+  });
+
+  it("keeps public error recovery branded and avoids exposing technical error details", () => {
+    const boundary = readFileSync(resolve(projectRoot, "client/src/components/ErrorBoundary.tsx"), "utf8");
+    const notFound = readFileSync(resolve(projectRoot, "client/src/pages/NotFound.tsx"), "utf8");
+
+    expect(boundary).toContain("Your request has not been sent.");
+    expect(boundary).toContain("Return to MtaaMarket");
+    expect(boundary).toContain("technical details are not shown");
+    expect(boundary).not.toContain("this.state.error?.stack");
+    expect(notFound).toContain("MtaaMarket route guide");
+    expect(notFound).toContain("Return to MtaaMarket");
+  });
+
   it("keeps a conservative vendor-chunk strategy for public performance", () => {
     const config = readFileSync(resolve(projectRoot, "vite.config.ts"), "utf8");
 
