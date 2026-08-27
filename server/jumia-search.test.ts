@@ -35,12 +35,16 @@ describe("Jumia public discovery", () => {
 
   it("uses Tavily when configured and maps product metadata", async () => {
     process.env.TAVILY_API_KEY = "test-key";
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ results: [
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ results: [
       { title: "Samsung TV Jumia Kenya", url: "https://www.jumia.co.ke/samsung-tv", content: "Samsung smart TV from KES 34,999", images: [{ url: "https://img.jumia.co.ke/tv.jpg" }] },
       { title: "Outside result", url: "https://example.com/item", content: "Should be removed" },
     ] }), { status: 200 }));
 
     const result = await searchJumiaPublicProducts("Samsung TV");
+    const request = fetchSpy.mock.calls[0]?.[1];
+    const payload = JSON.parse(String(request?.body));
+    expect(payload).toMatchObject({ query: "site:jumia.co.ke Samsung TV", search_depth: "basic", country: "kenya", safe_search: true, include_images: true });
+    expect(payload).not.toHaveProperty("include_domains");
 
     expect(result.configured).toBe(true);
     expect(result.provider).toBe("tavily_public_search");
