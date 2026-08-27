@@ -62,3 +62,14 @@ A customer searches for a product inside MtaaMarket and selects a public result.
 - Jumia JForce: https://jforce.jumia.co.ke/
 
 [5]: https://vendorcenter.jumia.com/api-docs/ "Jumia Vendor Center GPM/GOP API documentation"
+
+
+## Catalog-first presentation and generic-page policy
+
+The public `/jumia` route now opens as a catalog-first shopping experience. It starts a live `smartphone phone` discovery query, presents visual result cards before explanatory copy, provides category shortcuts, and keeps a page-local selection basket. Category shortcuts issue real provider-backed searches rather than selecting from a mock inventory. Selection, basket, and checkout remain separate states: delivery and collection fields are not rendered until a real live result has been added to the basket.
+
+The server removes generic category and brand records even when a provider incorrectly labels them as `.html` product pages. In addition to `/slp`, `/mlp`, category, search, and brand path checks, the adapter rejects exact or short generic titles such as `Smart TV`, `Vivo Mobile Phones`, and `Feature Phones`, plus common generic availability/deals copy. Concrete model titles containing a numeric model signal remain eligible. If a broad query produces only generic or landing records, the customer receives an honest specific-product prompt instead of noisy cards.
+
+The latest regression suite covers 15 live-search cases, including the hyphenated catalogue paths, generic Smart TV and brand-page records, cookie/navigation cleanup, trusted image rules, duplicate-image prevention, provider mapping, and concrete Samsung model retention. Production verification on commit `531bcdc` confirmed five concrete Smart TV product-detail results with zero generic-title and landing-page records; the later generic-title cleanup was released in `5d537d8`.
+
+The default result cards intentionally show `Price on product page` when no trustworthy indexed KES value is available and show the branded unavailable-photo state when a strict trusted product image is absent. No public screen claims that a first-party catalogue feed is connected. The permitted Vendor Center seller/mastershop feed remains a separate future integration requiring official authorization.
