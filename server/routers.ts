@@ -51,7 +51,7 @@ import { ensureSupabaseMarketplaceProfile } from "./supabase-profiles";
 import { createV3HubOrder } from "./v3-orders";
 import { deleteV3Product, listV3ModerationProducts, moderateV3Product } from "./v3-moderation";
 import { submitV3VendorProduct } from "./v3-vendor";
-import { applyForV3Vendor, bootstrapV3Owner, getV3BuyerOrderAccess, getV3VendorAccess, listV3VendorApplications, saveV3BuyerPhone, updateV3VendorApproval } from "./v3-profiles";
+import { applyForV3Vendor, bootstrapV3Owner, getV3BuyerOrderAccess, getV3VendorAccess, listV3VendorApplications, saveV3BuyerOrderProfile, updateV3VendorApproval } from "./v3-profiles";
 
 const safeSearch = z.string().trim().max(100);
 const phone = z.string().trim().regex(/^\+?254[17]\d{8}$/, "Use a Kenyan number beginning with 254.").optional();
@@ -89,7 +89,7 @@ export const appRouter = router({
     mpesaStatus: publicProcedure.query(() => ({ configured: isMpesaConfigured(), environment: "sandbox" as const })),
     createV3HubOrder: publicProcedure.input(z.object({ productId: z.string().uuid() })).mutation(({ ctx, input }) => createV3HubOrder(ctx.supabaseIdentity, input)),
     v3BuyerOrderAccess: publicProcedure.query(({ ctx }) => getV3BuyerOrderAccess(ctx.supabaseIdentity)),
-    saveV3BuyerPhone: publicProcedure.input(z.object({ phone: z.string().trim().regex(/^\+?254[17]\d{8}$/, "Use a Kenyan number beginning with 254.") })).mutation(({ ctx, input }) => saveV3BuyerPhone(ctx.supabaseIdentity, input.phone)),
+    saveV3BuyerOrderProfile: publicProcedure.input(z.object({ fullName: z.string().trim().min(2).max(90).optional(), phone: z.string().trim().regex(/^\+?254[17]\d{8}$/, "Use a Kenyan number beginning with 254.").optional() }).refine(input => Boolean(input.fullName || input.phone), "Add your name or Kenyan contact number.")).mutation(({ ctx, input }) => saveV3BuyerOrderProfile(ctx.supabaseIdentity, input)),
     v3ModerationProducts: publicProcedure.query(({ ctx }) => listV3ModerationProducts(ctx.supabaseIdentity)),
     moderateV3Product: publicProcedure.input(z.object({ productId: z.string().uuid(), status: z.enum(["ACTIVE", "REJECTED", "FLAGGED"]) })).mutation(({ ctx, input }) => moderateV3Product(ctx.supabaseIdentity, input.productId, input.status)),
     deleteV3Product: publicProcedure.input(z.object({ productId: z.string().uuid() })).mutation(({ ctx, input }) => deleteV3Product(ctx.supabaseIdentity, input.productId)),

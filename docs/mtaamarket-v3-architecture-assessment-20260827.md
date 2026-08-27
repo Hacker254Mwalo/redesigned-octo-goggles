@@ -92,9 +92,9 @@ No M-Pesa initiation, payment custody, payout, external supplier integration, sc
 
 ## Controlled hub-order hardening
 
-The V3 hub-order procedure now derives the buyer contact from the same verified Supabase UUID profile used for the request. A browser no longer supplies a phone number to the order-creation mutation. An authenticated buyer must first store one canonical Kenyan contact number through a server-only profile operation; the interface shows only a masked ending after that. Changing an existing contact number requires owner support rather than a browser-side overwrite.
+The V3 hub-order procedure now derives the buyer contact from the same verified Supabase UUID profile used for the request. A browser no longer supplies a phone number to the order-creation mutation. An authenticated buyer must first store a normal display name and one canonical Kenyan contact number through a server-only profile operation; the interface shows only a masked phone ending after that. Changing an existing pickup name or contact number requires owner support rather than a browser-side overwrite.
 
-Before inserting an order, the server confirms that the product is still `ACTIVE` and checks whether the same profile contact already has an open request for that product in `PENDING_DROPOFF` or `RECEIVED_AT_HUB`. If so, it rejects the duplicate request. The order amount remains derived from the active product row, the pickup PIN remains cryptographically generated server-side, and the only payment state written is `PENDING` with `PAY_ON_PICKUP`.
+Before inserting an order, the server requires both protected pickup fields, confirms that the product is still `ACTIVE`, and checks whether the same profile contact already has an open request for that product in `PENDING_DROPOFF` or `RECEIVED_AT_HUB`. If so, it rejects the duplicate request. The order amount remains derived from the active product row, the pickup PIN remains cryptographically generated server-side, and the only payment state written is `PENDING` with `PAY_ON_PICKUP`.
 
 > This is duplicate-request protection for the controlled pre-payment flow, not a payment, stock-reservation, collection guarantee, or anti-fraud system. Concurrent-order constraints, fulfilment confirmation, M-Pesa initiation, reconciliation, and payment-provider webhooks remain separate milestones.
 

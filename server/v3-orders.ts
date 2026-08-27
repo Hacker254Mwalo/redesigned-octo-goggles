@@ -9,8 +9,8 @@ function pickupPin() {
 export async function createV3HubOrder(identity: SupabaseIdentity | null, input: { productId: string }) {
   if (!identity) throw new Error("Sign in with your verified MtaaMarket email session before confirming an order.");
   const client = getSupabaseServiceClient();
-  const { data: buyer, error: buyerError } = await client.from("profiles").select("id,phone_number").eq("id", identity.subject).maybeSingle();
-  if (buyerError || !buyer?.phone_number) throw new Error("Save a verified Kenyan order contact number before confirming hub pickup.");
+  const { data: buyer, error: buyerError } = await client.from("profiles").select("id,full_name,phone_number").eq("id", identity.subject).maybeSingle();
+  if (buyerError || !buyer?.full_name || !buyer.phone_number) throw new Error("Save your name and verified Kenyan order contact before confirming hub pickup.");
   const { data: product, error: productError } = await client
     .from("products")
     .select("id,final_price,status")

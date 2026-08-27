@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("./supabase", () => ({ getSupabaseServiceClient: vi.fn() }));
 
 import { getSupabaseServiceClient } from "./supabase";
-import { applyForV3Vendor, bootstrapV3Owner, saveV3BuyerPhone } from "./v3-profiles";
+import { applyForV3Vendor, bootstrapV3Owner, saveV3BuyerOrderProfile } from "./v3-profiles";
 
 const founder = { subject: "11111111-1111-4111-8111-111111111111", email: "founder@example.test", issuedAt: 0 };
 const vendor = { subject: "22222222-2222-4222-8222-222222222222", email: "vendor@example.test", issuedAt: 0 };
@@ -70,17 +70,25 @@ describe("V3 vendor activation", () => {
   });
 });
 
-describe("V3 buyer order contact", () => {
-  it("writes a canonical phone number only for the same verified buyer identity", async () => {
+describe("V3 buyer pickup profile", () => {
+  it("writes a private name and canonical phone number only for the same verified buyer identity", async () => {
     const existing = readQuery(null);
     const insert = { insert: vi.fn(), select: vi.fn(), maybeSingle: vi.fn() };
     insert.insert.mockReturnValue(insert);
     insert.select.mockReturnValue(insert);
-    insert.maybeSingle.mockResolvedValue({ data: { id: vendor.subject, phone_number: "254711281501" }, error: null });
+    insert.maybeSingle.mockResolvedValue({ data: { id: vendor.subject, full_name: "Siaya Buyer", phone_number: "254711281501" }, error: null });
     const client = { from: vi.fn().mockImplementation(() => client.from.mock.calls.length === 1 ? existing : insert) };
     vi.mocked(getSupabaseServiceClient).mockReturnValue(client as never);
 
-    await expect(saveV3BuyerPhone(vendor, "+254711281501")).resolves.toEqual({ hasPhone: true, maskedPhone: "25471••••501" });
-    expect(insert.insert).toHaveBeenCalledWith({ id: vendor.subject, phone_number: "254711281501", role: "buyer" });
+    await expect(saveV3BuyerOrderProfile(vendor, { fullName: "  Siaya   Buyer ", phone: "+254711281501" })).resolves.toEqual({ hasName: true, hasPhone: true, maskedPhone: "25471••••501" });
+    expect(insert.insert).toHaveBeenCalledWith({ id: vendor.subject, full_name: "Siaya Buyer", phone_number: "254711281501", role: "buyer" });
+  });
+
+  it("does not allow a first profile write that omits either required pickup detail", async () => {
+    const existing = readQuery(null);
+    vi.mocked(getSupabaseServiceClient).mockReturnValue({ from: vi.fn().mockReturnValue(existing) } as never);
+
+    await expect(saveV3BuyerOrderProfile(vendor, { fullName: "Siaya Buyer" })).rejects.toThrow("Kenyan contact number");
+    await expect(saveV3BuyerOrderProfile(vendor, { phone: "254711281501" })).rejects.toThrow("name");
   });
 });

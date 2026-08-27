@@ -110,7 +110,7 @@ describe("V3 owner moderation", () => {
 
 describe("V3 controlled hub orders", () => {
   it("derives the buyer contact, amount, and active state server-side before recording a pending pay-on-pickup order", async () => {
-    const buyer = profileQuery({ id: vendorIdentity.subject, phone_number: "254711281501" });
+    const buyer = profileQuery({ id: vendorIdentity.subject, full_name: "Siaya Buyer", phone_number: "254711281501" });
     const product = { select: vi.fn(), eq: vi.fn(), maybeSingle: vi.fn() };
     product.select.mockReturnValue(product);
     product.eq.mockReturnValue(product);
@@ -140,7 +140,7 @@ describe("V3 controlled hub orders", () => {
   });
 
   it("rejects an existing open order before generating a PIN or creating a second request", async () => {
-    const buyer = profileQuery({ id: vendorIdentity.subject, phone_number: "254711281501" });
+    const buyer = profileQuery({ id: vendorIdentity.subject, full_name: "Siaya Buyer", phone_number: "254711281501" });
     const product = { select: vi.fn(), eq: vi.fn(), maybeSingle: vi.fn() };
     product.select.mockReturnValue(product);
     product.eq.mockReturnValue(product);

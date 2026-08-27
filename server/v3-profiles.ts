@@ -19,6 +19,7 @@ export type V3VendorAccess = {
 };
 
 export type V3BuyerOrderAccess = {
+  hasName: boolean;
   hasPhone: boolean;
   maskedPhone: string | null;
 };
@@ -31,6 +32,12 @@ function normalizedKenyanPhone(value: string) {
   const trimmed = value.trim();
   if (!/^\+?254[17]\d{8}$/.test(trimmed)) throw new Error("Use a Kenyan number beginning with 254.");
   return trimmed.replace(/^\+/, "");
+}
+
+function normalizedBuyerName(value: string) {
+  const name = value.trim().replace(/\s+/g, " ");
+  if (name.length < 2 || name.length > 90) throw new Error("Enter the name you want MtaaMarket to use for this pickup request.");
+  return name;
 }
 
 function maskPhone(phone: string) {
@@ -63,25 +70,30 @@ export async function getV3VendorAccess(identity: SupabaseIdentity | null): Prom
 
 export async function getV3BuyerOrderAccess(identity: SupabaseIdentity | null): Promise<V3BuyerOrderAccess> {
   if (!identity) throw new Error("Sign in with your verified MtaaMarket email first.");
-  const { data, error } = await getSupabaseServiceClient().from("profiles").select("id,phone_number").eq("id", identity.subject).maybeSingle();
+  const { data, error } = await getSupabaseServiceClient().from("profiles").select("id,full_name,phone_number").eq("id", identity.subject).maybeSingle();
   if (error) throw new Error("MtaaMarket could not check your order contact details.");
-  return { hasPhone: Boolean(data?.phone_number), maskedPhone: data?.phone_number ? maskPhone(data.phone_number) : null };
+  return { hasName: Boolean(data?.full_name), hasPhone: Boolean(data?.phone_number), maskedPhone: data?.phone_number ? maskPhone(data.phone_number) : null };
 }
 
-/** Captures one canonical buyer contact number through the verified server identity. Changes require owner support rather than a browser-side overwrite. */
-export async function saveV3BuyerPhone(identity: SupabaseIdentity | null, phone: string): Promise<V3BuyerOrderAccess> {
+/** Captures a buyer's name and one canonical contact through the verified server identity. Later changes require owner support rather than a browser-side overwrite. */
+export async function saveV3BuyerOrderProfile(identity: SupabaseIdentity | null, input: { fullName?: string; phone?: string }): Promise<V3BuyerOrderAccess> {
   if (!identity) throw new Error("Sign in with your verified MtaaMarket email first.");
-  const phoneNumber = normalizedKenyanPhone(phone);
+  const fullName = input.fullName ? normalizedBuyerName(input.fullName) : undefined;
+  const phoneNumber = input.phone ? normalizedKenyanPhone(input.phone) : undefined;
   const client = getSupabaseServiceClient();
-  const existing = await client.from("profiles").select("id,phone_number").eq("id", identity.subject).maybeSingle();
+  const existing = await client.from("profiles").select("id,full_name,phone_number").eq("id", identity.subject).maybeSingle();
   if (existing.error) throw new Error("MtaaMarket could not check your order contact details.");
-  if (existing.data?.phone_number && existing.data.phone_number !== phoneNumber) throw new Error("Your order contact number is already set. Contact MtaaMarket support if it needs to change.");
+  if (!existing.data && (!fullName || !phoneNumber)) throw new Error("Add your name and Kenyan contact number before confirming hub pickup.");
+  if (!existing.data?.full_name && !fullName) throw new Error("Add the name MtaaMarket should use for this pickup request.");
+  if (!existing.data?.phone_number && !phoneNumber) throw new Error("Add your Kenyan contact number before confirming hub pickup.");
+  if (existing.data?.full_name && fullName && existing.data.full_name !== fullName) throw new Error("Your pickup name is already set. Contact MtaaMarket support if it needs to change.");
+  if (existing.data?.phone_number && phoneNumber && existing.data.phone_number !== phoneNumber) throw new Error("Your order contact number is already set. Contact MtaaMarket support if it needs to change.");
 
   const result = existing.data
-    ? await client.from("profiles").update({ phone_number: phoneNumber }).eq("id", identity.subject).select("id,phone_number").maybeSingle()
-    : await client.from("profiles").insert({ id: identity.subject, phone_number: phoneNumber, role: "buyer" }).select("id,phone_number").maybeSingle();
-  if (result.error || !result.data?.phone_number) throw new Error("MtaaMarket could not save your order contact details.");
-  return { hasPhone: true, maskedPhone: maskPhone(result.data.phone_number) };
+    ? await client.from("profiles").update({ ...(existing.data.full_name ? {} : { full_name: fullName }), ...(existing.data.phone_number ? {} : { phone_number: phoneNumber }) }).eq("id", identity.subject).select("id,full_name,phone_number").maybeSingle()
+    : await client.from("profiles").insert({ id: identity.subject, full_name: fullName, phone_number: phoneNumber, role: "buyer" }).select("id,full_name,phone_number").maybeSingle();
+  if (result.error || !result.data?.full_name || !result.data.phone_number) throw new Error("MtaaMarket could not save your protected pickup details.");
+  return { hasName: true, hasPhone: true, maskedPhone: maskPhone(result.data.phone_number) };
 }
 
 /** Only the server-configured founder email can claim the first V3 owner role after authentication verifies the identity. */
