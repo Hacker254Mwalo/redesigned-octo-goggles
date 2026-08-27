@@ -104,6 +104,8 @@ function collapseRepeatedTitle(value: string) {
 
 function cleanTitle(value: string) {
   let title = collapseRepeatedTitle(value.replace(/\s+/g, " ")).replace(/^\s*(?:title\s*:\s*|add to cart\s+|buy\s+)/i, "").trim();
+  const ellipsisIndex = title.indexOf("...");
+  if (ellipsisIndex >= 30 && title.slice(ellipsisIndex + 3).trim()) title = title.slice(0, ellipsisIndex + 3).trim();
   title = title.replace(/\s+@\s*best price.*$/i, "");
   title = title.replace(/\s+available\s+at\s+best price.*$/i, "");
   title = title.replace(/\s*(?:\||[-–])\s*(?:best prices?|price)\s+online.*$/i, "");
