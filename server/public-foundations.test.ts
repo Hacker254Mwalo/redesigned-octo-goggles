@@ -95,6 +95,18 @@ describe("public performance and mobile foundations", () => {
     expect(dashboard).not.toContain("Sign in to manage orders and listings.");
   });
 
+  it("provides a user-controlled no-tracking public market share prompt", () => {
+    const home = readFileSync(resolve(projectRoot, "client/src/pages/Home.tsx"), "utf8");
+    const sharePrompt = readFileSync(resolve(projectRoot, "client/src/components/MtaaSharePrompt.tsx"), "utf8");
+
+    expect(home).toContain("<MtaaSharePrompt />");
+    expect(sharePrompt).toContain("navigator.share");
+    expect(sharePrompt).toContain("navigator.clipboard?.writeText");
+    expect(sharePrompt).toContain("We do not add tracking or send a message on your behalf.");
+    expect(sharePrompt).toContain('role="status"');
+    expect(sharePrompt).not.toMatch(/(?:fetch|axios|analytics|pixel|advertis)/i);
+  });
+
   it("keeps a conservative vendor-chunk strategy for public performance", () => {
     const config = readFileSync(resolve(projectRoot, "vite.config.ts"), "utf8");
 
