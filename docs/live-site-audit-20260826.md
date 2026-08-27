@@ -131,3 +131,9 @@ The deployed `/dashboard` route separately renders a sign-in entry panel. That r
 GitHub/Vercel deployment `c011d3f` completed successfully. A live `/dashboard` review now presents **Workspace access is being prepared**, explains that the public Seller Studio guide is ready to view, and provides direct guide and market-return actions. It accurately leaves buyer profiles, seller approval, listings, orders, payments, delivery updates, and owner tools locked behind the remaining protected account/role migration.
 
 The live account dialog was opened without entering or submitting account data. It visibly prioritizes the verified email-link route, retains the email/password option, and now states that Google sign-in is not available on the current website address. The dialog links to the published account-data disclosure. The prior hidden Google OAuth bridge has been removed from the browser account context, so no unconfigured provider can be accidentally exposed. This verification submitted no sign-in, request, seller application, order, payment, delivery, provider, or role action.
+
+## Zero-cost public sharing deployment verification
+
+GitHub/Vercel deployment `2f972d8` completed successfully. The live MtaaMarket homepage now includes an owner-authored promotion card after the public market explanation. It invites visitors to share the public market link only when it would help someone find a physical product or use the Request Desk, and it explains that the site will not add tracking or send a message on the visitor’s behalf.
+
+The **Share MtaaMarket** control relies on a visitor-initiated device share menu where available and falls back to copying the public link. It does not load an advertising network, tracking pixel, external promotion script, customer record, or background job. The initial public catalogue remains an intentionally honest empty state, and no share interaction was submitted during this review.
