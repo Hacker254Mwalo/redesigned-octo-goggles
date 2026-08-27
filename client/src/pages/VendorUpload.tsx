@@ -57,7 +57,7 @@ export default function VendorUpload() {
       setSelectedFileName("");
       setImagePreparationMessage(AI_LISTING_MANUAL_FALLBACK.image);
       if (fileInput.current) fileInput.current.value = "";
-      toast.success("Listing submitted for owner review.");
+      toast.success("Listing published to your MtaaMarket catalogue.");
     },
     onError: error => {
       setFormError(error.message);
@@ -110,8 +110,8 @@ export default function VendorUpload() {
       <main className="mx-auto max-w-xl px-5 py-14">
         <p className="eyebrow">{vendorAccess.data?.isOwner ? "Founder owner workspace" : "Approved vendor workspace"}</p>
         <h1 className="mt-2 text-4xl font-semibold">Submit a product</h1>
-        <p className="mt-3 text-muted-foreground">Every listing is owner-reviewed before it can appear publicly. Add an original product photo, accurate category, price, and available quantity for Siaya buyers.</p>
-        {vendorAccess.data?.isOwner && <p className="mt-3 rounded-xl border border-[#d5e8de] bg-[#f1f8f4] p-4 text-sm text-[#275847]">Founder owner access is active. Your listing will enter the same <strong>PENDING</strong> moderation queue; no vendor self-approval is required.</p>}
+        <p className="mt-3 text-muted-foreground">Once your vendor account is approved, publish products normally with an original photo, accurate category, price, and available quantity. MtaaMarket may hide or flag listings that break platform rules.</p>
+        {vendorAccess.data?.isOwner && <p className="mt-3 rounded-xl border border-[#d5e8de] bg-[#f1f8f4] p-4 text-sm text-[#275847]">Founder owner access is active. Your owner-managed listing will publish normally after the required checks; no vendor self-approval is required.</p>}
 
         {!configured && <section className="mt-8 rounded-2xl border bg-white p-6"><h2 className="font-semibold">Vendor access is being prepared</h2><p className="mt-2 text-sm text-muted-foreground">Email account access is not available in this environment yet. Please return after it has been configured.</p></section>}
         {configured && loading && <section className="mt-8 rounded-2xl border bg-white p-6" aria-live="polite"><h2 className="font-semibold">Checking your email session</h2><p className="mt-2 text-sm text-muted-foreground">Your Vendor Studio will open once the secure session check is complete.</p></section>}
@@ -159,9 +159,9 @@ export default function VendorUpload() {
                 <input className="mt-2 w-full rounded-lg border border-border bg-white p-3 text-base" type="number" inputMode="numeric" min="1" max="100000" step="1" required value={stockQuantity} onChange={event => setStockQuantity(event.target.value)} />
               </label>
               {categorySlug === "poultry-livestock" ? <p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950"><strong>Manual handover only.</strong> This listing cannot offer pay on pickup or use the hub-order path. The owner confirms any permitted next step after review.</p> : <label className="flex items-start gap-3 rounded-xl border bg-white p-4 text-sm"><input className="mt-0.5 size-4" type="checkbox" checked={allowPayOnPickup} onChange={event => setAllowPayOnPickup(event.target.checked)} /><span><strong>Available for pay on pickup</strong><br /><span className="text-muted-foreground">MtaaMarket confirms the collection point and payment details before an order. Do not promise a specific hub or collection time in your listing.</span></span></label>}
-              <p className="rounded-xl border border-[#d5e8de] bg-[#f1f8f4] p-4 text-sm text-[#275847]">Your profile, owner approval, and vendor agreement are checked securely when you submit. The original photo and manual listing facts create a <strong>PENDING</strong> record for owner review; image cleanup and automatic Sheng/English copy are not active.</p>
+              <p className="rounded-xl border border-[#d5e8de] bg-[#f1f8f4] p-4 text-sm text-[#275847]">Your profile, owner approval, and vendor agreement are checked securely when you submit. The original photo and manual listing facts publish directly after validation; the owner can hide or flag the listing if a policy issue is found. Image cleanup and automatic Sheng/English copy are not active.</p>
               {formError && <p role="alert" className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">{formError}</p>}
-              <button className="primary-cta" type="submit" disabled={submit.isPending || !imageData || !imageType}>{submit.isPending ? "Submitting securely…" : "Submit for owner review"}</button>
+              <button className="primary-cta" type="submit" disabled={submit.isPending || !imageData || !imageType}>{submit.isPending ? "Submitting securely…" : "Publish listing"}</button>
             </fieldset>
           </form>
         )}

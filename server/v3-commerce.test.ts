@@ -45,19 +45,19 @@ const validVendorListing = {
 beforeEach(() => vi.clearAllMocks());
 
 describe("V3 vendor product submission", () => {
-  it("allows the verified owner role to use Seller Studio without a vendor approval record and keeps the listing in owner moderation", async () => {
+  it("allows the verified owner role to use Seller Studio without a vendor approval record and publishes an ACTIVE listing", async () => {
     const profile = profileQuery({ id: ownerIdentity.subject, role: "admin", is_vendor: false, is_vendor_approved: false, vendor_agreement_accepted_at: null });
     const products = { insert: vi.fn(), select: vi.fn(), single: vi.fn() };
     products.insert.mockReturnValue(products);
     products.select.mockReturnValue(products);
-    products.single.mockResolvedValue({ data: { id: "33333333-3333-4333-8333-333333333333", status: "PENDING" }, error: null });
+    products.single.mockResolvedValue({ data: { id: "33333333-3333-4333-8333-333333333333", status: "ACTIVE" }, error: null });
     const client = { from: vi.fn().mockImplementation((table: string) => table === "profiles" ? profile : products) };
     vi.mocked(getSupabaseServiceClient).mockReturnValue(client as never);
     vi.mocked(storagePut).mockResolvedValue({ key: "owner-listings/owner/listing.png", url: "/manus-storage/owner-listing.png" });
 
-    await expect(submitV3VendorProduct(ownerIdentity, validVendorListing)).resolves.toEqual({ id: "33333333-3333-4333-8333-333333333333", status: "PENDING" });
+    await expect(submitV3VendorProduct(ownerIdentity, validVendorListing)).resolves.toEqual({ id: "33333333-3333-4333-8333-333333333333", status: "ACTIVE" });
     expect(storagePut).toHaveBeenCalledWith(expect.stringMatching(new RegExp(`^owner-listings/${ownerIdentity.subject}/.+\\.png$`)), expect.any(Buffer), "image/png");
-    expect(products.insert).toHaveBeenCalledWith(expect.objectContaining({ vendor_id: null, is_admin_concierge: true, status: "PENDING" }));
+    expect(products.insert).toHaveBeenCalledWith(expect.objectContaining({ vendor_id: null, is_admin_concierge: true, status: "ACTIVE" }));
   });
 
   it("requires an approved vendor profile and recorded agreement before handling image bytes", async () => {
@@ -68,20 +68,20 @@ describe("V3 vendor product submission", () => {
     expect(storagePut).not.toHaveBeenCalled();
   });
 
-  it("keeps original image MIME metadata and creates only a PENDING listing for an approved, agreed vendor", async () => {
+  it("keeps original image MIME metadata and publishes an ACTIVE listing for an approved, agreed vendor", async () => {
     const profile = profileQuery({ id: vendorIdentity.subject, is_vendor: true, is_vendor_approved: true, vendor_agreement_accepted_at: "2026-08-27T00:00:00.000Z" });
     const products = { insert: vi.fn(), select: vi.fn(), single: vi.fn() };
     products.insert.mockReturnValue(products);
     products.select.mockReturnValue(products);
-    products.single.mockResolvedValue({ data: { id: "33333333-3333-4333-8333-333333333333", status: "PENDING" }, error: null });
+    products.single.mockResolvedValue({ data: { id: "33333333-3333-4333-8333-333333333333", status: "ACTIVE" }, error: null });
     const client = { from: vi.fn().mockImplementation((table: string) => table === "profiles" ? profile : products) };
     vi.mocked(getSupabaseServiceClient).mockReturnValue(client as never);
     vi.mocked(storagePut).mockResolvedValue({ key: "vendor-listings/vendor/listing.png", url: "/manus-storage/vendor-listing.png" });
 
-    await expect(submitV3VendorProduct(vendorIdentity, { ...validVendorListing, description: "A sturdy cooking pot with a fitted lid." })).resolves.toEqual({ id: "33333333-3333-4333-8333-333333333333", status: "PENDING" });
+    await expect(submitV3VendorProduct(vendorIdentity, { ...validVendorListing, description: "A sturdy cooking pot with a fitted lid." })).resolves.toEqual({ id: "33333333-3333-4333-8333-333333333333", status: "ACTIVE" });
 
     expect(storagePut).toHaveBeenCalledWith(expect.stringMatching(new RegExp(`^vendor-listings/${vendorIdentity.subject}/.+\\.png$`)), expect.any(Buffer), "image/png");
-    expect(products.insert).toHaveBeenCalledWith(expect.objectContaining({ vendor_id: vendorIdentity.subject, title: "Local cooking pot", description: "A sturdy cooking pot with a fitted lid.", category_slug: "home-kitchen", base_price: 1600, final_price: 1600, stock_quantity: 6, allow_pay_on_pickup: true, status: "PENDING" }));
+    expect(products.insert).toHaveBeenCalledWith(expect.objectContaining({ vendor_id: vendorIdentity.subject, title: "Local cooking pot", description: "A sturdy cooking pot with a fitted lid.", category_slug: "home-kitchen", base_price: 1600, final_price: 1600, stock_quantity: 6, allow_pay_on_pickup: true, status: "ACTIVE" }));
   });
 
   it("rejects a data URL whose actual MIME type does not match the declared permitted type", async () => {

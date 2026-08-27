@@ -119,12 +119,12 @@ function normalizeListingSubmission(input: V3ListingSubmission) {
   return { title, description, livestockType: isLivestock ? livestockType : null, livestockDetails: isLivestock ? livestockDetails : null, livestockWelfareAttested: isLivestock, livestockMovementAcknowledged: isLivestock };
 }
 
-async function createV3PendingListing(input: V3ListingSubmission, options: { vendorId: string | null; isAdminConcierge: boolean; storagePrefix: "vendor-listings" | "owner-listings"; storageOwnerId: string }) {
+async function createV3Listing(input: V3ListingSubmission, options: { vendorId: string | null; isAdminConcierge: boolean; storagePrefix: "vendor-listings" | "owner-listings"; storageOwnerId: string; initialStatus: "ACTIVE" | "PENDING" }) {
   const { title, description, livestockType, livestockDetails, livestockWelfareAttested, livestockMovementAcknowledged } = normalizeListingSubmission(input);
   const client = getSupabaseServiceClient();
   const { image, extension } = decodeVendorImage(input.imageData, input.imageType);
   const { url } = await storagePut(`${options.storagePrefix}/${options.storageOwnerId}/${randomUUID()}.${extension}`, image, input.imageType);
-  const { data, error } = await client.from("products").insert({ vendor_id: options.vendorId, title, description, category_slug: input.categorySlug, image_url: url, base_price: input.price, final_price: input.price, stock_quantity: input.stockQuantity, is_admin_concierge: options.isAdminConcierge, allow_pay_on_pickup: input.allowPayOnPickup, livestock_type: livestockType, livestock_details: livestockDetails, livestock_welfare_attested: livestockWelfareAttested, livestock_movement_acknowledged: livestockMovementAcknowledged, status: "PENDING" }).select("id,status").single();
+  const { data, error } = await client.from("products").insert({ vendor_id: options.vendorId, title, description, category_slug: input.categorySlug, image_url: url, base_price: input.price, final_price: input.price, stock_quantity: input.stockQuantity, is_admin_concierge: options.isAdminConcierge, allow_pay_on_pickup: input.allowPayOnPickup, livestock_type: livestockType, livestock_details: livestockDetails, livestock_welfare_attested: livestockWelfareAttested, livestock_movement_acknowledged: livestockMovementAcknowledged, status: options.initialStatus }).select("id,status").single();
   if (error || !data) throw new Error("MtaaMarket could not submit this listing.");
   return data;
 }
@@ -137,12 +137,12 @@ export async function submitV3VendorProduct(identity: SupabaseIdentity | null, i
   const isOwner = profile?.role === "admin";
   if (!isOwner && (!profile?.is_vendor || !profile.is_vendor_approved)) throw new Error("Your vendor profile must be approved by the MtaaMarket owner before you can submit a listing.");
   if (!isOwner && !profile?.vendor_agreement_accepted_at) throw new Error("Accept the vendor agreement with the MtaaMarket owner before submitting a listing.");
-  return createV3PendingListing(input, { vendorId: isOwner ? null : identity.subject, isAdminConcierge: isOwner, storagePrefix: isOwner ? "owner-listings" : "vendor-listings", storageOwnerId: identity.subject });
+  return createV3Listing(input, { vendorId: isOwner ? null : identity.subject, isAdminConcierge: isOwner, storagePrefix: isOwner ? "owner-listings" : "vendor-listings", storageOwnerId: identity.subject, initialStatus: "ACTIVE" });
 }
 
 /** Founder-only intake for original MtaaMarket-owned goods. It still enters owner moderation as PENDING. */
 export async function submitV3OwnerProduct(identity: SupabaseIdentity | null, input: V3ListingSubmission) {
   await requireV3Owner(identity);
   if (!identity) throw new Error("Sign in with a verified owner email session.");
-  return createV3PendingListing(input, { vendorId: null, isAdminConcierge: true, storagePrefix: "owner-listings", storageOwnerId: identity.subject });
+  return createV3Listing(input, { vendorId: null, isAdminConcierge: true, storagePrefix: "owner-listings", storageOwnerId: identity.subject, initialStatus: "PENDING" });
 }
