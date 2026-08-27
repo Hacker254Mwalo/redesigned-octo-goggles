@@ -30,6 +30,12 @@ For the stronger controlled hub-pickup action only, one canonical Kenyan contact
 
 > CAPTCHA is deferred rather than silently enabled. Supabase supports CAPTCHA for sign-up, sign-in, and recovery, but it would add an external bot-check experience and new configuration. MtaaMarket can enable it only after abuse evidence and a founder-approved provider configuration justify that additional friction.[8]
 
+## Leaked-password protection assessment
+
+Supabase’s current password-security documentation states that its leaked-password protection checks the Have I Been Pwned Pwned Passwords API and rejects known-compromised passwords. The same documentation states that this control is available on the **Pro plan and above**.[9] MtaaMarket is deliberately on the zero-cost plan, so the security-advisor warning cannot be remediated by an available no-cost provider setting.
+
+The setting is therefore **not enabled** and no plan, billing, user, password, email, recovery code, or provider configuration was changed. The current free-plan safeguards remain the enforced eight-character letters-and-digits policy, generic sign-in/recovery wording, provider rate limits, and the protected hub-pickup contact binding. If the founder later selects a compatible paid plan, MtaaMarket should enable leaked-password protection before the next controlled signup and recovery test, then record pass/fail evidence only—not credentials or secret codes.
+
 ## References
 
 [1]: https://supabase.com/docs/guides/auth/auth-email-passwordless "Supabase — Passwordless email logins"
@@ -47,3 +53,5 @@ For the stronger controlled hub-pickup action only, one canonical Kenyan contact
 [7]: https://supabase.com/docs/guides/auth/rate-limits "Supabase — Auth rate limits"
 
 [8]: https://supabase.com/docs/guides/auth/auth-captcha "Supabase — CAPTCHA protection"
+
+[9]: https://supabase.com/docs/guides/auth/password-security "Supabase — Password security and leaked-password protection"
