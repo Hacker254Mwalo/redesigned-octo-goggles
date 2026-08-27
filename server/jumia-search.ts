@@ -104,14 +104,37 @@ function cleanTitle(value: string) {
   return title.replace(/[|–-]+\s*$/, "").replace(/\s+/g, " ").trim().slice(0, 180);
 }
 
+function stripCatalogArtifacts(value: string) {
+  return value
+    .replace(/https?:\/\/[^\s"'<>]+/gi, " ")
+    .replace(/\/?product\/\d{1,3}\/\d{5,10}\/\d+\.(?:jpg|jpeg|png|webp)(?:\?[^\s"'<>)]*)?/gi, " ")
+    .replace(/\bproduct[_-]image[_-]name[-_][a-z0-9_-]+\b/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function extractCatalogProductTitle(value: string) {
+  const match = value.match(/\bbuy\b[^|]{2,160}\bonline\b\s*\|\s*jumia kenya\s+(.+?)(?=\s*\/?product\/|$)/i);
+  if (!match?.[1]) return "";
+  const candidate = cleanTitle(stripCatalogArtifacts(match[1]));
+  return candidate.length >= 8 && candidate.length <= 180 ? candidate : "";
+}
+
+function customerTitle(value: string, content: string) {
+  const title = cleanTitle(value);
+  const catalogTitle = extractCatalogProductTitle(content);
+  return catalogTitle || title;
+}
+
 function cleanSnippet(value: string, title: string) {
   let snippet = value.replace(/<[^>]*>/g, " ").replace(/#+\s*/g, " ").replace(/\*+/g, " ").replace(/^\s*(?:title|description):\s*/i, " ");
   snippet = snippet.replace(/this website uses cookies[\s\S]*?(?=category|home|$)/i, " ");
-  snippet = snippet.replace(/\bproduct[_-]image[_-]name[-_][a-z0-9_-]+\b/gi, " ");
-  snippet = snippet.replace(/\b(?:add to cart|official stores|phones\s*&\s*tablets|tvs\s*&\s*audio|appliances|health\s*&\s*beauty|home\s*&\s*office|fashion|computing|gaming|supermarket|baby products|other categories)\b/gi, " ");
-  snippet = snippet.replace(/\s+/g, " ").trim();
+  snippet = snippet.replace(/\bbuy\b[^|]{2,160}\bonline\b\s*\|\s*jumia kenya\b/gi, " ");
+  snippet = snippet.replace(/@\s*best price.*?(?:\|\s*)?jumia kenya\s*[-–|]?/gi, " ");
+  snippet = stripCatalogArtifacts(snippet);
+  snippet = snippet.replace(/\b(?:our categories|our services|help center|place your order|payment options|delivery timelines?\s*&\s*track your order|returns\s*&\s*refunds|warranty|category|add to cart|official stores|phones\s*&\s*tablets|tvs\s*&\s*audio|appliances|health\s*&\s*beauty|home\s*&\s*office|fashion|computing|gaming|supermarket|baby products|other categories)\b[.:]?/gi, " ");
+  snippet = snippet.replace(/\s+/g, " ").replace(/^[\s|–—-]+|[\s|–—-]+$/g, "").trim();
   if (snippet.toLowerCase().startsWith(title.toLowerCase())) snippet = snippet.slice(title.length).trim();
-  snippet = snippet.replace(/^@\s*best price.*?(?:\|\s*)?jumia kenya\s*[-–|]?\s*/i, "").trim();
   return (snippet || "View current product details on Jumia Kenya.").slice(0, 320);
 }
 
@@ -165,16 +188,25 @@ function isLikelyProductUrl(url: string) {
 }
 
 function prioritizeVisualResults(results: JumiaSearchResult[]) {
-  return [...results].sort((left, right) => {
+  const sorted = [...results].sort((left, right) => {
     const leftScore = Number(isLikelyProductUrl(left.url)) * 4 + Number(Boolean(left.imageUrl)) * 2 + Number(Boolean(left.price));
     const rightScore = Number(isLikelyProductUrl(right.url)) * 4 + Number(Boolean(right.imageUrl)) * 2 + Number(Boolean(right.price));
     return rightScore - leftScore;
+  });
+  const seenImages = new Set<string>();
+  return sorted.map(result => {
+    if (!result.imageUrl || !seenImages.has(result.imageUrl)) {
+      if (result.imageUrl) seenImages.add(result.imageUrl);
+      return result;
+    }
+    return { ...result, imageUrl: null };
   });
 }
 
 function sanitizeGoogleItem(item: GoogleSearchItem, index: number): JumiaSearchResult | null {
   const url = item.link?.trim() || "";
-  const title = cleanTitle(item.title || "");
+  const content = item.snippet || "";
+  const title = customerTitle(item.title || "", content);
   if (!isJumiaUrl(url) || title.length < 3) return null;
   const snippet = cleanSnippet(item.snippet || "", title);
   const imageUrl = firstJumiaImage([item.pagemap?.cse_image?.[0]?.src, firstMeta(item, ["og:image", "twitter:image"])]);
@@ -184,7 +216,8 @@ function sanitizeGoogleItem(item: GoogleSearchItem, index: number): JumiaSearchR
 
 function sanitizeBraveItem(item: BraveSearchItem, index: number): JumiaSearchResult | null {
   const url = item.url?.trim() || "";
-  const title = cleanTitle(item.title || "");
+  const content = item.description || "";
+  const title = customerTitle(item.title || "", content);
   if (!isJumiaUrl(url) || title.length < 3) return null;
   const snippet = cleanSnippet(item.description || "", title);
   const imageUrl = extractImageFromContent(item.description || "");
@@ -194,11 +227,13 @@ function sanitizeBraveItem(item: BraveSearchItem, index: number): JumiaSearchRes
 
 function sanitizeTavilyItem(item: TavilySearchItem, index: number): JumiaSearchResult | null {
   const url = item.url?.trim() || "";
-  const title = cleanTitle(item.title || "");
+  const content = item.content || "";
+  const title = customerTitle(item.title || "", content);
   if (!isJumiaUrl(url) || title.length < 3) return null;
-  const snippet = cleanSnippet(item.content || "", title);
-  const imageUrl = firstJumiaImage((item.images ?? []).map(image => image.url), item.content || "");
-  const price = extractTextPrice(`${title} ${snippet}`);
+  const snippet = cleanSnippet(content, title);
+  const imageUrl = firstJumiaImage((item.images ?? []).map(image => image.url), content);
+  const productLikeContent = /\bbuy\b[^|]{2,160}\bonline\b\s*\|\s*jumia kenya\b/i.test(content) || /\bfrom\s+(?:kes|ksh)\s*[\d,]+/i.test(content);
+  const price = isLikelyProductUrl(url) || productLikeContent ? extractTextPrice(`${title} ${snippet}`) : null;
   return { id: resultId(url, index), title: title.slice(0, 180), url, snippet, imageUrl, price, currency: price ? "KES" : null, source: "tavily_public_search" };
 }
 

@@ -79,6 +79,31 @@ describe("Jumia public discovery", () => {
     expect(result.results[0]?.imageUrl).toBe("https://ke.jumia.is/unsafe/fit-in/500x500/filters:fill(white)/product/31/8481392/1.jpg?7944");
   });
 
+  it("uses the first product-like heading from indexed content instead of a noisy search label", async () => {
+    process.env.TAVILY_API_KEY = "test-key";
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ results: [
+      { title: "Samsung 65 resolution", url: "https://www.jumia.co.ke/samsung-65-resolution", content: "Buy samsung 65 resolution Online | Jumia Kenya 65DU7010 65 inches PurColor, 4K Upscaling, Tizen OS & Q-Symphony Smart LED TV/product/51/7819992/1.jpg?7944" },
+    ] }), { status: 200 }));
+
+    const result = await searchJumiaPublicProducts("Samsung TV");
+
+    expect(result.results[0]?.title).toContain("65DU7010");
+    expect(result.results[0]?.snippet).not.toMatch(/buy .*online|product\/51\/7819992/i);
+  });
+
+  it("does not reuse the same indexed photo as a different product", async () => {
+    process.env.TAVILY_API_KEY = "test-key";
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ results: [
+      { title: "Product one", url: "https://www.jumia.co.ke/product-one.html", content: "Product one", images: [{ url: "https://ke.jumia.is/p_9n_2Fk5GQPGkotcccQ5cDtlHA=/fit-in/500x500/filters:fill(white)/product/31/8481392/1.jpg?7944" }] },
+      { title: "Product two", url: "https://www.jumia.co.ke/product-two.html", content: "Product two", images: [{ url: "https://ke.jumia.is/p_9n_2Fk5GQPGkotcccQ5cDtlHA=/fit-in/500x500/filters:fill(white)/product/31/8481392/1.jpg?7944" }] },
+    ] }), { status: 200 }));
+
+    const result = await searchJumiaPublicProducts("Samsung TV");
+
+    expect(result.results[0]?.imageUrl).toBeTruthy();
+    expect(result.results[1]?.imageUrl).toBeNull();
+  });
+
   it("removes search-page boilerplate from customer-facing titles and snippets", async () => {
     process.env.TAVILY_API_KEY = "test-key";
     vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ results: [
