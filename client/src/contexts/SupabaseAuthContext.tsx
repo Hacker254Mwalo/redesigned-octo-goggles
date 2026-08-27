@@ -17,6 +17,7 @@ type SupabaseAuthState = {
   requestPasswordReset: (email: string) => Promise<void>;
   verifyPasswordRecoveryCode: (email: string, token: string) => Promise<void>;
   updatePassword: (password: string) => Promise<void>;
+  updateEmail: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -68,7 +69,6 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
     async signUpWithPassword(email, password) {
       const { data, error } = await getSupabaseBrowserClient().auth.signUp({ email, password });
       if (error) throw error;
-      if (data.session) establishSession(data.session);
       return { requiresEmailVerification: !data.session };
     },
     async resendSignupVerificationCode(email) {
@@ -97,6 +97,10 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
     async updatePassword(password) {
       const { data, error } = await getSupabaseBrowserClient().auth.updateUser({ password });
       if (error || !data.user) throw error || new Error("MtaaMarket could not update the password.");
+    },
+    async updateEmail(email) {
+      const { data, error } = await getSupabaseBrowserClient().auth.updateUser({ email: email.trim().toLowerCase() });
+      if (error || !data.user) throw error || new Error("MtaaMarket could not start the email change.");
     },
     async signOut() {
       if (isSupabaseBrowserConfigured) await getSupabaseBrowserClient().auth.signOut();

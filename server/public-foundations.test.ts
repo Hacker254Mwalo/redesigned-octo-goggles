@@ -103,7 +103,7 @@ describe("public performance and mobile foundations", () => {
     const dashboard = readFileSync(resolve(projectRoot, "client/src/pages/DashboardPage.tsx"), "utf8");
 
     expect(dashboard).toContain("Your MtaaMarket workspace");
-    expect(dashboard).toContain("Request Desk");
+    expect(dashboard).toContain("Find something else");
     expect(dashboard).toContain("Seller Studio");
     expect(dashboard).toContain("Owner console");
     expect(dashboard).toContain("trpc.marketplace.v3VendorAccess.useQuery");
@@ -181,13 +181,13 @@ describe("public performance and mobile foundations", () => {
   it("keeps premium marketplace and catalogue messaging truthful while local listings grow", () => {
     const home = readFileSync(resolve(projectRoot, "client/src/pages/Home.tsx"), "utf8");
 
-    expect(home).toContain("explore a wider Jumia selection through MtaaMarket");
+    expect(home).toContain("explore a wider selection through MtaaMarket");
     expect(home).toContain("Siaya sellers");
     expect(home).toContain("Local shopping");
-    expect(home).toContain("wider Jumia selection");
+    expect(home).toContain("wider selection");
     expect(home).toContain("Search local products");
-    expect(home).toContain("Find more options through Jumia");
-    expect(home).toContain("Shop this item on Jumia");
+    expect(home).toContain("Find more options");
+    expect(home).toContain("Start shopping");
     expect(home).toContain("Local categories");
     expect(home).toContain("Swipe to explore");
     expect(home).toContain('aria-label="Browse local product categories"');

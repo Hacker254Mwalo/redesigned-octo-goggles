@@ -77,7 +77,50 @@ export async function getV3BuyerOrderAccess(identity: SupabaseIdentity | null): 
   return { hasName: Boolean(data?.full_name), hasPhone: Boolean(data?.phone_number), maskedPhone: data?.phone_number ? maskPhone(data.phone_number) : null };
 }
 
-/** Captures a buyer's name and one canonical contact through the verified server identity. Later changes require owner support rather than a browser-side overwrite. */
+export type V3AccountProfile = {
+  fullName: string | null;
+  phoneNumber: string | null;
+  role: "buyer" | "vendor" | "admin";
+  isVendor: boolean;
+  isVendorApproved: boolean;
+};
+
+function mapAccountProfile(profile: { full_name?: string | null; phone_number?: string | null; role?: "buyer" | "vendor" | "admin"; is_vendor?: boolean; is_vendor_approved?: boolean } | null): V3AccountProfile {
+  return {
+    fullName: profile?.full_name ?? null,
+    phoneNumber: profile?.phone_number ?? null,
+    role: profile?.role ?? "buyer",
+    isVendor: Boolean(profile?.is_vendor),
+    isVendorApproved: Boolean(profile?.is_vendor_approved),
+  };
+}
+
+export async function getV3AccountProfile(identity: SupabaseIdentity | null): Promise<V3AccountProfile> {
+  if (!identity) throw new Error("Sign in with your verified MtaaMarket email first.");
+  const { data, error } = await getSupabaseServiceClient().from("profiles").select("id,full_name,phone_number,role,is_vendor,is_vendor_approved").eq("id", identity.subject).maybeSingle();
+  if (error) throw new Error("MtaaMarket could not load your account details.");
+  return mapAccountProfile(data);
+}
+
+export async function updateV3AccountProfile(identity: SupabaseIdentity | null, input: { fullName?: string | null; phone?: string | null }): Promise<V3AccountProfile> {
+  if (!identity) throw new Error("Sign in with your verified MtaaMarket email first.");
+  if (input.fullName === undefined && input.phone === undefined) throw new Error("Add a name or Kenyan contact number before saving.");
+  const updates: Record<string, string | null> = {};
+  if (input.fullName !== undefined) updates.full_name = input.fullName === null ? null : normalizedBuyerName(input.fullName);
+  if (input.phone !== undefined) updates.phone_number = input.phone === null ? null : normalizedKenyanPhone(input.phone);
+
+  const client = getSupabaseServiceClient();
+  const existing = await client.from("profiles").select("id").eq("id", identity.subject).maybeSingle();
+  if (existing.error) throw new Error("MtaaMarket could not check your account details.");
+  const result = existing.data
+    ? await client.from("profiles").update(updates).eq("id", identity.subject).select("id,full_name,phone_number,role,is_vendor,is_vendor_approved").maybeSingle()
+    : await client.from("profiles").insert({ id: identity.subject, full_name: updates.full_name ?? null, phone_number: updates.phone_number ?? null, role: "buyer" }).select("id,full_name,phone_number,role,is_vendor,is_vendor_approved").maybeSingle();
+  if (result.error?.code === "23505") throw new Error("This Kenyan contact number is already linked to another MtaaMarket account.");
+  if (result.error || !result.data) throw new Error("MtaaMarket could not save your account details.");
+  return mapAccountProfile(result.data);
+}
+
+/** Captures a buyer's name and one canonical contact through the verified server identity. The account settings flow can update either field later. */
 export async function saveV3BuyerOrderProfile(identity: SupabaseIdentity | null, input: { fullName?: string; phone?: string }): Promise<V3BuyerOrderAccess> {
   if (!identity) throw new Error("Sign in with your verified MtaaMarket email first.");
   const fullName = input.fullName ? normalizedBuyerName(input.fullName) : undefined;

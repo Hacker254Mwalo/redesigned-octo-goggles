@@ -141,7 +141,7 @@ describe("Jumia public discovery", () => {
     const result = await searchJumiaPublicProducts("Smart TV");
 
     expect(result.results).toEqual([]);
-    expect(result.message).toContain("individual Jumia product pages");
+    expect(result.message).toContain("individual product pages");
   });
 
   it("uses Brave Web Search when configured and keeps only HTTPS Jumia Kenya results", async () => {

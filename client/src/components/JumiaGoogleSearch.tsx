@@ -26,7 +26,7 @@ function isJumiaProductUrl(value: string) {
 }
 
 function cleanGoogleTitle(value: string) {
-  return value.replace(/\s+/g, " ").replace(/\s*(?:\||[-–])\s*(?:best prices?|price)\s+online.*$/i, "").replace(/\s*(?:\||[-–])\s*jumia\s*(?:kenya|ke).*$/i, "").trim().slice(0, 180) || "Jumia product";
+  return value.replace(/\s+/g, " ").replace(/\s*(?:\||[-–])\s*(?:best prices?|price)\s+online.*$/i, "").replace(/\s*(?:\||[-–])\s*jumia\s*(?:kenya|ke).*$/i, "").trim().slice(0, 180) || "Product";
 }
 
 function searchEngineId() {
@@ -84,9 +84,9 @@ export function JumiaGoogleSearch({ query, onSelect }: JumiaGoogleSearchProps) {
     if (!anchor || !isJumiaProductUrl(url)) return;
     event.preventDefault();
     const title = cleanGoogleTitle(anchor.textContent || "");
-    onSelect({ title, url, snippet: "Selected from Jumia Kenya search results.", imageUrl: null, price: null, currency: null });
+    onSelect({ title, url, snippet: "Selected from live product search.", imageUrl: null, price: null, currency: null });
   }
 
   if (!cx) return null;
-  return <div className="jumia-google-search" ref={hostRef} onClick={captureSelection} aria-label="Search Jumia Kenya"><div className="gcse-search" data-as_sitesearch="jumia.co.ke" data-websearchsafesearch="active" data-resultsetsize="10" data-mobilelayout="enabled" /></div>;
+  return <div className="jumia-google-search" ref={hostRef} onClick={captureSelection} aria-label="Search live products"><div className="gcse-search" data-as_sitesearch="jumia.co.ke" data-websearchsafesearch="active" data-resultsetsize="10" data-mobilelayout="enabled" /></div>;
 }

@@ -6,7 +6,7 @@ const steps = [
   {
     number: "01",
     title: "Browse the market",
-    copy: "Find everyday products from local Siaya sellers and the wider Jumia selection.",
+    copy: "Find everyday products from local Siaya sellers and the wider selection.",
     icon: Search,
   },
   {
@@ -40,7 +40,7 @@ export default function AssistedSourcingPage() {
             <p>Shop local products and explore a wider selection through MtaaMarket. Choose where you want your order delivered or collected, then follow it from your account.</p>
             <div className="guide-actions">
               <Link href="/" className="primary-cta">Browse the market <ArrowRight size={17} /></Link>
-              <Link href="/jumia" className="secondary-cta">Shop Jumia <Search size={16} /></Link>
+              <Link href="/jumia" className="secondary-cta">Explore more <Search size={16} /></Link>
             </div>
           </div>
           <div className="assisted-guide-card" aria-label="Shopping summary">
@@ -75,16 +75,16 @@ export default function AssistedSourcingPage() {
           <div>
             <p className="eyebrow">Designed around you</p>
             <h2>Local shopping, with more choice.</h2>
-            <p>Start with products listed by Siaya sellers or open the Jumia channel when you need a wider range. Your order, location, and progress stay together in your MtaaMarket account.</p>
+            <p>Start with products listed by Siaya sellers or open more choices when you need a wider range. Your order, location, and progress stay together in your MtaaMarket account.</p>
           </div>
-          <Link href="/jumia" className="secondary-cta">Shop Jumia <ArrowRight size={17} /></Link>
+          <Link href="/jumia" className="secondary-cta">Explore more <ArrowRight size={17} /></Link>
         </section>
 
         <section className="guide-closing">
           <div>
             <p className="eyebrow">Start shopping</p>
             <h2>Find your next purchase today.</h2>
-            <p>Explore the market or search the Jumia selection for something specific.</p>
+            <p>Explore the market or search more choices for something specific.</p>
           </div>
           <div className="guide-closing-actions">
             <Link href="/" className="primary-cta">Open the market <ArrowRight size={17} /></Link>

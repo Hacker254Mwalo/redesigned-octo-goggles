@@ -138,7 +138,7 @@ function cleanSnippet(value: string, title: string) {
   snippet = snippet.replace(/\b(?:our categories|our services|help center|place your order|payment options|delivery timelines?\s*&\s*track your order|returns\s*&\s*refunds|warranty|category|add to cart|official stores|phones\s*&\s*tablets|tvs\s*&\s*audio|appliances|health\s*&\s*beauty|home\s*&\s*office|fashion|computing|gaming|supermarket|baby products|other categories)\b[.:]?/gi, " ");
   snippet = snippet.replace(/\s+/g, " ").replace(/^[\s|–—-]+|[\s|–—-]+$/g, "").trim();
   if (snippet.toLowerCase().startsWith(title.toLowerCase())) snippet = snippet.slice(title.length).trim();
-  return (snippet || "View current product details on Jumia Kenya.").slice(0, 320);
+  return (snippet || "View current product details.").slice(0, 320);
 }
 
 function isJumiaImageUrl(value: string) {
@@ -251,7 +251,7 @@ function sanitizeTavilyItem(item: TavilySearchItem, index: number): JumiaSearchR
 }
 
 function resultMessage(results: JumiaSearchResult[]) {
-  return results.length ? "Jumia products found." : "No individual Jumia product pages were found. Try a more specific product or model.";
+  return results.length ? "Live products found." : "No individual product pages were found. Try a more specific product or model.";
 }
 
 async function searchWithGoogle(normalized: string, config: { key: string; cx: string }): Promise<JumiaSearchResponse> {
@@ -297,7 +297,7 @@ async function searchWithBrave(normalized: string, config: { key: string }): Pro
 
 export async function searchJumiaPublicProducts(query: string): Promise<JumiaSearchResponse> {
   const normalized = query.trim().replace(/\s+/g, " ").slice(0, 120);
-  if (normalized.length < 3) return { configured: false, provider: "unconfigured", query: normalized, results: [], message: "Enter at least three characters to search Jumia Kenya." };
+  if (normalized.length < 3) return { configured: false, provider: "unconfigured", query: normalized, results: [], message: "Enter at least three characters to search live products." };
   const googleConfig = getGoogleConfig();
   if (googleConfig) return searchWithGoogle(normalized, googleConfig);
   const tavilyConfig = getTavilyConfig();

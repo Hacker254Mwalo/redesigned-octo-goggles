@@ -16,6 +16,7 @@ export default function VendorUpload() {
   const [description, setDescription] = useState("");
   const [categorySlug, setCategorySlug] = useState<V3ListingCategorySlug | "">("");
   const [price, setPrice] = useState("");
+  const [itemCondition, setItemCondition] = useState<"new" | "used" | "refurbished">("new");
   const [stockQuantity, setStockQuantity] = useState("1");
   const [allowPayOnPickup, setAllowPayOnPickup] = useState(true);
   const [livestockType, setLivestockType] = useState("");
@@ -29,6 +30,7 @@ export default function VendorUpload() {
   const [imagePreparationMessage, setImagePreparationMessage] = useState<string>(AI_LISTING_MANUAL_FALLBACK.image);
   const [formError, setFormError] = useState("");
   const [agreementAccepted, setAgreementAccepted] = useState(false);
+  const [listingDraft, setListingDraft] = useState<{ checklist: string[]; safetyNote: string } | null>(null);
   const vendorAccess = trpc.marketplace.v3VendorAccess.useQuery(undefined, { enabled: Boolean(session), retry: false });
   const applyForVendor = trpc.marketplace.applyForV3Vendor.useMutation({
     onSuccess: () => {
@@ -39,12 +41,23 @@ export default function VendorUpload() {
     onError: error => toast.error(error.message),
   });
 
+  const draftCopy = trpc.marketplace.draftListingCopy.useMutation({
+    onSuccess: draft => {
+      setDescription(draft.description);
+      setListingDraft({ checklist: draft.checklist, safetyNote: draft.safetyNote });
+      setShowDescriptionGuidance(true);
+      toast.success("Draft added for your review. Check every detail before publishing.");
+    },
+    onError: error => toast.error(error.message),
+  });
+
   const submit = trpc.marketplace.submitV3VendorProduct.useMutation({
     onSuccess: () => {
       setTitle("");
       setDescription("");
       setCategorySlug("");
       setPrice("");
+      setItemCondition("new");
       setStockQuantity("1");
       setAllowPayOnPickup(true);
       setLivestockType("");
@@ -52,6 +65,7 @@ export default function VendorUpload() {
       setLivestockWelfareAttested(false);
       setLivestockMovementAcknowledged(false);
       setShowDescriptionGuidance(false);
+      setListingDraft(null);
       setImageData("");
       setImageType(null);
       setSelectedFileName("");
@@ -141,9 +155,10 @@ export default function VendorUpload() {
                 <input className="mt-2 w-full rounded-lg border border-border bg-white p-3 text-base" required minLength={3} maxLength={180} value={title} onChange={event => setTitle(event.target.value)} autoComplete="off" />
               </label>
               <div className="rounded-xl border bg-white p-4">
-                <div className="flex items-center justify-between gap-3"><span className="text-sm font-medium">Listing description</span><button className="text-sm font-medium text-primary underline-offset-4 hover:underline" type="button" onClick={() => setShowDescriptionGuidance(current => !current)}>{showDescriptionGuidance ? "Hide writing guide" : "Show writing guide"}</button></div>
+                <div className="flex flex-wrap items-center justify-between gap-3"><span className="text-sm font-medium">Listing description</span><div className="flex flex-wrap gap-3"><button className="text-sm font-medium text-primary underline-offset-4 hover:underline" type="button" onClick={() => setShowDescriptionGuidance(current => !current)}>{showDescriptionGuidance ? "Hide writing guide" : "Show writing guide"}</button><button className="listing-ai-button" type="button" disabled={draftCopy.isPending || title.trim().length < 4 || !categorySlug} onClick={() => { const categoryName = V3_LISTING_CATEGORIES.find(item => item.slug === categorySlug)?.name || "physical product"; draftCopy.mutate({ title, categoryName, itemCondition, facts: description || undefined }); }}>{draftCopy.isPending ? "Drafting…" : "Improve with assistant"}</button></div></div>
                 {showDescriptionGuidance && <div className="mt-3 space-y-2 rounded-lg bg-muted p-3 text-sm text-muted-foreground"><p><strong className="text-foreground">English:</strong> {getManualListingCopyGuidance().english}</p><p><strong className="text-foreground">Local wording:</strong> {getManualListingCopyGuidance().localTone}</p></div>}
-                <textarea className="mt-3 min-h-28 w-full rounded-lg border border-border bg-white p-3 text-base" maxLength={1600} value={description} onChange={event => setDescription(event.target.value)} placeholder="Optional: add only accurate product facts for owner review." />
+                <textarea className="mt-3 min-h-28 w-full rounded-lg border border-border bg-white p-3 text-base" maxLength={1600} value={description} onChange={event => { setDescription(event.target.value); setListingDraft(null); }} placeholder="Optional: add only accurate product facts for owner review." />
+                {listingDraft && <div className="mt-3 rounded-lg border border-[#d5e8de] bg-[#f1f8f4] p-3 text-sm text-[#275847]"><p className="font-semibold">Check before publishing</p><ul className="mt-2 list-disc space-y-1 pl-5">{listingDraft.checklist.map(item => <li key={item}>{item}</li>)}</ul><p className="mt-2 text-xs">{listingDraft.safetyNote}</p></div>}
               </div>
               <label className="block text-sm font-medium">Category
                 <select className="mt-2 w-full rounded-lg border border-border bg-white p-3 text-base" required value={categorySlug} onChange={event => { const nextCategory = event.target.value as V3ListingCategorySlug | ""; setCategorySlug(nextCategory); if (nextCategory === "poultry-livestock") setAllowPayOnPickup(false); else { setLivestockType(""); setLivestockDetails(""); setLivestockWelfareAttested(false); setLivestockMovementAcknowledged(false); } }}>
@@ -152,6 +167,9 @@ export default function VendorUpload() {
                 </select>
               </label>
               {categorySlug === "poultry-livestock" && <fieldset className="space-y-4 rounded-xl border border-amber-200 bg-amber-50/50 p-4"><legend className="px-1 text-sm font-semibold">Poultry &amp; livestock safeguards</legend><p className="text-sm text-muted-foreground">State only verifiable animal facts. MtaaMarket does not arrange animal transport, confirm permits, or offer hub pickup for live animals. Owner review and manual confirmation are required.</p><label className="block text-sm font-medium">Animal type<input className="mt-2 w-full rounded-lg border border-border bg-white p-3 text-base" required minLength={2} maxLength={80} value={livestockType} onChange={event => setLivestockType(event.target.value)} placeholder="For example: improved kienyeji chicken" /></label><label className="block text-sm font-medium">Factual animal details<textarea className="mt-2 min-h-24 w-full rounded-lg border border-border bg-white p-3 text-base" required minLength={10} maxLength={500} value={livestockDetails} onChange={event => setLivestockDetails(event.target.value)} placeholder="Describe only facts you can confirm for owner review." /></label><label className="flex items-start gap-3 text-sm"><input className="mt-0.5 size-4" type="checkbox" checked={livestockWelfareAttested} onChange={event => setLivestockWelfareAttested(event.target.checked)} required /><span>I confirm this animal is listed with welfare in mind and the facts I have provided are accurate to my knowledge.</span></label><label className="flex items-start gap-3 text-sm"><input className="mt-0.5 size-4" type="checkbox" checked={livestockMovementAcknowledged} onChange={event => setLivestockMovementAcknowledged(event.target.checked)} required /><span>I understand that MtaaMarket does not arrange animal transport or confirm movement requirements; any handover needs separate owner confirmation.</span></label></fieldset>}
+              <label className="block text-sm font-medium">Item condition
+                <select className="mt-2 w-full rounded-lg border border-border bg-white p-3 text-base" value={itemCondition} onChange={event => setItemCondition(event.target.value as typeof itemCondition)}><option value="new">New</option><option value="used">Used</option><option value="refurbished">Refurbished</option></select>
+              </label>
               <label className="block text-sm font-medium">Price (KES)
                 <input className="mt-2 w-full rounded-lg border border-border bg-white p-3 text-base" type="number" inputMode="decimal" min="1" max="10000000" step="1" required value={price} onChange={event => setPrice(event.target.value)} />
               </label>

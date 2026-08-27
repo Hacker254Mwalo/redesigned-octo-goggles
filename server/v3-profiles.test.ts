@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("./supabase", () => ({ getSupabaseServiceClient: vi.fn() }));
 
 import { getSupabaseServiceClient } from "./supabase";
-import { applyForV3Vendor, bootstrapV3Owner, getV3VendorAccess, saveV3BuyerOrderProfile } from "./v3-profiles";
+import { applyForV3Vendor, bootstrapV3Owner, getV3AccountProfile, getV3VendorAccess, saveV3BuyerOrderProfile, updateV3AccountProfile } from "./v3-profiles";
 
 const founder = { subject: "11111111-1111-4111-8111-111111111111", email: "founder@example.test", issuedAt: 0 };
 const vendor = { subject: "22222222-2222-4222-8222-222222222222", email: "vendor@example.test", issuedAt: 0 };
@@ -112,5 +112,39 @@ describe("V3 buyer pickup profile", () => {
 
     await expect(saveV3BuyerOrderProfile(vendor, { fullName: "Siaya Buyer", phone: "254711281501" })).rejects.toThrow("already linked to another MtaaMarket account");
     expect(insert.insert).toHaveBeenCalledWith(expect.objectContaining({ full_name: "Siaya Buyer", phone_number: "254711281501" }));
+  });
+});
+
+
+describe("V3 account settings", () => {
+  it("loads and updates the verified profile without changing its role", async () => {
+    const profileRead = readQuery({ id: vendor.subject, full_name: "Buyer", phone_number: "254700000000", role: "buyer", is_vendor: false, is_vendor_approved: false });
+    const profileLookup = readQuery({ id: vendor.subject });
+    const update = { update: vi.fn(), eq: vi.fn(), select: vi.fn(), maybeSingle: vi.fn() };
+    update.update.mockReturnValue(update);
+    update.eq.mockReturnValue(update);
+    update.select.mockReturnValue(update);
+    update.maybeSingle.mockResolvedValue({ data: { id: vendor.subject, full_name: "Updated Buyer", phone_number: "254711281501", role: "buyer", is_vendor: false, is_vendor_approved: false }, error: null });
+    const profileClient = { from: vi.fn().mockReturnValue(profileRead) };
+    vi.mocked(getSupabaseServiceClient).mockReturnValue(profileClient as never);
+    await expect(getV3AccountProfile(vendor)).resolves.toEqual({ fullName: "Buyer", phoneNumber: "254700000000", role: "buyer", isVendor: false, isVendorApproved: false });
+
+    const updateClient = { from: vi.fn().mockImplementation(() => updateClient.from.mock.calls.length === 1 ? profileLookup : update) };
+    vi.mocked(getSupabaseServiceClient).mockReturnValue(updateClient as never);
+    await expect(updateV3AccountProfile(vendor, { fullName: "Updated Buyer", phone: "+254711281501" })).resolves.toEqual({ fullName: "Updated Buyer", phoneNumber: "254711281501", role: "buyer", isVendor: false, isVendorApproved: false });
+    expect(update.update).toHaveBeenCalledWith({ full_name: "Updated Buyer", phone_number: "254711281501" });
+  });
+
+  it("creates a buyer profile when an authenticated account has no V3 profile yet", async () => {
+    const existing = readQuery(null);
+    const insert = { insert: vi.fn(), select: vi.fn(), maybeSingle: vi.fn() };
+    insert.insert.mockReturnValue(insert);
+    insert.select.mockReturnValue(insert);
+    insert.maybeSingle.mockResolvedValue({ data: { id: vendor.subject, full_name: "New Buyer", phone_number: "254711281501", role: "buyer", is_vendor: false, is_vendor_approved: false }, error: null });
+    const client = { from: vi.fn().mockImplementation(() => client.from.mock.calls.length === 1 ? existing : insert) };
+    vi.mocked(getSupabaseServiceClient).mockReturnValue(client as never);
+
+    await expect(updateV3AccountProfile(vendor, { fullName: "New Buyer", phone: "254711281501" })).resolves.toMatchObject({ fullName: "New Buyer", phoneNumber: "254711281501", role: "buyer" });
+    expect(insert.insert).toHaveBeenCalledWith({ id: vendor.subject, full_name: "New Buyer", phone_number: "254711281501", role: "buyer" });
   });
 });
