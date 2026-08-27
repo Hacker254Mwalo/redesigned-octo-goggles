@@ -155,7 +155,7 @@ async function searchWithTavily(normalized: string, config: { key: string }): Pr
   const response = await fetch("https://api.tavily.com/search", {
     method: "POST",
     headers: { Accept: "application/json", "Content-Type": "application/json" },
-    body: JSON.stringify({ api_key: config.key, query: `site:jumia.co.ke ${normalized}`, search_depth: "basic", max_results: MAX_RESULTS, include_answer: false, include_raw_content: false, include_images: true, include_domains: ["jumia.co.ke"], country: "kenya", safe_search: true }),
+    body: JSON.stringify({ api_key: config.key, query: `site:jumia.co.ke ${normalized}`, search_depth: "basic", max_results: MAX_RESULTS, include_answer: false, include_raw_content: false, include_images: true, country: "kenya", safe_search: true }),
     signal: AbortSignal.timeout(8_000),
   });
   if (!response.ok) throw new Error("The Jumia search provider is temporarily unavailable.");
