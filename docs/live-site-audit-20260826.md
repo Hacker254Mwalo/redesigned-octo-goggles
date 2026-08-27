@@ -143,3 +143,9 @@ The **Share MtaaMarket** control relies on a visitor-initiated device share menu
 GitHub/Vercel deployment `3c4dc92` completed successfully. The live `robots.txt` references `sitemap.xml`, allows the public site, and excludes the protected dashboard, session-only basket, authentication callback, and password-reset route. The live sitemap contains only the homepage, public Seller Studio guide, and published privacy disclosure; it does not expose a protected workspace, an account action, or a dynamic marketplace claim to crawlers.
 
 The deployed Request Desk was reviewed without submitting a request. Its former AI draft control has been removed because it was coupled to a legacy protected account path that default-domain public users cannot safely use. In its place, the form now displays a plain request-quality reminder to include product type, size or quantity, desired condition, and required inclusions. It truthfully states that MtaaMarket will review the request manually and does not check supply, set price, or promise collection or delivery. The sign-in-to-send boundary remains unchanged.
+
+## Truthful launch-stage catalogue wording verification
+
+GitHub/Vercel deployment `a40d52c` completed successfully. A non-mutating live homepage review confirmed that the primary public message now says that **owner-reviewed listings are being added** and identifies MtaaMarket as an **owner-reviewed local market** built for **Siaya buyers and sellers**. The discovery surface asks visitors to search current listings or use the Request Desk when an item is unavailable.
+
+The empty catalogue state now plainly says that the market is preparing its first verified listings and directs visitors to a managed request rather than an unconfirmed order. This change corrects launch-stage expectations without adding a vendor, listing, review, order, payment, fulfilment promise, public seller-write path, or automated AI action.
