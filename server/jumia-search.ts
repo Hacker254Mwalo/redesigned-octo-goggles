@@ -130,6 +130,7 @@ function customerTitle(value: string, content: string) {
 
 function cleanSnippet(value: string, title: string) {
   let snippet = value.replace(/<[^>]*>/g, " ").replace(/#+\s*/g, " ").replace(/\*+/g, " ").replace(/^\s*(?:title|description):\s*/i, " ");
+  snippet = snippet.replace(/^\s*home\s+/i, " ");
   snippet = snippet.replace(/this website uses cookies[\s\S]*?(?=category|home|$)/i, " ");
   snippet = snippet.replace(/\bbuy\b[^|]{2,160}\bonline\b\s*\|\s*jumia kenya\b/gi, " ");
   snippet = snippet.replace(/@\s*best price.*?(?:\|\s*)?jumia kenya\s*[-–|]?/gi, " ");
@@ -189,8 +190,18 @@ function isLikelyProductUrl(url: string) {
   }
 }
 
+function isSearchLandingUrl(url: string) {
+  try {
+    const pathname = new URL(url).pathname.replace(/\/+$/, "");
+    return /\/(?:slp|mlp|category|categories|search|brand|brands)(?:\/|$)/i.test(pathname);
+  } catch {
+    return false;
+  }
+}
+
 function prioritizeVisualResults(results: JumiaSearchResult[]) {
-  const sorted = [...results].sort((left, right) => {
+  const filtered = results.filter(result => !isSearchLandingUrl(result.url));
+  const sorted = [...filtered].sort((left, right) => {
     const leftScore = Number(isLikelyProductUrl(left.url)) * 4 + Number(Boolean(left.imageUrl)) * 2 + Number(Boolean(left.price));
     const rightScore = Number(isLikelyProductUrl(right.url)) * 4 + Number(Boolean(right.imageUrl)) * 2 + Number(Boolean(right.price));
     return rightScore - leftScore;
@@ -239,6 +250,10 @@ function sanitizeTavilyItem(item: TavilySearchItem, index: number): JumiaSearchR
   return { id: resultId(url, index), title: title.slice(0, 180), url, snippet, imageUrl, price, currency: price ? "KES" : null, source: "tavily_public_search" };
 }
 
+function resultMessage(results: JumiaSearchResult[]) {
+  return results.length ? "Jumia products found." : "No individual Jumia product pages were found. Try a more specific product or model.";
+}
+
 async function searchWithGoogle(normalized: string, config: { key: string; cx: string }): Promise<JumiaSearchResponse> {
   const url = new URL("https://www.googleapis.com/customsearch/v1");
   url.searchParams.set("key", config.key);
@@ -250,7 +265,7 @@ async function searchWithGoogle(normalized: string, config: { key: string; cx: s
   if (!response.ok) throw new Error("The Jumia search provider is temporarily unavailable.");
   const payload = await response.json() as GoogleSearchResponse;
   const results = prioritizeVisualResults((payload.items ?? []).map((item, index) => sanitizeGoogleItem(item, index)).filter((item): item is JumiaSearchResult => Boolean(item)));
-  return { configured: true, provider: "google_public_search", query: normalized, results, message: results.length ? "Jumia products found." : "No matching Jumia products were found." };
+  return { configured: true, provider: "google_public_search", query: normalized, results, message: resultMessage(results) };
 }
 
 async function searchWithTavily(normalized: string, config: { key: string }): Promise<JumiaSearchResponse> {
@@ -263,7 +278,7 @@ async function searchWithTavily(normalized: string, config: { key: string }): Pr
   if (!response.ok) throw new Error("The Jumia search provider is temporarily unavailable.");
   const payload = await response.json() as TavilySearchResponse;
   const results = prioritizeVisualResults((payload.results ?? []).map((item, index) => sanitizeTavilyItem(item, index)).filter((item): item is JumiaSearchResult => Boolean(item)));
-  return { configured: true, provider: "tavily_public_search", query: normalized, results, message: results.length ? "Jumia products found." : "No matching Jumia products were found." };
+  return { configured: true, provider: "tavily_public_search", query: normalized, results, message: resultMessage(results) };
 }
 
 async function searchWithBrave(normalized: string, config: { key: string }): Promise<JumiaSearchResponse> {
@@ -277,7 +292,7 @@ async function searchWithBrave(normalized: string, config: { key: string }): Pro
   if (!response.ok) throw new Error("The Jumia search provider is temporarily unavailable.");
   const payload = await response.json() as BraveSearchResponse;
   const results = prioritizeVisualResults((payload.web?.results ?? []).map((item, index) => sanitizeBraveItem(item, index)).filter((item): item is JumiaSearchResult => Boolean(item)));
-  return { configured: true, provider: "brave_public_search", query: normalized, results, message: results.length ? "Jumia products found." : "No matching Jumia products were found." };
+  return { configured: true, provider: "brave_public_search", query: normalized, results, message: resultMessage(results) };
 }
 
 export async function searchJumiaPublicProducts(query: string): Promise<JumiaSearchResponse> {

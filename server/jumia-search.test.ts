@@ -117,6 +117,33 @@ describe("Jumia public discovery", () => {
     expect(result.results[0]?.snippet).toContain("View current product details");
   });
 
+  it("removes search-landing pages and keeps individual product pages", async () => {
+    process.env.TAVILY_API_KEY = "test-key";
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ results: [
+      { title: "Smart TV search", url: "https://www.jumia.co.ke/slp/smart-tv", content: "Smart TV search landing page" },
+      { title: "Samsung 50U8000 50 Inches Crystal UHD 4K Smart TV", url: "https://www.jumia.co.ke/samsung-50u8000-50-inches-crystal-uhd-4k-smart-tv-123456.html", content: "Samsung 50U8000 50 Inches Crystal UHD 4K Smart TV KSh 78,499" },
+      { title: "TV category", url: "https://www.jumia.co.ke/category/tvs", content: "TV category" },
+    ] }), { status: 200 }));
+
+    const result = await searchJumiaPublicProducts("Smart TV");
+
+    expect(result.results).toHaveLength(1);
+    expect(result.results[0]?.url).toContain(".html");
+    expect(result.results[0]?.price).toBe(78499);
+  });
+
+  it("returns a clear message when the provider only returns landing pages", async () => {
+    process.env.TAVILY_API_KEY = "test-key";
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ results: [
+      { title: "Smart TV search", url: "https://www.jumia.co.ke/slp/smart-tv", content: "Smart TV search landing page" },
+    ] }), { status: 200 }));
+
+    const result = await searchJumiaPublicProducts("Smart TV");
+
+    expect(result.results).toEqual([]);
+    expect(result.message).toContain("individual Jumia product pages");
+  });
+
   it("uses Brave Web Search when configured and keeps only HTTPS Jumia Kenya results", async () => {
     process.env.BRAVE_SEARCH_API_KEY = "test-key";
     vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ web: { results: [

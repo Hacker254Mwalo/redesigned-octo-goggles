@@ -16,13 +16,17 @@ type JumiaGoogleSearchProps = {
 
 const JUMIA_HOSTS = new Set(["jumia.co.ke", "www.jumia.co.ke"]);
 
-function isJumiaUrl(value: string) {
+function isJumiaProductUrl(value: string) {
   try {
     const parsed = new URL(value);
-    return parsed.protocol === "https:" && JUMIA_HOSTS.has(parsed.hostname.toLowerCase());
+    return parsed.protocol === "https:" && JUMIA_HOSTS.has(parsed.hostname.toLowerCase()) && /\.html$/i.test(parsed.pathname);
   } catch {
     return false;
   }
+}
+
+function cleanGoogleTitle(value: string) {
+  return value.replace(/\s+/g, " ").replace(/\s*(?:\||[-–])\s*(?:best prices?|price)\s+online.*$/i, "").replace(/\s*(?:\||[-–])\s*jumia\s*(?:kenya|ke).*$/i, "").trim().slice(0, 180) || "Jumia product";
 }
 
 function searchEngineId() {
@@ -77,10 +81,10 @@ export function JumiaGoogleSearch({ query, onSelect }: JumiaGoogleSearchProps) {
     const target = event.target as HTMLElement;
     const anchor = target.closest("a") as HTMLAnchorElement | null;
     const url = anchor?.href || "";
-    if (!anchor || !isJumiaUrl(url)) return;
+    if (!anchor || !isJumiaProductUrl(url)) return;
     event.preventDefault();
-    const title = anchor.textContent?.trim().replace(/\s+/g, " ") || "Jumia product";
-    onSelect({ title: title.slice(0, 180), url, snippet: "Selected from Jumia Kenya search results.", imageUrl: null, price: null, currency: null });
+    const title = cleanGoogleTitle(anchor.textContent || "");
+    onSelect({ title, url, snippet: "Selected from Jumia Kenya search results.", imageUrl: null, price: null, currency: null });
   }
 
   if (!cx) return null;
