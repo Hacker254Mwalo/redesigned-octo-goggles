@@ -31,6 +31,12 @@ The nonce-skipping control is not enabled and must remain off. The option to per
 
 The application already contains a Supabase `signInWithGoogle` browser-bridge method that redirects to its established `/auth/callback` path, but the public account dialog intentionally does not expose an active Google button. This is the correct current boundary: it prevents a known-disabled provider from producing a failed or misleading sign-in attempt.
 
+## Founder-authorized Google Cloud setup progress
+
+The founder authorized creation of a separate Google Cloud project named **MtaaMarket OAuth**. The project was created under the signed-in founder account without starting a Google Cloud free trial or enabling billable Google APIs. The Google Auth Platform branding wizard was opened and the application name was prepared as **Siaya Online MtaaMarket**.
+
+The browser automation then lost the dynamic consent-screen form before its first step could be advanced. No OAuth client was created, no client ID or secret was generated, no Supabase provider setting was changed, and no Google sign-in control was enabled. The next safe action is to recover the selected `mtaamarket-oauth` project view, complete the consent-screen wizard with a private support contact, and create the Web application client using only the origins and callback listed above.
+
 Once these settings are complete, a separate controlled browser test is required: open the MtaaMarket account dialog, choose Google only after it is visibly enabled, complete consent in the provider window, confirm return to the deployed `/auth/callback` route, and verify that the session is buyer-only. That test must not assign a founder, vendor, or administrator role and must not create an order, request, payment, delivery, or seller record.
 
 ## References

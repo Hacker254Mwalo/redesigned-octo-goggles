@@ -69,6 +69,23 @@ describe("public performance and mobile foundations", () => {
     expect(styles).toContain(".skip-link:focus-visible");
   });
 
+  it("publishes a truthful privacy route before public Google sign-in is enabled", () => {
+    const app = readFileSync(resolve(projectRoot, "client/src/App.tsx"), "utf8");
+    const layout = readFileSync(resolve(projectRoot, "client/src/components/MarketplaceLayout.tsx"), "utf8");
+    const dialog = readFileSync(resolve(projectRoot, "client/src/components/MtaaAccountDialog.tsx"), "utf8");
+    const privacy = readFileSync(resolve(projectRoot, "client/src/pages/PrivacyPage.tsx"), "utf8");
+    const callback = readFileSync(resolve(projectRoot, "client/src/pages/SupabaseAuthCallbackPage.tsx"), "utf8");
+
+    expect(app).toContain('path={"/privacy"}');
+    expect(layout).toContain('href="/privacy"');
+    expect(dialog).toContain("How account data is used");
+    expect(privacy).toContain("Google sign-in");
+    expect(privacy).toContain("does not request access to your Google Drive");
+    expect(privacy).toContain("Seller access, owner roles, orders, payment, delivery");
+    expect(callback).toContain("MtaaMarket secure sign-in");
+    expect(callback).not.toContain("You are signed in with email.");
+  });
+
   it("keeps a conservative vendor-chunk strategy for public performance", () => {
     const config = readFileSync(resolve(projectRoot, "vite.config.ts"), "utf8");
 
