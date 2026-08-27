@@ -12,7 +12,7 @@ import {
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import { trpc } from "@/lib/trpc";
 import { getV3ListingCategory, V3_LISTING_CATEGORIES, type V3ListingCategorySlug } from "@shared/v3-listing";
-import { ArrowRight, ClipboardList, PackageCheck, ShieldCheck } from "lucide-react";
+import { ArrowRight, CalendarClock, ClipboardList, MapPin, PackageCheck, ShieldCheck, ShoppingCart } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 
@@ -44,6 +44,30 @@ type V3ItemRequest = {
   source_route: string | null;
   quoted_price: string | number | null;
   platform_reply: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type V3JumiaOrderItem = { title: string; details: string; quantity: number };
+
+type V3JumiaOrder = {
+  id: string;
+  order_number: string;
+  customer_name: string;
+  customer_phone: string;
+  status: "placed" | "confirming" | "accepted" | "sourcing" | "ready" | "out_for_delivery" | "completed" | "cancelled";
+  payment_status: "not_due" | "paid" | "refunded";
+  payment_timing: "pay_on_collection" | "pay_on_delivery";
+  fulfilment_method: "siaya_pickup" | "home_delivery" | "collection_point";
+  preferred_location: string | null;
+  delivery_schedule: string | null;
+  order_note: string | null;
+  quoted_amount: string | number | null;
+  items: V3JumiaOrderItem[];
+  owner_notes: string | null;
+  cancellation_reason: string | null;
+  confirmed_at: string | null;
+  completed_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -94,6 +118,28 @@ const orderStatusText: Record<V3AssistedOrder["status"], string> = {
 const nextOrderStatuses: Record<V3AssistedOrder["status"], V3AssistedOrder["status"][]> = {
   recorded: ["confirmed", "cancelled"],
   confirmed: ["sourcing", "ready", "cancelled"],
+  sourcing: ["ready", "cancelled"],
+  ready: ["out_for_delivery", "completed", "cancelled"],
+  out_for_delivery: ["completed", "cancelled"],
+  completed: [],
+  cancelled: [],
+};
+
+const jumiaOrderStatusText: Record<V3JumiaOrder["status"], string> = {
+  placed: "Order placed",
+  confirming: "Confirming item",
+  accepted: "Accepted",
+  sourcing: "Being sourced",
+  ready: "Ready for collection",
+  out_for_delivery: "Out for delivery",
+  completed: "Completed",
+  cancelled: "Cancelled",
+};
+
+const nextJumiaOrderStatuses: Record<V3JumiaOrder["status"], V3JumiaOrder["status"][]> = {
+  placed: ["confirming", "cancelled"],
+  confirming: ["accepted", "cancelled"],
+  accepted: ["sourcing", "cancelled"],
   sourcing: ["ready", "cancelled"],
   ready: ["out_for_delivery", "completed", "cancelled"],
   out_for_delivery: ["completed", "cancelled"],
@@ -307,12 +353,59 @@ function AssistedOrderCard({ order, onRefresh }: { order: V3AssistedOrder; onRef
   </article>;
 }
 
+function JumiaOrderCard({ order, onRefresh }: { order: V3JumiaOrder; onRefresh: () => void }) {
+  const [status, setStatus] = useState(order.status);
+  const [quotedAmount, setQuotedAmount] = useState(order.quoted_amount === null ? "" : String(order.quoted_amount));
+  const [paymentStatus, setPaymentStatus] = useState(order.payment_status);
+  const [fulfilmentMethod, setFulfilmentMethod] = useState(order.fulfilment_method);
+  const [preferredLocation, setPreferredLocation] = useState(order.preferred_location ?? "");
+  const [deliverySchedule, setDeliverySchedule] = useState(order.delivery_schedule ?? "");
+  const [ownerNotes, setOwnerNotes] = useState(order.owner_notes ?? "");
+  const [cancellationReason, setCancellationReason] = useState(order.cancellation_reason ?? "");
+  const update = trpc.marketplace.updateV3OwnerJumiaOrder.useMutation({
+    onSuccess: () => { toast.success("Jumia order updated."); onRefresh(); },
+    onError: error => toast.error(error.message),
+  });
+  const nextStatuses = nextJumiaOrderStatuses[status];
+
+  useEffect(() => {
+    setStatus(order.status);
+    setQuotedAmount(order.quoted_amount === null ? "" : String(order.quoted_amount));
+    setPaymentStatus(order.payment_status);
+    setFulfilmentMethod(order.fulfilment_method);
+    setPreferredLocation(order.preferred_location ?? "");
+    setDeliverySchedule(order.delivery_schedule ?? "");
+    setOwnerNotes(order.owner_notes ?? "");
+    setCancellationReason(order.cancellation_reason ?? "");
+  }, [order.id, order.status, order.payment_status, order.quoted_amount, order.fulfilment_method, order.preferred_location, order.delivery_schedule, order.owner_notes, order.cancellation_reason]);
+
+  function saveDetails(nextStatus = status) {
+    update.mutate({ orderId: order.id, status: nextStatus, quotedAmount: quotedAmount ? Number(quotedAmount) : undefined, paymentStatus, fulfilmentMethod, preferredLocation, deliverySchedule, ownerNotes, cancellationReason: nextStatus === "cancelled" ? cancellationReason : undefined });
+  }
+
+  return <article className="rounded-2xl border border-[#cfe3d7] bg-[#fbfefa] p-5 shadow-sm">
+    <div className="flex items-start justify-between gap-3"><div><p className="eyebrow">Default Jumia vendor</p><h3 className="mt-1 font-semibold">{order.order_number}</h3></div><span className="shrink-0 rounded-full bg-[#e5f2e8] px-2.5 py-1 text-xs font-medium text-[#245441]">{jumiaOrderStatusText[status]}</span></div>
+    <p className="mt-4 text-sm text-muted-foreground"><strong className="text-foreground">{order.customer_name}</strong> · {order.customer_phone}</p>
+    <div className="mt-4 space-y-3">{order.items.map((item, index) => <div className="rounded-xl bg-white p-3" key={`${item.title}-${index}`}><p className="font-semibold">{item.title} <span className="text-sm font-normal text-muted-foreground">× {item.quantity}</span></p><p className="mt-1 text-sm text-muted-foreground">{item.details}</p></div>)}</div>
+    <div className="mt-4 grid gap-2 text-sm text-muted-foreground sm:grid-cols-2"><p>Fulfilment: <strong className="text-foreground">{order.fulfilment_method.replaceAll("_", " ")}</strong></p><p>Payment: <strong className="text-foreground">{order.payment_status === "not_due" ? `Due at ${order.payment_timing === "pay_on_delivery" ? "delivery" : "collection"}` : order.payment_status}</strong></p>{order.preferred_location && <p><MapPin size={14} className="mr-1 inline" />{order.preferred_location}</p>}{order.delivery_schedule && <p><CalendarClock size={14} className="mr-1 inline" />{order.delivery_schedule}</p>}</div>
+    {order.order_note && <p className="mt-3 rounded-xl bg-white p-3 text-sm"><strong>Customer note:</strong> {order.order_note}</p>}
+    <div className="mt-5 grid gap-4 sm:grid-cols-2"><label className="text-sm font-medium">Order status<select className="mt-2 w-full rounded-lg border border-border bg-white p-3" value={status} onChange={event => setStatus(event.target.value as V3JumiaOrder["status"])} disabled={status === "completed" || status === "cancelled"}>{status === "placed" && <option value="placed">Order placed</option>}{status === "confirming" && <option value="confirming">Confirming item</option>}{status === "accepted" && <option value="accepted">Accepted</option>}{status === "sourcing" && <option value="sourcing">Being sourced</option>}{status === "ready" && <option value="ready">Ready</option>}{status === "out_for_delivery" && <option value="out_for_delivery">Out for delivery</option>}{status === "completed" && <option value="completed">Completed</option>}{status === "cancelled" && <option value="cancelled">Cancelled</option>}<option value="cancelled">Cancel order</option></select></label><label className="text-sm font-medium">Fulfilment method<select className="mt-2 w-full rounded-lg border border-border bg-white p-3" value={fulfilmentMethod} onChange={event => setFulfilmentMethod(event.target.value as typeof fulfilmentMethod)} disabled={status === "completed" || status === "cancelled"}><option value="siaya_pickup">Siaya collection</option><option value="collection_point">Collection point</option><option value="home_delivery">Home delivery</option></select></label></div>
+    <div className="mt-4 grid gap-4 sm:grid-cols-2"><label className="text-sm font-medium">Confirmed Jumia amount (KES)<input className="mt-2 w-full rounded-lg border border-border bg-white p-3" type="number" min="0" max="10000000" value={quotedAmount} onChange={event => setQuotedAmount(event.target.value)} /></label><label className="text-sm font-medium">Payment status<select className="mt-2 w-full rounded-lg border border-border bg-white p-3" value={paymentStatus} onChange={event => setPaymentStatus(event.target.value as V3JumiaOrder["payment_status"])}><option value="not_due">Not due yet</option><option value="paid">Paid at hand-off</option><option value="refunded">Refunded</option></select></label></div>
+    <div className="mt-4 grid gap-4 sm:grid-cols-2"><label className="text-sm font-medium">Broad hand-off area<input className="mt-2 w-full rounded-lg border border-border bg-white p-3" value={preferredLocation} onChange={event => setPreferredLocation(event.target.value)} maxLength={180} /></label><label className="text-sm font-medium">Confirmed timing<input className="mt-2 w-full rounded-lg border border-border bg-white p-3" value={deliverySchedule} onChange={event => setDeliverySchedule(event.target.value)} maxLength={120} /></label></div>
+    <label className="mt-4 block text-sm font-medium">Founder fulfilment notes<textarea className="mt-2 min-h-20 w-full rounded-lg border border-border bg-white p-3" value={ownerNotes} onChange={event => setOwnerNotes(event.target.value)} maxLength={3000} placeholder="Record the JForce verification, parcel reference, or hand-off note." /></label>
+    {status === "cancelled" && <label className="mt-4 block text-sm font-medium">Cancellation reason<textarea className="mt-2 min-h-20 w-full rounded-lg border border-border bg-white p-3" value={cancellationReason} onChange={event => setCancellationReason(event.target.value)} maxLength={600} placeholder="e.g. Item unavailable before purchase" /></label>}
+    <div className="mt-5 flex flex-wrap gap-2"><button className="secondary-cta" type="button" disabled={update.isPending || status === "completed" || status === "cancelled"} onClick={() => saveDetails()}>{update.isPending ? "Saving…" : "Save order details"}</button>{nextStatuses.map(next => <button className={next === "cancelled" ? "secondary-cta text-destructive" : "primary-cta"} type="button" key={next} disabled={update.isPending || (next === "cancelled" && cancellationReason.trim().length < 3)} onClick={() => { setStatus(next); saveDetails(next); }}>{next === "cancelled" ? "Cancel order" : jumiaOrderStatusText[next]}</button>)}</div>
+    <p className="mt-4 text-xs text-muted-foreground">This is a normal customer order with founder-managed JForce fulfilment. No product approval is involved. The order starts unpaid and becomes paid only when the parcel is handed over.</p>
+  </article>;
+}
+
 export default function Admin() {
   const { configured, loading: sessionLoading, session } = useSupabaseAuth();
   const moderationQueue = trpc.marketplace.v3ModerationProducts.useQuery();
   const vendorApplications = trpc.marketplace.v3VendorApplications.useQuery(undefined, { enabled: Boolean(session), retry: false });
   const requestQueue = trpc.marketplace.v3OwnerItemRequests.useQuery(undefined, { enabled: Boolean(session), retry: false });
   const assistedOrderQueue = trpc.marketplace.v3OwnerAssistedOrders.useQuery(undefined, { enabled: Boolean(session), retry: false });
+  const jumiaOrderQueue = trpc.marketplace.v3OwnerJumiaOrders.useQuery(undefined, { enabled: Boolean(session), retry: false });
   const [productToDelete, setProductToDelete] = useState<ModerationProduct | null>(null);
   const bootstrapOwner = trpc.marketplace.bootstrapV3Owner.useMutation({
     onSuccess: () => {
@@ -321,6 +414,7 @@ export default function Admin() {
       vendorApplications.refetch();
       requestQueue.refetch();
       assistedOrderQueue.refetch();
+      jumiaOrderQueue.refetch();
     },
     onError: error => toast.error(error.message),
   });
@@ -347,7 +441,7 @@ export default function Admin() {
     onError: error => toast.error(error.message),
   });
   const actionPending = moderate.isPending || remove.isPending;
-  const refreshOwnerQueues = () => { requestQueue.refetch(); assistedOrderQueue.refetch(); };
+  const refreshOwnerQueues = () => { requestQueue.refetch(); assistedOrderQueue.refetch(); jumiaOrderQueue.refetch(); };
 
   function updateProduct(productId: string, status: "ACTIVE" | "REJECTED" | "FLAGGED") {
     moderate.mutate({ productId, status });
@@ -391,6 +485,13 @@ export default function Admin() {
 
         {!moderationQueue.isError && !moderationQueue.isLoading && <section className="mt-12 border-t pt-10"><p className="eyebrow">Vendor governance</p><h2 className="mt-2 text-2xl font-semibold">Agreement-backed vendor applications</h2><p className="mt-2 max-w-2xl text-sm text-muted-foreground">Approve vendors only after confirming their identity and agreement outside the public marketplace. Suspending access stops new listing submissions; it does not delete their past listing records.</p>{vendorApplications.isLoading && <p className="mt-5 text-sm text-muted-foreground" aria-live="polite">Loading vendor applications…</p>}{vendorApplications.data?.length === 0 && <p className="mt-5 rounded-xl border bg-white p-4 text-sm text-muted-foreground">No vendor applications have been submitted yet.</p>}{vendorApplications.data && vendorApplications.data.length > 0 && <div className="mt-5 grid gap-4 sm:grid-cols-2">{vendorApplications.data.map(application => <article className="rounded-2xl border bg-white p-5" key={application.id}><h3 className="font-semibold">{application.fullName || "Vendor application"}</h3><p className="mt-2 text-sm text-muted-foreground">Agreement: {application.agreementAcceptedAt ? "Recorded" : "Missing"}</p><p className="mt-1 text-sm text-muted-foreground">Status: {application.isApproved ? "Approved" : "Pending or suspended"}</p><button className="primary-cta mt-5" disabled={updateVendorApproval.isPending || !application.agreementAcceptedAt} onClick={() => updateVendorApproval.mutate({ profileId: application.id, approved: !application.isApproved })}>{application.isApproved ? "Suspend listing access" : "Approve vendor"}</button></article>)}</div>}</section>}
         {!moderationQueue.isError && !moderationQueue.isLoading && <>
+          <section className="mt-12 border-t pt-10">
+            <div className="flex items-start gap-3"><ShoppingCart className="mt-1 text-[#1b6a55]" aria-hidden="true" /><div><p className="eyebrow">Default Jumia vendor</p><h2 className="mt-2 text-2xl font-semibold">Normal customer orders</h2><p className="mt-2 max-w-2xl text-sm text-muted-foreground">These orders do not go through product approval. Customers place them unpaid; confirm the item through JForce, accept or cancel before purchase, arrange collection or home delivery, and record payment only at hand-off.</p></div></div>
+            {jumiaOrderQueue.isError && <p className="mt-5 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive" role="alert">MtaaMarket could not load the Jumia fulfilment queue. No order action was taken.</p>}
+            {jumiaOrderQueue.isLoading && <p className="mt-5 text-sm text-muted-foreground" aria-live="polite">Loading Jumia customer orders…</p>}
+            {jumiaOrderQueue.data?.length === 0 && <p className="mt-5 rounded-xl border bg-white p-4 text-sm text-muted-foreground">No Jumia customer orders have been placed yet.</p>}
+            {jumiaOrderQueue.data && jumiaOrderQueue.data.length > 0 && <div className="mt-5 grid gap-5 lg:grid-cols-2">{jumiaOrderQueue.data.map(order => <JumiaOrderCard order={order as V3JumiaOrder} key={order.id} onRefresh={refreshOwnerQueues} />)}</div>}
+          </section>
           <section className="mt-12 border-t pt-10">
             <div className="flex items-start gap-3"><ClipboardList className="mt-1 text-[#1b6a55]" aria-hidden="true" /><div><p className="eyebrow">Request Desk</p><h2 className="mt-2 text-2xl font-semibold">Private item requests</h2><p className="mt-2 max-w-2xl text-sm text-muted-foreground">Review custom requests, record a manual route or quote, and open a protected Assisted Market order when you decide to serve the buyer. Buyer phone numbers and exact addresses stay out of this review queue.</p></div></div>
             {requestQueue.isError && <p className="mt-5 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive" role="alert">MtaaMarket could not load the Request Desk queue. No request action was taken.</p>}

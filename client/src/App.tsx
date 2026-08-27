@@ -15,6 +15,7 @@ const PickupStations = lazy(() => import("./pages/PickupStations"));
 const PrivacyPage = lazy(() => import("./pages/PrivacyPage"));
 const ProductDetail = lazy(() => import("./pages/ProductDetail"));
 const RequestDeskPage = lazy(() => import("./pages/RequestDeskPage"));
+const JumiaStorePage = lazy(() => import("./pages/JumiaStorePage"));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
 const SupabaseAuthCallbackPage = lazy(() => import("./pages/SupabaseAuthCallbackPage"));
 const VendorPage = lazy(() => import("./pages/VendorPage"));
@@ -36,7 +37,8 @@ function Router() {
         <Route path={"/cart"} component={CartPage} />
         <Route path={"/privacy"} component={PrivacyPage} />
         <Route path={"/stations"} component={PickupStations} />
-        <Route path={"/request"} component={RequestDeskPage} />
+        <Route path={"/request"} component={JumiaStorePage} />
+        <Route path={"/jumia"} component={JumiaStorePage} />
         <Route path={"/auth/callback"} component={SupabaseAuthCallbackPage} />
         <Route path={"/auth/reset-password"} component={ResetPasswordPage} />
         <Route path={"/vendor"} component={VendorPage} />

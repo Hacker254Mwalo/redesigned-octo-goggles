@@ -181,13 +181,13 @@ describe("public performance and mobile foundations", () => {
   it("keeps launch-stage seller and catalogue messaging truthful while the first listings are being prepared", () => {
     const home = readFileSync(resolve(projectRoot, "client/src/pages/Home.tsx"), "utf8");
 
-    expect(home).toContain("as owner-reviewed listings are added");
+    expect(home).toContain("shop the default Jumia channel");
     expect(home).toContain("Owner-reviewed local market");
     expect(home).toContain("Built for Siaya buyers and sellers");
-    expect(home).toContain("Search current listings or use the Request Desk");
+    expect(home).toContain("open the default Jumia channel");
     expect(home).toContain("Search physical products, livestock, accessories, home items and more");
-    expect(home).toContain("Tell MtaaMarket what you need and we will begin with a managed request");
-    expect(home).toContain("Ask MtaaMarket for this item");
+    expect(home).toContain("Shop this item through MtaaMarket with an unpaid Jumia order");
+    expect(home).toContain("Order it through Jumia");
     expect(home).toContain("Shop local categories");
     expect(home).toContain("Swipe to explore");
     expect(home).toContain('aria-label="Browse local product categories"');
