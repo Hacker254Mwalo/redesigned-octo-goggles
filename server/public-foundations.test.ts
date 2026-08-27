@@ -166,6 +166,18 @@ describe("public performance and mobile foundations", () => {
     expect(v3Requests).not.toContain("delivery_fee");
   });
 
+  it("keeps the public Seller Studio entry on the Supabase account handoff and V3 upload route", () => {
+    const vendorPage = readFileSync(resolve(projectRoot, "client/src/pages/VendorPage.tsx"), "utf8");
+
+    expect(vendorPage).toContain("useSupabaseAuth");
+    expect(vendorPage).toContain("MtaaAccountDialog");
+    expect(vendorPage).toContain('setLocation("/vendor/upload")');
+    expect(vendorPage).toContain("Sign in to apply");
+    expect(vendorPage).not.toContain("@/_core/hooks/useAuth");
+    expect(vendorPage).not.toContain("startLogin");
+    expect(vendorPage).not.toContain('setLocation("/dashboard")');
+  });
+
   it("keeps launch-stage seller and catalogue messaging truthful while the first listings are being prepared", () => {
     const home = readFileSync(resolve(projectRoot, "client/src/pages/Home.tsx"), "utf8");
 
