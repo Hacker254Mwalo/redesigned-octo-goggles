@@ -53,6 +53,7 @@ import { createV3HubOrder } from "./v3-orders";
 import { deleteV3Product, listV3ModerationProducts, moderateV3Product } from "./v3-moderation";
 import { submitV3OwnerProduct, submitV3VendorProduct } from "./v3-vendor";
 import { applyForV3Vendor, bootstrapV3Owner, getV3BuyerOrderAccess, getV3VendorAccess, listV3VendorApplications, saveV3BuyerOrderProfile, updateV3VendorApproval } from "./v3-profiles";
+import { createV3ItemRequest, listV3OwnerItemRequests } from "./v3-requests";
 
 const safeSearch = z.string().trim().max(100);
 const phone = z.string().trim().regex(/^\+?254[17]\d{8}$/, "Use a Kenyan number beginning with 254.").optional();
@@ -102,6 +103,8 @@ export const appRouter = router({
     applyForV3Vendor: publicProcedure.input(z.object({ agreementAccepted: z.literal(true) })).mutation(({ ctx, input }) => applyForV3Vendor(ctx.supabaseIdentity, input.agreementAccepted)),
     v3VendorApplications: publicProcedure.query(({ ctx }) => listV3VendorApplications(ctx.supabaseIdentity)),
     updateV3VendorApproval: publicProcedure.input(z.object({ profileId: z.string().uuid(), approved: z.boolean() })).mutation(({ ctx, input }) => updateV3VendorApproval(ctx.supabaseIdentity, input.profileId, input.approved)),
+    createV3ItemRequest: publicProcedure.input(z.object({ title: z.string().trim().min(4).max(180), details: z.string().trim().min(10).max(3_000), budgetHint: z.number().positive().max(10_000_000).optional(), preferredFulfilment: z.enum(["siaya_pickup", "home_delivery", "collection_point", "special_order"]), preferredLocation: z.string().trim().max(180).optional() })).mutation(({ ctx, input }) => createV3ItemRequest(ctx.supabaseIdentity, input)),
+    v3OwnerItemRequests: publicProcedure.query(({ ctx }) => listV3OwnerItemRequests(ctx.supabaseIdentity)),
 
     myProfile: protectedProcedure.query(({ ctx }) => ensureMarketplaceProfile(ctx.user.id, ctx.user.name)),
     buyerWorkspace: protectedProcedure.query(async ({ ctx }) => {

@@ -33,6 +33,17 @@ type ModerationProduct = {
   status: "PENDING" | "ACTIVE" | "FLAGGED";
 };
 
+type V3ItemRequest = {
+  id: string;
+  title: string;
+  details: string;
+  budget_hint: string | number | null;
+  preferred_fulfilment: string;
+  preferred_location: string | null;
+  status: string;
+  created_at: string;
+};
+
 const statusText = {
   PENDING: "Awaiting review",
   ACTIVE: "Publicly visible",
@@ -137,12 +148,14 @@ export default function Admin() {
   const { configured, loading: sessionLoading, session } = useSupabaseAuth();
   const moderationQueue = trpc.marketplace.v3ModerationProducts.useQuery();
   const vendorApplications = trpc.marketplace.v3VendorApplications.useQuery(undefined, { enabled: Boolean(session), retry: false });
+  const requestQueue = trpc.marketplace.v3OwnerItemRequests.useQuery(undefined, { enabled: Boolean(session), retry: false });
   const [productToDelete, setProductToDelete] = useState<ModerationProduct | null>(null);
   const bootstrapOwner = trpc.marketplace.bootstrapV3Owner.useMutation({
     onSuccess: () => {
       toast.success("Founder owner access is activated.");
       moderationQueue.refetch();
       vendorApplications.refetch();
+      requestQueue.refetch();
     },
     onError: error => toast.error(error.message),
   });
@@ -211,6 +224,7 @@ export default function Admin() {
         )}
 
         {!moderationQueue.isError && !moderationQueue.isLoading && <section className="mt-12 border-t pt-10"><p className="eyebrow">Vendor governance</p><h2 className="mt-2 text-2xl font-semibold">Agreement-backed vendor applications</h2><p className="mt-2 max-w-2xl text-sm text-muted-foreground">Approve vendors only after confirming their identity and agreement outside the public marketplace. Suspending access stops new listing submissions; it does not delete their past listing records.</p>{vendorApplications.isLoading && <p className="mt-5 text-sm text-muted-foreground" aria-live="polite">Loading vendor applications…</p>}{vendorApplications.data?.length === 0 && <p className="mt-5 rounded-xl border bg-white p-4 text-sm text-muted-foreground">No vendor applications have been submitted yet.</p>}{vendorApplications.data && vendorApplications.data.length > 0 && <div className="mt-5 grid gap-4 sm:grid-cols-2">{vendorApplications.data.map(application => <article className="rounded-2xl border bg-white p-5" key={application.id}><h3 className="font-semibold">{application.fullName || "Vendor application"}</h3><p className="mt-2 text-sm text-muted-foreground">Agreement: {application.agreementAcceptedAt ? "Recorded" : "Missing"}</p><p className="mt-1 text-sm text-muted-foreground">Status: {application.isApproved ? "Approved" : "Pending or suspended"}</p><button className="primary-cta mt-5" disabled={updateVendorApproval.isPending || !application.agreementAcceptedAt} onClick={() => updateVendorApproval.mutate({ profileId: application.id, approved: !application.isApproved })}>{application.isApproved ? "Suspend listing access" : "Approve vendor"}</button></article>)}</div>}</section>}
+        {!moderationQueue.isError && !moderationQueue.isLoading && !requestQueue.isError && <section className="mt-12 border-t pt-10"><p className="eyebrow">Request Desk</p><h2 className="mt-2 text-2xl font-semibold">Private item requests</h2><p className="mt-2 max-w-2xl text-sm text-muted-foreground">Review each request manually. This queue deliberately excludes buyer phone numbers, exact addresses, supplier details, payment instructions, and delivery promises.</p>{requestQueue.isLoading && <p className="mt-5 text-sm text-muted-foreground" aria-live="polite">Loading private requests…</p>}{requestQueue.data?.length === 0 && <p className="mt-5 rounded-xl border bg-white p-4 text-sm text-muted-foreground">No Request Desk submissions have been recorded yet.</p>}{requestQueue.data && requestQueue.data.length > 0 && <div className="mt-5 grid gap-4 sm:grid-cols-2">{requestQueue.data.map((item: V3ItemRequest) => <article className="rounded-2xl border bg-white p-5" key={item.id}><div className="flex items-start justify-between gap-3"><h3 className="font-semibold">{item.title}</h3><span className="shrink-0 rounded-full bg-muted px-2.5 py-1 text-xs font-medium">{item.status}</span></div><p className="mt-3 text-sm text-muted-foreground">{item.details}</p>{item.budget_hint && <p className="mt-3 text-sm text-muted-foreground">Budget hint: KES {Number(item.budget_hint).toLocaleString("en-KE")}</p>}<p className="mt-1 text-sm text-muted-foreground">Preference: {item.preferred_fulfilment.replaceAll("_", " ")}{item.preferred_location ? ` · ${item.preferred_location}` : ""}</p></article>)}</div>}</section>}
       </main>
 
       <AlertDialog open={Boolean(productToDelete)} onOpenChange={open => !open && setProductToDelete(null)}>

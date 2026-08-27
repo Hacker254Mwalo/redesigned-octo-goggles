@@ -149,6 +149,23 @@ describe("public performance and mobile foundations", () => {
     expect(requestDesk).toContain("MtaaMarket will review every request manually.");
   });
 
+  it("keeps Request Desk on the Supabase account dialog and V3 request path without collecting a phone or entering the legacy workspace", () => {
+    const requestDesk = readFileSync(resolve(projectRoot, "client/src/pages/RequestDeskPage.tsx"), "utf8");
+    const v3Requests = readFileSync(resolve(projectRoot, "server/v3-requests.ts"), "utf8");
+
+    expect(requestDesk).toContain("useSupabaseAuth");
+    expect(requestDesk).toContain("MtaaAccountDialog");
+    expect(requestDesk).toContain("createV3ItemRequest");
+    expect(requestDesk).not.toContain("@/_core/hooks/useAuth");
+    expect(requestDesk).not.toContain("startLogin");
+    expect(requestDesk).not.toContain("marketplace.createItemRequest");
+    expect(requestDesk).not.toContain('setLocation("/dashboard")');
+    expect(v3Requests).toContain('from("item_requests")');
+    expect(v3Requests).toContain("customer_phone: null");
+    expect(v3Requests).toContain("source_route: null");
+    expect(v3Requests).not.toContain("delivery_fee");
+  });
+
   it("keeps launch-stage seller and catalogue messaging truthful while the first listings are being prepared", () => {
     const home = readFileSync(resolve(projectRoot, "client/src/pages/Home.tsx"), "utf8");
 
