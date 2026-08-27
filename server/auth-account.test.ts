@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { ACCOUNT_EMAIL_ACTION_COOLDOWN_SECONDS, ACCOUNT_MIN_PASSWORD_LENGTH, accountEmailCooldownNotice, passwordRecoveryNotice, validateMtaaMarketPassword } from "../client/src/lib/auth-account";
+import { ACCOUNT_EMAIL_ACTION_COOLDOWN_SECONDS, ACCOUNT_MIN_PASSWORD_LENGTH, accountActionErrorMessage, accountEmailCooldownNotice, passwordRecoveryNotice, validateMtaaMarketPassword } from "../client/src/lib/auth-account";
 
 const supabaseAuthContextSource = readFileSync(
   new URL("../client/src/contexts/SupabaseAuthContext.tsx", import.meta.url),
@@ -26,6 +26,12 @@ describe("MtaaMarket email/password account safeguards", () => {
     expect(notice).toContain("verification code");
     expect(notice).not.toContain("six-digit");
     expect(notice).not.toContain("does not exist");
+  });
+
+  it("explains when Supabase rejects a password that matches the current password", () => {
+    expect(accountActionErrorMessage({ code: "same_password" })).toContain("different password");
+    expect(accountActionErrorMessage({ message: "New password should be different from the old password." })).toContain("different password");
+    expect(accountActionErrorMessage({ code: "unexpected" })).toContain("could not complete");
   });
 
   it("uses a short, transparent cooldown to reduce duplicate account-email requests", () => {
@@ -55,6 +61,12 @@ describe("MtaaMarket email/password account safeguards", () => {
     expect(accountDialogSource).toContain("maxLength={8}");
     expect(accountDialogSource).not.toContain("six-digit code");
     expect(accountDialogSource).not.toContain("signInWithGoogle");
+  });
+
+  it("keeps reset-page recovery guidance aligned with the hosted code formats", () => {
+    const resetPageSource = readFileSync(new URL("../client/src/pages/ResetPasswordPage.tsx", import.meta.url), "utf8");
+    expect(resetPageSource).toContain("six- or eight-digit code");
+    expect(resetPageSource).toContain("accountActionErrorMessage(error)");
   });
 
   it("keeps unconfigured Google OAuth and passwordless sign-in out of the production client account bridge", () => {

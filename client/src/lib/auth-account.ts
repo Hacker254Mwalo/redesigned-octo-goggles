@@ -15,7 +15,13 @@ export function passwordSignupNotice() {
   return "We sent a verification code to verify the new password account. Enter it here to complete account setup.";
 }
 
-export function accountActionErrorMessage() {
+export function accountActionErrorMessage(error?: unknown) {
+  const authError = error as { code?: unknown; message?: unknown } | undefined;
+  const code = typeof authError?.code === "string" ? authError.code : "";
+  const message = typeof authError?.message === "string" ? authError.message.toLowerCase() : "";
+  if (code === "same_password" || message.includes("different from the old password")) {
+    return "Choose a different password than your current password, then save it again.";
+  }
   return "MtaaMarket could not complete that account step. Check your details and try again later.";
 }
 
