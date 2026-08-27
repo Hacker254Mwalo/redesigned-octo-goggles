@@ -99,14 +99,14 @@ describe("public performance and mobile foundations", () => {
     expect(callback).not.toContain("You are signed in with email.");
   });
 
-  it("keeps the public dashboard route on a V3 transition gate instead of invoking legacy protected operations", () => {
+  it("keeps the dashboard on the unified V3 founder workspace without invoking legacy operations panels", () => {
     const dashboard = readFileSync(resolve(projectRoot, "client/src/pages/DashboardPage.tsx"), "utf8");
 
-    expect(dashboard).toContain("Workspace access is being prepared.");
-    expect(dashboard).toContain("Open Seller Studio guide");
-    expect(dashboard).toContain("protected V3 account and role migration is independently verified");
-    expect(dashboard).toContain("does not open an older profile, order, seller, payment, or operations system");
-    expect(dashboard).not.toMatch(/trpc\.marketplace\./);
+    expect(dashboard).toContain("Your MtaaMarket workspace");
+    expect(dashboard).toContain("Request Desk");
+    expect(dashboard).toContain("Seller Studio");
+    expect(dashboard).toContain("Owner console");
+    expect(dashboard).toContain("trpc.marketplace.v3VendorAccess.useQuery");
     expect(dashboard).not.toContain("VendorProductForm");
     expect(dashboard).not.toContain("AdminOperationsPanel");
   });
