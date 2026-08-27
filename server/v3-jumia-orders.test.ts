@@ -54,7 +54,7 @@ describe("normal Jumia customer orders", () => {
     const current = chain({ maybeSingle: { data: { id: "55555555-5555-4555-8555-555555555555", status: "accepted", payment_status: "paid", confirmed_at: null, completed_at: null }, error: null } });
     vi.mocked(getSupabaseServiceClient).mockReturnValue({ from: vi.fn().mockReturnValue(current) } as never);
 
-    await expect(updateV3OwnerJumiaOrder(owner, { orderId: "55555555-5555-4555-8555-555555555555", status: "cancelled", cancellationReason: "Item unavailable" })).rejects.toThrow("Record the refund");
+    await expect(updateV3OwnerJumiaOrder(owner, { orderId: "55555555-5555-4555-8555-555555555555", status: "cancelled", cancellationReason: "Item unavailable" })).rejects.toThrow("three-working-day refund");
     expect(requireV3Owner).toHaveBeenCalledWith(owner);
     expect(current.update).not.toHaveBeenCalled();
   });

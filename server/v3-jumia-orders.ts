@@ -6,7 +6,7 @@ import { requireV3Owner } from "./v3-profiles";
 
 const JUMIA_FULFILMENT_METHODS = ["siaya_pickup", "home_delivery", "collection_point"] as const;
 const JUMIA_PAYMENT_TIMINGS = ["pay_on_collection", "pay_on_delivery"] as const;
-const JUMIA_PAYMENT_STATUSES = ["not_due", "paid", "refunded"] as const;
+const JUMIA_PAYMENT_STATUSES = ["not_due", "paid", "refund_due", "refunded"] as const;
 const JUMIA_ORDER_STATUSES = ["placed", "confirming", "accepted", "sourcing", "ready", "out_for_delivery", "completed", "cancelled"] as const;
 
 type JumiaFulfilmentMethod = (typeof JUMIA_FULFILMENT_METHODS)[number];
@@ -63,6 +63,17 @@ function normalizePhone(value: string) {
 function makeOrderNumber(now = new Date()) {
   const date = [String(now.getFullYear()).slice(-2), String(now.getMonth() + 1).padStart(2, "0"), String(now.getDate()).padStart(2, "0")].join("");
   return `JM-${date}-${randomUUID().replace(/-/g, "").slice(0, 6).toUpperCase()}`;
+}
+
+function addBusinessDays(from: Date, businessDays: number) {
+  const result = new Date(from);
+  let added = 0;
+  while (added < businessDays) {
+    result.setUTCDate(result.getUTCDate() + 1);
+    const day = result.getUTCDay();
+    if (day !== 0 && day !== 6) added += 1;
+  }
+  return result;
 }
 
 export function assertJumiaOrderTransition(from: JumiaOrderStatus, to: JumiaOrderStatus) {
@@ -132,6 +143,8 @@ export async function createV3JumiaOrder(identity: SupabaseIdentity | null, inpu
     quoted_amount: null,
     owner_notes: null,
     cancellation_reason: null,
+    refund_due_at: null,
+    refund_completed_at: null,
   }).select("id,order_number,status,payment_status,payment_timing,fulfilment_method,preferred_location,delivery_schedule,quoted_amount,items,created_at,updated_at").single();
   if (error || !data) throw new Error("MtaaMarket could not record your Jumia order. Please try again.");
   return data;
@@ -140,7 +153,7 @@ export async function createV3JumiaOrder(identity: SupabaseIdentity | null, inpu
 export async function listV3BuyerJumiaOrders(identity: SupabaseIdentity | null) {
   if (!identity) return [];
   const { data, error } = await getSupabaseServiceClient().from("jumia_orders")
-    .select("id,order_number,status,payment_status,payment_timing,fulfilment_method,preferred_location,delivery_schedule,quoted_amount,items,created_at,updated_at,cancellation_reason")
+    .select("id,order_number,status,payment_status,payment_timing,fulfilment_method,preferred_location,delivery_schedule,quoted_amount,items,created_at,updated_at,cancellation_reason,refund_due_at,refund_completed_at")
     .eq("buyer_profile_id", identity.subject)
     .order("created_at", { ascending: false })
     .limit(40);
@@ -151,7 +164,7 @@ export async function listV3BuyerJumiaOrders(identity: SupabaseIdentity | null) 
 export async function listV3OwnerJumiaOrders(identity: SupabaseIdentity | null) {
   await requireV3Owner(identity);
   const { data, error } = await getSupabaseServiceClient().from("jumia_orders")
-    .select("id,order_number,buyer_profile_id,customer_name,customer_phone,status,payment_status,payment_timing,fulfilment_method,preferred_location,delivery_schedule,order_note,quoted_amount,items,owner_notes,cancellation_reason,confirmed_at,completed_at,created_at,updated_at")
+    .select("id,order_number,buyer_profile_id,customer_name,customer_phone,status,payment_status,payment_timing,fulfilment_method,preferred_location,delivery_schedule,order_note,quoted_amount,items,owner_notes,cancellation_reason,refund_due_at,refund_completed_at,confirmed_at,completed_at,created_at,updated_at")
     .order("created_at", { ascending: true })
     .limit(100);
   if (error) throw new Error("MtaaMarket could not load the Jumia fulfilment queue.");
@@ -161,12 +174,14 @@ export async function listV3OwnerJumiaOrders(identity: SupabaseIdentity | null) 
 export async function updateV3OwnerJumiaOrder(identity: SupabaseIdentity | null, input: UpdateJumiaOrderInput) {
   await requireV3Owner(identity);
   const client = getSupabaseServiceClient();
-  const current = await client.from("jumia_orders").select("id,status,payment_status,confirmed_at,completed_at").eq("id", input.orderId).maybeSingle();
+  const current = await client.from("jumia_orders").select("id,status,payment_status,confirmed_at,completed_at,refund_due_at,refund_completed_at").eq("id", input.orderId).maybeSingle();
   if (current.error || !current.data) throw new Error("Jumia order not found.");
   if (input.status !== current.data.status) assertJumiaOrderTransition(current.data.status as JumiaOrderStatus, input.status);
   if (input.quotedAmount !== undefined && (!Number.isFinite(input.quotedAmount) || input.quotedAmount < 0 || input.quotedAmount > 10_000_000)) throw new Error("Enter a valid confirmed Jumia amount.");
   if (input.paymentStatus && !JUMIA_PAYMENT_STATUSES.includes(input.paymentStatus)) throw new Error("Choose a valid payment status.");
-  if (input.status === "cancelled" && current.data.payment_status === "paid" && input.paymentStatus !== "refunded") throw new Error("Record the refund before cancelling an order that was paid.");
+  if (input.status === "cancelled" && input.cancellationReason !== undefined && input.cancellationReason.trim().length < 3) throw new Error("Add a cancellation reason.");
+  if (input.status === "cancelled" && input.cancellationReason === undefined && current.data.status !== "cancelled") throw new Error("Add a cancellation reason.");
+  if (input.status === "cancelled" && current.data.payment_status === "paid" && input.paymentStatus !== "refund_due" && input.paymentStatus !== "refunded") throw new Error("Record the three-working-day refund as due before cancelling an order that was paid.");
   if (input.status === "completed" && input.paymentStatus !== "paid" && current.data.payment_status !== "paid") throw new Error("Record payment at hand-off before completing this order.");
   const values: Record<string, unknown> = { status: input.status };
   if (input.quotedAmount !== undefined) values.quoted_amount = input.quotedAmount;
@@ -178,7 +193,14 @@ export async function updateV3OwnerJumiaOrder(identity: SupabaseIdentity | null,
   if (input.cancellationReason !== undefined) values.cancellation_reason = input.cancellationReason.trim().slice(0, 600) || null;
   if (input.status === "accepted" && !current.data.confirmed_at) values.confirmed_at = new Date().toISOString();
   if (input.status === "completed" && !current.data.completed_at) values.completed_at = new Date().toISOString();
-  if (input.status === "cancelled" && current.data.payment_status === "paid") values.payment_status = "refunded";
+  if (input.status === "cancelled" && current.data.payment_status === "paid" && input.paymentStatus === "refund_due") {
+    values.payment_status = "refund_due";
+    values.refund_due_at = addBusinessDays(new Date(), 3).toISOString();
+  }
+  if (current.data.payment_status === "refund_due" && input.paymentStatus === "refunded") {
+    values.payment_status = "refunded";
+    values.refund_completed_at = new Date().toISOString();
+  }
   const result = await client.from("jumia_orders").update(values).eq("id", input.orderId).select("id,order_number,status,payment_status,quoted_amount,updated_at,confirmed_at,completed_at,cancellation_reason").maybeSingle();
   if (result.error || !result.data) throw new Error("MtaaMarket could not update the Jumia order.");
   return result.data;
