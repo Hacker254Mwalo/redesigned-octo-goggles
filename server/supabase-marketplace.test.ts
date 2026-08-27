@@ -1,7 +1,39 @@
-import { describe, expect, it } from "vitest";
-import { mapOptionalSupabasePublicProduct, mapSupabaseCategory, mapSupabasePublicProduct } from "./supabase-marketplace";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("./supabase", () => ({
+  getSupabaseServiceClient: vi.fn(),
+  isSupabaseConfigured: vi.fn(),
+}));
+
+import { getSupabaseServiceClient, isSupabaseConfigured } from "./supabase";
+import { listSupabasePublicProducts, mapOptionalSupabasePublicProduct, mapSupabaseCategory, mapSupabasePublicProduct } from "./supabase-marketplace";
+
+function createV3ProductsQuery(data: unknown[] = []) {
+  const query = {
+    select: vi.fn(),
+    eq: vi.fn(),
+    order: vi.fn(),
+    limit: vi.fn(),
+    or: vi.fn(),
+    then: (resolve: (value: { data: unknown[]; error: null }) => unknown, reject: (reason: unknown) => unknown) =>
+      Promise.resolve({ data, error: null }).then(resolve, reject),
+  };
+
+  query.select.mockReturnValue(query);
+  query.eq.mockReturnValue(query);
+  query.order.mockReturnValue(query);
+  query.limit.mockReturnValue(query);
+  query.or.mockReturnValue(query);
+
+  return query;
+}
 
 describe("Supabase public marketplace adapter", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(isSupabaseConfigured).mockReturnValue(true);
+  });
+
   it("maps the isolated PostgreSQL category shape to the existing public catalogue contract", () => {
     const category = mapSupabaseCategory({
       id: "6e65495c-2fd6-41d5-a00a-eabb9d8bc1ed",
@@ -46,5 +78,19 @@ describe("Supabase public marketplace adapter", () => {
 
   it("returns explicit null when no public product record exists so the client query never resolves undefined", () => {
     expect(mapOptionalSupabasePublicProduct(null)).toBeNull();
+  });
+
+  it("queries only V3 ACTIVE products and never requests the removed legacy moderation field", async () => {
+    const query = createV3ProductsQuery();
+    const client = { from: vi.fn().mockReturnValue(query) };
+    vi.mocked(getSupabaseServiceClient).mockReturnValue(client as never);
+
+    await expect(listSupabasePublicProducts({ limit: 12 })).resolves.toEqual([]);
+
+    expect(client.from).toHaveBeenCalledWith("products");
+    expect(query.eq).toHaveBeenCalledTimes(1);
+    expect(query.eq).toHaveBeenCalledWith("status", "ACTIVE");
+    expect(query.select).toHaveBeenCalledWith(expect.not.stringContaining("base_price"));
+    expect(query.select).toHaveBeenCalledWith(expect.not.stringContaining("moderation_status"));
   });
 });

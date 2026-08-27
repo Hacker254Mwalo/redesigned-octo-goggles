@@ -215,12 +215,14 @@ describe("public performance and mobile foundations", () => {
     const app = readFileSync(resolve(projectRoot, "client/src/App.tsx"), "utf8");
     const admin = readFileSync(resolve(projectRoot, "client/src/pages/Admin.tsx"), "utf8");
     const moderation = readFileSync(resolve(projectRoot, "server/v3-moderation.ts"), "utf8");
+    const profiles = readFileSync(resolve(projectRoot, "server/v3-profiles.ts"), "utf8");
 
     expect(app).toContain('path={"/admin"}');
-    expect(admin).toContain("v3PendingProducts.useQuery");
+    expect(admin).toContain("v3ModerationProducts.useQuery");
     expect(admin).toContain("Approve");
     expect(admin).toContain("Reject");
-    expect(moderation).toContain('data?.role !== "admin"');
+    expect(moderation).toContain('import { requireV3Owner } from "./v3-profiles"');
+    expect(profiles).toContain('data?.role !== "admin"');
     expect(moderation).toContain('in("status", ["PENDING", "ACTIVE", "FLAGGED"])');
     expect(moderation).toContain('status: "ACTIVE" | "REJECTED" | "FLAGGED"');
     expect(moderation).toContain("deleteV3Product");

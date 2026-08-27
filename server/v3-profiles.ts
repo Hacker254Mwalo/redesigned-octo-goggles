@@ -1,0 +1,109 @@
+import { getSupabaseServiceClient } from "./supabase";
+import type { SupabaseIdentity } from "./supabase-auth";
+
+type V3ProfileRow = {
+  id: string;
+  full_name: string | null;
+  is_vendor: boolean;
+  is_vendor_approved: boolean;
+  role: "buyer" | "vendor" | "admin";
+  vendor_agreement_accepted_at: string | null;
+  created_at: string;
+};
+
+export type V3VendorAccess = {
+  isVendor: boolean;
+  isVendorApproved: boolean;
+  agreementAcceptedAt: string | null;
+  canSubmitListings: boolean;
+};
+
+function normalizedEmail(value: string | null | undefined) {
+  return value?.trim().toLowerCase() || "";
+}
+
+function mapVendorAccess(profile: Pick<V3ProfileRow, "is_vendor" | "is_vendor_approved" | "vendor_agreement_accepted_at"> | null): V3VendorAccess {
+  const agreementAcceptedAt = profile?.vendor_agreement_accepted_at ?? null;
+  const isVendor = Boolean(profile?.is_vendor);
+  const isVendorApproved = Boolean(profile?.is_vendor_approved);
+  return { isVendor, isVendorApproved, agreementAcceptedAt, canSubmitListings: isVendor && isVendorApproved && Boolean(agreementAcceptedAt) };
+}
+
+export async function requireV3Owner(identity: SupabaseIdentity | null) {
+  if (!identity) throw new Error("Sign in with a verified owner email session.");
+  const { data, error } = await getSupabaseServiceClient().from("profiles").select("id,role").eq("id", identity.subject).maybeSingle();
+  if (error || data?.role !== "admin") throw new Error("Owner access is required for this operation.");
+}
+
+export async function getV3VendorAccess(identity: SupabaseIdentity | null): Promise<V3VendorAccess> {
+  if (!identity) throw new Error("Sign in with your verified MtaaMarket email first.");
+  const { data, error } = await getSupabaseServiceClient()
+    .from("profiles")
+    .select("id,full_name,is_vendor,is_vendor_approved,role,vendor_agreement_accepted_at,created_at")
+    .eq("id", identity.subject)
+    .maybeSingle();
+  if (error) throw new Error("MtaaMarket could not check your vendor access.");
+  return mapVendorAccess(data as V3ProfileRow | null);
+}
+
+/** Only the server-configured founder email can claim the first V3 owner role after authentication verifies the identity. */
+export async function bootstrapV3Owner(identity: SupabaseIdentity | null) {
+  if (!identity) throw new Error("Sign in with your verified MtaaMarket email first.");
+  const founderEmail = normalizedEmail(process.env.FOUNDER_EMAIL);
+  if (!founderEmail) throw new Error("Founder owner activation is not configured yet.");
+  if (normalizedEmail(identity.email) !== founderEmail) throw new Error("This verified email is not authorized to activate the MtaaMarket owner role.");
+
+  const client = getSupabaseServiceClient();
+  const existing = await client.from("profiles").select("id,role").eq("id", identity.subject).maybeSingle();
+  if (existing.error) throw new Error("MtaaMarket could not check the founder profile.");
+
+  const result = existing.data
+    ? await client.from("profiles").update({ role: "admin" }).eq("id", identity.subject).select("id,role").maybeSingle()
+    : await client.from("profiles").insert({ id: identity.subject, role: "admin" }).select("id,role").maybeSingle();
+  if (result.error || !result.data) throw new Error("MtaaMarket could not activate the owner role.");
+  return { role: "admin" as const };
+}
+
+/** Records a vendor's explicit agreement acknowledgement and opens an owner-review request. Approval stays false unless an owner grants it. */
+export async function applyForV3Vendor(identity: SupabaseIdentity | null, agreementAccepted: boolean) {
+  if (!identity) throw new Error("Sign in with your verified MtaaMarket email first.");
+  if (!agreementAccepted) throw new Error("Accept the vendor agreement before requesting approval.");
+
+  const client = getSupabaseServiceClient();
+  const existing = await client.from("profiles").select("id,is_vendor,is_vendor_approved,vendor_agreement_accepted_at").eq("id", identity.subject).maybeSingle();
+  if (existing.error) throw new Error("MtaaMarket could not check the vendor profile.");
+
+  const agreementAcceptedAt = new Date().toISOString();
+  const result = existing.data
+    ? await client.from("profiles").update({ is_vendor: true, is_vendor_approved: false, vendor_agreement_accepted_at: agreementAcceptedAt }).eq("id", identity.subject).select("id,is_vendor,is_vendor_approved,vendor_agreement_accepted_at").maybeSingle()
+    : await client.from("profiles").insert({ id: identity.subject, is_vendor: true, is_vendor_approved: false, role: "buyer", vendor_agreement_accepted_at: agreementAcceptedAt }).select("id,is_vendor,is_vendor_approved,vendor_agreement_accepted_at").maybeSingle();
+  if (result.error || !result.data) throw new Error("MtaaMarket could not record your vendor request.");
+  return mapVendorAccess(result.data as Pick<V3ProfileRow, "is_vendor" | "is_vendor_approved" | "vendor_agreement_accepted_at">);
+}
+
+export async function listV3VendorApplications(identity: SupabaseIdentity | null) {
+  await requireV3Owner(identity);
+  const { data, error } = await getSupabaseServiceClient()
+    .from("profiles")
+    .select("id,full_name,is_vendor,is_vendor_approved,role,vendor_agreement_accepted_at,created_at")
+    .eq("is_vendor", true)
+    .order("created_at", { ascending: true });
+  if (error) throw new Error("MtaaMarket could not load vendor applications.");
+  return (data as V3ProfileRow[] ?? []).map(profile => ({
+    id: profile.id,
+    fullName: profile.full_name,
+    isApproved: profile.is_vendor_approved,
+    agreementAcceptedAt: profile.vendor_agreement_accepted_at,
+    requestedAt: profile.created_at,
+  }));
+}
+
+export async function updateV3VendorApproval(identity: SupabaseIdentity | null, profileId: string, approved: boolean) {
+  await requireV3Owner(identity);
+  const client = getSupabaseServiceClient();
+  const { data: candidate, error: candidateError } = await client.from("profiles").select("id,is_vendor,vendor_agreement_accepted_at").eq("id", profileId).maybeSingle();
+  if (candidateError || !candidate?.is_vendor || !candidate.vendor_agreement_accepted_at) throw new Error("Only an agreement-backed vendor request can be approved or suspended.");
+  const { data, error } = await client.from("profiles").update({ is_vendor_approved: approved }).eq("id", profileId).select("id,is_vendor_approved").maybeSingle();
+  if (error || !data) throw new Error("MtaaMarket could not update vendor approval.");
+  return { id: data.id, isApproved: data.is_vendor_approved };
+}

@@ -60,10 +60,9 @@ type SupabasePublicProductRow = {
   title: string;
   description: string | null;
   image_url: string;
-  base_price: string | number;
   final_price: string | number;
   is_admin_concierge: boolean;
-  status: "PENDING" | "ACTIVE" | "REJECTED";
+  status: "PENDING" | "ACTIVE" | "REJECTED" | "FLAGGED";
   allow_pay_on_pickup: boolean;
   created_at: string;
 };
@@ -117,7 +116,7 @@ export function mapOptionalSupabasePublicProduct(row: SupabasePublicProductRow |
   return row ? mapSupabasePublicProduct(row) : null;
 }
 
-const PUBLIC_PRODUCT_SELECT = "id,vendor_id,title,description,image_url,base_price,final_price,is_admin_concierge,status,allow_pay_on_pickup,created_at";
+const PUBLIC_PRODUCT_SELECT = "id,vendor_id,title,description,image_url,final_price,is_admin_concierge,status,allow_pay_on_pickup,created_at";
 
 function safeSearchTerm(search?: string) {
   return search?.trim().replace(/[%,_()]/g, " ").replace(/\s+/g, " ").slice(0, 100) || undefined;
@@ -129,8 +128,7 @@ export async function listSupabasePublicProducts(input?: { categorySlug?: string
   let query = getSupabaseServiceClient()
     .from("products")
     .select(PUBLIC_PRODUCT_SELECT)
-    .eq("status", "active")
-    .eq("moderation_status", "visible")
+    .eq("status", "ACTIVE")
     .order("created_at", { ascending: false })
     .limit(limit);
 

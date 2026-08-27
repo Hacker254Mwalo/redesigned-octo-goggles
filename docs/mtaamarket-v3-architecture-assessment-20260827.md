@@ -75,6 +75,21 @@ The later production-core directive was reviewed against the deployed V3 baselin
 
 The pgvector column/function, source URL, sourcing requests, and escrow-oriented states were not added. Vector search needs an approved embedding model, price/credit budget, input-redaction and retention policy, error/rate-limit path, human review boundary, and regression coverage before any model call. Sourcing and payment features require a least-privilege write path and a verified buyer/owner identity model; neither is created by a public client page. The existing public catalogue remains limited to V3 `ACTIVE` products, while the basket can record only a local, confirmation-gated collection preference.
 
+## First-owner and vendor-activation foundation
+
+The protected V3 path now supports a deliberately narrow operational bootstrap. A person must first authenticate through Supabase email verification. Only then may the server compare the verified email address with the private `FOUNDER_EMAIL` environment value. A match may create or promote **that same verified UUID profile only** to `role = admin`; no frontend code receives the allow-list value, profile identifiers, or a general role-assignment capability. This implementation is deployed as a capability, not an assertion that an owner has already activated it.
+
+An authenticated member can record a vendor agreement and create a vendor-approval request, but the request remains unapproved. The owner console can list agreement-backed applications and approve or suspend listing access. The server rejects any approval where the vendor flag or agreement timestamp is absent. Newly approved vendors may submit only original JPEG, PNG, or WebP listing images through the server-controlled storage path, and every new product remains `PENDING` until separate owner moderation changes it to `ACTIVE`.
+
+| Workflow | Server-enforced gate | Public result before owner action |
+| --- | --- | --- |
+| First owner bootstrap | Verified identity email equals the private configured founder email. | No role or profile disclosure; no general admin signup. |
+| Vendor request | Verified email session plus explicit agreement acknowledgement. | `is_vendor = true`, `is_vendor_approved = false`; no listing access. |
+| Vendor approval or suspension | Verified V3 owner role plus an agreement-backed vendor request. | Listing eligibility changes only; public products remain separately moderated. |
+| Listing submission | Approved vendor flag, agreement timestamp, MIME/data/size/dimension validation, server storage write. | `PENDING` listing only; never public until approved. |
+
+No M-Pesa initiation, payment custody, payout, external supplier integration, scraping, automatic price decision, or AI/vector pipeline is part of this foundation.
+
 ## References
 
 [1]: https://www.centralbank.go.ke/national-payments-system/ "Central Bank of Kenya — National Payments System and authorised PSP directory"

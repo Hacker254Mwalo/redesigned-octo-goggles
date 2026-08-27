@@ -1,16 +1,11 @@
 import { getSupabaseServiceClient } from "./supabase";
 import type { SupabaseIdentity } from "./supabase-auth";
+import { requireV3Owner } from "./v3-profiles";
 
-async function requireV3Owner(identity: SupabaseIdentity | null) {
-  if (!identity) throw new Error("Sign in with a verified owner email session.");
-  const { data, error } = await getSupabaseServiceClient().from("profiles").select("id,role").eq("id", identity.subject).maybeSingle();
-  if (error || data?.role !== "admin") throw new Error("Owner access is required for product moderation.");
-}
-
-export async function listV3PendingProducts(identity: SupabaseIdentity | null) {
+export async function listV3ModerationProducts(identity: SupabaseIdentity | null) {
   await requireV3Owner(identity);
   const { data, error } = await getSupabaseServiceClient().from("products").select("id,title,image_url,vendor_id,final_price,status,created_at").in("status", ["PENDING", "ACTIVE", "FLAGGED"]).order("created_at", { ascending: true });
-  if (error) throw new Error("MtaaMarket could not load pending products.");
+  if (error) throw new Error("MtaaMarket could not load the moderation queue.");
   return data ?? [];
 }
 

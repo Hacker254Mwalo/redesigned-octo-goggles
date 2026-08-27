@@ -49,8 +49,9 @@ import { createItemRequestDraft, createListingDraft } from "./marketplace-ai";
 import { getProductionReadiness } from "./production-readiness";
 import { ensureSupabaseMarketplaceProfile } from "./supabase-profiles";
 import { createV3HubOrder } from "./v3-orders";
-import { deleteV3Product, listV3PendingProducts, moderateV3Product } from "./v3-moderation";
+import { deleteV3Product, listV3ModerationProducts, moderateV3Product } from "./v3-moderation";
 import { submitV3VendorProduct } from "./v3-vendor";
+import { applyForV3Vendor, bootstrapV3Owner, getV3VendorAccess, listV3VendorApplications, updateV3VendorApproval } from "./v3-profiles";
 
 const safeSearch = z.string().trim().max(100);
 const phone = z.string().trim().regex(/^\+?254[17]\d{8}$/, "Use a Kenyan number beginning with 254.").optional();
@@ -90,10 +91,15 @@ export const appRouter = router({
       if (!ctx.supabaseIdentity) throw new Error("Sign in with your verified MtaaMarket email session before confirming an order.");
       return createV3HubOrder(input);
     }),
-    v3PendingProducts: publicProcedure.query(({ ctx }) => listV3PendingProducts(ctx.supabaseIdentity)),
+    v3ModerationProducts: publicProcedure.query(({ ctx }) => listV3ModerationProducts(ctx.supabaseIdentity)),
     moderateV3Product: publicProcedure.input(z.object({ productId: z.string().uuid(), status: z.enum(["ACTIVE", "REJECTED", "FLAGGED"]) })).mutation(({ ctx, input }) => moderateV3Product(ctx.supabaseIdentity, input.productId, input.status)),
     deleteV3Product: publicProcedure.input(z.object({ productId: z.string().uuid() })).mutation(({ ctx, input }) => deleteV3Product(ctx.supabaseIdentity, input.productId)),
     submitV3VendorProduct: publicProcedure.input(z.object({ title: z.string().trim().min(3).max(180), price: z.number().positive().max(10_000_000), imageData: z.string().max(7_000_000), imageType: z.enum(["image/jpeg", "image/png", "image/webp"]) })).mutation(({ ctx, input }) => submitV3VendorProduct(ctx.supabaseIdentity, input)),
+    bootstrapV3Owner: publicProcedure.mutation(({ ctx }) => bootstrapV3Owner(ctx.supabaseIdentity)),
+    v3VendorAccess: publicProcedure.query(({ ctx }) => getV3VendorAccess(ctx.supabaseIdentity)),
+    applyForV3Vendor: publicProcedure.input(z.object({ agreementAccepted: z.literal(true) })).mutation(({ ctx, input }) => applyForV3Vendor(ctx.supabaseIdentity, input.agreementAccepted)),
+    v3VendorApplications: publicProcedure.query(({ ctx }) => listV3VendorApplications(ctx.supabaseIdentity)),
+    updateV3VendorApproval: publicProcedure.input(z.object({ profileId: z.string().uuid(), approved: z.boolean() })).mutation(({ ctx, input }) => updateV3VendorApproval(ctx.supabaseIdentity, input.profileId, input.approved)),
 
     myProfile: protectedProcedure.query(({ ctx }) => ensureMarketplaceProfile(ctx.user.id, ctx.user.name)),
     buyerWorkspace: protectedProcedure.query(async ({ ctx }) => {
