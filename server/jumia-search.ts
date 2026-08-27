@@ -93,8 +93,17 @@ function parsePrice(value: string) {
   return Number.isFinite(number) && number > 0 ? number : null;
 }
 
+function collapseRepeatedTitle(value: string) {
+  const normalized = value.toLowerCase();
+  for (let length = Math.floor(value.length / 2); length >= 20; length -= 1) {
+    const prefix = value.slice(0, length);
+    if (normalized.slice(length).startsWith(prefix.toLowerCase())) return `${prefix}${value.slice(length + prefix.length)}`;
+  }
+  return value;
+}
+
 function cleanTitle(value: string) {
-  let title = value.replace(/\s+/g, " ").replace(/^\s*(?:title\s*:\s*|add to cart\s+|buy\s+)/i, "").trim();
+  let title = collapseRepeatedTitle(value.replace(/\s+/g, " ")).replace(/^\s*(?:title\s*:\s*|add to cart\s+|buy\s+)/i, "").trim();
   title = title.replace(/\s+@\s*best price.*$/i, "");
   title = title.replace(/\s+available\s+at\s+best price.*$/i, "");
   title = title.replace(/\s*(?:\||[-–])\s*(?:best prices?|price)\s+online.*$/i, "");
@@ -136,9 +145,11 @@ function cleanSnippet(value: string, title: string) {
   snippet = snippet.replace(/@\s*best price.*?(?:\|\s*)?jumia kenya\s*[-–|]?/gi, " ");
   snippet = stripCatalogArtifacts(snippet);
   snippet = snippet.replace(/\b(?:our categories|our services|help center|place your order|payment options|delivery timelines?\s*&\s*track your order|returns\s*&\s*refunds|warranty|category|add to cart|official stores|phones\s*&\s*tablets|tvs\s*&\s*audio|appliances|health\s*&\s*beauty|home\s*&\s*office|fashion|computing|gaming|supermarket|baby products|other categories)\b[.:]?/gi, " ");
-  snippet = snippet.replace(/\s+/g, " ").replace(/^[\s|–—-]+|[\s|–—-]+$/g, "").trim();
+  snippet = snippet.replace(/\s+/g, " ").replace(/([a-z0-9)])(?=(?:If you are|This |The |Some of |It is)\b)/g, "$1. ").replace(/^[\s|–—-]+|[\s|–—-]+$/g, "").trim();
+  snippet = collapseRepeatedTitle(snippet);
   if (snippet.toLowerCase().startsWith(title.toLowerCase())) snippet = snippet.slice(title.length).trim();
-  return (snippet || "View current product details.").slice(0, 320);
+  const firstSentence = snippet.match(/^.{35,220}?(?:[.!?](?=\s|$)|$)/)?.[0]?.trim() || snippet.slice(0, 220).trim();
+  return (firstSentence || "View current product details.").slice(0, 220);
 }
 
 function isJumiaImageUrl(value: string) {
