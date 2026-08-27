@@ -229,3 +229,9 @@ The deployed protected form and server contract require factual animal type and 
 GitHub/Vercel deployment `3f3298d` completed successfully. A non-mutating live Home review confirmed that the public Siaya market loads with its existing server-backed local categories, ACTIVE-only catalogue query, and first-verified-listings empty state. The category area now labels the local filter group, shows a visible **Swipe to explore** cue on mobile, and exposes the selected filter through pressed-state semantics and a visible keyboard-focus treatment.
 
 The same release records the future founder-managed supplier-sourced collection as a separate, inactive design. Public Market, Request Desk, and assisted-sourcing wording remain supplier-neutral. No supplier catalogue, Jumia account access, copied supplier facts, live price or availability assertion, supplier checkout, buyer order, payment, named-pickup promise, home-delivery operation, AI request, sign-in, vendor action, or protected submission occurred during this verification.
+
+## V3 dashboard transition-gate verification
+
+GitHub/Vercel deployment `ac4efca` completed successfully. A non-mutating visit to the deployed `/dashboard` route confirmed that it now renders a clear private-workspace transition page with only public exits to the Seller Studio guide and market. The page does not load an older profile, order, seller, payment, or operations interface.
+
+This deployment keeps residual legacy components and procedures in source for a separately scoped retirement or migration review, while preventing the current public dashboard route from mounting them. No sign-in, profile, vendor application, listing, owner action, order, payment, dispute, delivery, supplier, AI, or other protected operation was performed during the check.
