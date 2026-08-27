@@ -1,31 +1,31 @@
-import { ArrowRight, BadgeCheck, ClipboardCheck, HandHeart, Info, MapPin, Search, ShieldCheck } from "lucide-react";
+import { ArrowRight, BadgeCheck, ClipboardCheck, MapPin, Search, ShieldCheck, ShoppingBag, Truck } from "lucide-react";
 import { Link } from "wouter";
 import { MarketplaceLayout } from "@/components/MarketplaceLayout";
 
 const steps = [
   {
     number: "01",
-    title: "Choose the item you want",
-    copy: "Send the item name, quantity or size, preferred condition, and any essential details through the Jumia Assisted Order form.",
-    icon: HandHeart,
-  },
-  {
-    number: "02",
-    title: "The founder checks JForce",
-    copy: "The founder checks the exact item, current availability, amount, and delivery route through the private JForce workflow.",
+    title: "Browse the market",
+    copy: "Find everyday products from local Siaya sellers and the wider Jumia selection.",
     icon: Search,
   },
   {
+    number: "02",
+    title: "Build your basket",
+    copy: "Choose your items, options, and quantities in one simple shopping basket.",
+    icon: ShoppingBag,
+  },
+  {
     number: "03",
-    title: "Review the confirmed order",
-    copy: "MtaaMarket sends you the confirmed item, final amount, and practical fulfilment preference before the Jumia order is placed.",
-    icon: ClipboardCheck,
+    title: "Choose your location",
+    copy: "Select collection in Siaya, a collection point, or home delivery.",
+    icon: MapPin,
   },
   {
     number: "04",
-    title: "Confirm or cancel",
-    copy: "You confirm whether to proceed. If the item is unavailable before purchase, the founder can cancel it; payment is due only at collection or delivery.",
-    icon: BadgeCheck,
+    title: "Receive your order",
+    copy: "Follow your order from preparation to collection or delivery.",
+    icon: Truck,
   },
 ];
 
@@ -35,32 +35,32 @@ export default function AssistedSourcingPage() {
       <div className="assisted-guide-page">
         <section className="assisted-guide-hero">
           <div className="assisted-guide-copy">
-            <p className="eyebrow">MtaaMarket assisted sourcing</p>
-            <h1>Choose with clarity.<br /><em>Pay at the hand-off.</em></h1>
-            <p>MtaaMarket can help you order a Jumia item through the founder’s JForce workflow. You submit the item normally, receive confirmation before purchase, and pay only when the parcel is collected or delivered.</p>
+            <p className="eyebrow">Shopping in Siaya</p>
+            <h1>Everything you need.<br /><em>Closer to home.</em></h1>
+            <p>Shop local products and explore a wider selection through MtaaMarket. Choose where you want your order delivered or collected, then follow it from your account.</p>
             <div className="guide-actions">
-              <Link href="/request" className="primary-cta">Start an item request <ArrowRight size={17} /></Link>
-              <Link href="/" className="secondary-cta">Browse current listings <Search size={16} /></Link>
+              <Link href="/" className="primary-cta">Browse the market <ArrowRight size={17} /></Link>
+              <Link href="/jumia" className="secondary-cta">Shop Jumia <Search size={16} /></Link>
             </div>
           </div>
-          <div className="assisted-guide-card" aria-label="Managed request process summary">
-            <span>MANAGED REQUEST</span>
+          <div className="assisted-guide-card" aria-label="Shopping summary">
+            <span>SIMPLE SHOPPING</span>
             <div className="guide-card-icon"><ShieldCheck size={27} /></div>
-            <strong>Founder confirmation before purchase.</strong>
-            <p>Every request stays subject to owner review and your confirmation.</p>
-            <div className="guide-card-rule"><Info size={15} /> No payment before hand-off</div>
+            <strong>One place for local shopping.</strong>
+            <p>Discover, order, and keep up with delivery from MtaaMarket.</p>
+            <div className="guide-card-rule"><BadgeCheck size={15} /> Made for Siaya buyers</div>
           </div>
         </section>
 
         <section className="guide-intro">
           <div>
-            <p className="eyebrow">A clearer local route</p>
-            <h2>Four steps, with no hidden jump to payment.</h2>
+            <p className="eyebrow">A better way to shop</p>
+            <h2>Simple from the first search to the final hand-off.</h2>
           </div>
-          <p>Assisted sourcing helps MtaaMarket respond to real Siaya needs while verified listings are added gradually. You decide only after the details are clear.</p>
+          <p>Browse what is available, choose what you need, and keep your order details in one clear place.</p>
         </section>
 
-        <section className="guide-step-grid" aria-label="How MtaaMarket assisted sourcing works">
+        <section className="guide-step-grid" aria-label="How MtaaMarket shopping works">
           {steps.map(({ number, title, copy, icon: Icon }) => (
             <article key={number}>
               <div className="guide-step-top"><span>{number}</span><Icon size={19} /></div>
@@ -73,35 +73,22 @@ export default function AssistedSourcingPage() {
         <section className="guide-confirmation">
           <div className="guide-confirmation-symbol"><ShieldCheck size={31} /></div>
           <div>
-            <p className="eyebrow">Before any payment instruction</p>
-            <h2>MtaaMarket confirms the decision details first.</h2>
-            <p>The founder confirms the actual item, current amount, practical hand-off route, and fulfilment preference with you. You can then choose whether to continue. The founder can cancel before purchase if the item is unavailable, and payment remains due at collection or delivery.</p>
+            <p className="eyebrow">Designed around you</p>
+            <h2>Local shopping, with more choice.</h2>
+            <p>Start with products listed by Siaya sellers or open the Jumia channel when you need a wider range. Your order, location, and progress stay together in your MtaaMarket account.</p>
           </div>
-          <Link href="/request" className="secondary-cta">Send a managed request <ArrowRight size={17} /></Link>
-        </section>
-
-        <section className="guide-boundaries">
-          <div className="guide-boundaries-heading">
-            <p className="eyebrow">Built on clear boundaries</p>
-            <h2>What the Jumia Assisted Order channel does.</h2>
-          </div>
-          <ul className="guide-boundary-list">
-            <li><span><ShieldCheck size={16} /></span><div><strong>Founder-managed fulfilment.</strong> The founder confirms and places the Jumia order through the private JForce workflow.</div></li>
-            <li><span><ShieldCheck size={16} /></span><div><strong>No extra MtaaMarket charge.</strong> The customer confirms the final amount before the order is placed.</div></li>
-            <li><span><ShieldCheck size={16} /></span><div><strong>Availability confirmation.</strong> The founder checks stock and the final amount before accepting the order.</div></li>
-            <li><span><ShieldCheck size={16} /></span><div><strong>Cancellation before purchase.</strong> If the item is unavailable, the order can be cancelled before the founder buys it.</div></li>
-          </ul>
+          <Link href="/jumia" className="secondary-cta">Shop Jumia <ArrowRight size={17} /></Link>
         </section>
 
         <section className="guide-closing">
           <div>
-            <p className="eyebrow">Ready when you are</p>
-            <h2>Tell MtaaMarket what would make your day easier.</h2>
-            <p>Use a broad Siaya area or collection suggestion, not an exact address. Your request starts an order confirmation—not a payment or a forced purchase.</p>
+            <p className="eyebrow">Start shopping</p>
+            <h2>Find your next purchase today.</h2>
+            <p>Explore the market or search the Jumia selection for something specific.</p>
           </div>
           <div className="guide-closing-actions">
-            <Link href="/request" className="primary-cta">Open Request Desk <ArrowRight size={17} /></Link>
-            <span><MapPin size={15} /> Siaya-focused fulfilment preferences</span>
+            <Link href="/" className="primary-cta">Open the market <ArrowRight size={17} /></Link>
+            <span><MapPin size={15} /> Serving Siaya and nearby areas</span>
           </div>
         </section>
       </div>

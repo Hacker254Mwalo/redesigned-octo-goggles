@@ -178,15 +178,15 @@ describe("public performance and mobile foundations", () => {
     expect(vendorPage).not.toContain('setLocation("/dashboard")');
   });
 
-  it("keeps launch-stage seller and catalogue messaging truthful while the first listings are being prepared", () => {
+  it("keeps premium marketplace and catalogue messaging truthful while local listings grow", () => {
     const home = readFileSync(resolve(projectRoot, "client/src/pages/Home.tsx"), "utf8");
 
-    expect(home).toContain("browse a wider Jumia selection through MtaaMarket");
+    expect(home).toContain("explore a wider Jumia selection through MtaaMarket");
     expect(home).toContain("Siaya sellers");
-    expect(home).toContain("No extra MtaaMarket charge");
+    expect(home).toContain("Local shopping");
     expect(home).toContain("wider Jumia selection");
     expect(home).toContain("Search local products");
-    expect(home).toContain("Shop the same kind of item through the default Jumia channel");
+    expect(home).toContain("Find more options through Jumia");
     expect(home).toContain("Shop this item on Jumia");
     expect(home).toContain("Local categories");
     expect(home).toContain("Swipe to explore");
@@ -196,7 +196,7 @@ describe("public performance and mobile foundations", () => {
     expect(home).not.toContain("Sellers serve Siaya buyers");
   });
 
-  it("offers a public owner-managed assisted-sourcing guide without activating supplier or payment actions", () => {
+  it("offers a public shopping guide without exposing internal operations", () => {
     const app = readFileSync(resolve(projectRoot, "client/src/App.tsx"), "utf8");
     const layout = readFileSync(resolve(projectRoot, "client/src/components/MarketplaceLayout.tsx"), "utf8");
     const home = readFileSync(resolve(projectRoot, "client/src/pages/Home.tsx"), "utf8");
@@ -206,22 +206,19 @@ describe("public performance and mobile foundations", () => {
     expect(app).toContain('path={"/how-it-works"}');
     expect(layout).toContain('href="/how-it-works"');
     expect(home).toContain('href="/how-it-works"');
-    expect(guide).toContain("The founder checks JForce");
-    expect(guide).toContain("Before any payment instruction");
-    expect(guide).toContain("No payment before hand-off");
-    expect(guide).toContain("Founder-managed fulfilment.");
-    expect(guide).toContain("No extra MtaaMarket charge.");
-    expect(guide).toContain("Cancellation before purchase.");
-    expect(guide).not.toMatch(/(?:fetch\(|axios|invokeLLM|signIn|checkout\()/);
+    expect(guide).toContain("Shopping in Siaya");
+    expect(guide).toContain("Browse the market");
+    expect(guide).toContain("One place for local shopping.");
+    expect(guide).not.toMatch(/(?:founder|JForce|assisted sourcing|payment before|approval|fetch\(|axios|invokeLLM|signIn|checkout\()/i);
   });
 
-  it("uses hydration-safe semantic list markup for assisted-sourcing boundaries", () => {
+  it("uses hydration-safe semantic markup for the shopping guide", () => {
     const guide = readFileSync(resolve(projectRoot, "client/src/pages/AssistedSourcingPage.tsx"), "utf8");
     const styles = readFileSync(resolve(projectRoot, "client/src/index.css"), "utf8");
 
-    expect(guide).toContain('<ul className="guide-boundary-list">');
-    expect(guide).toContain("<li><span><ShieldCheck size={16} /></span><div>");
-    expect(guide).not.toContain("<p><span><ShieldCheck size={16} /></span><div>");
+    expect(guide).toContain('aria-label="How MtaaMarket shopping works"');
+    expect(guide).toContain('number: "01"');
+    expect(guide).not.toContain("guide-boundary-list");
     expect(styles).toContain(".guide-boundary-list li{");
     expect(styles).toContain(".guide-boundary-list li>div{min-width:0}");
   });

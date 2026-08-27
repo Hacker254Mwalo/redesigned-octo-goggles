@@ -10,6 +10,25 @@ type GoogleSearchItem = {
 
 type GoogleSearchResponse = { items?: GoogleSearchItem[] };
 
+type BraveSearchItem = {
+  title?: string;
+  url?: string;
+  description?: string;
+};
+
+type BraveSearchResponse = { web?: { results?: BraveSearchItem[] } };
+
+type TavilySearchItem = {
+  title?: string;
+  url?: string;
+  content?: string;
+  images?: Array<{ url?: string }>;
+};
+
+type TavilySearchResponse = { results?: TavilySearchItem[] };
+
+type SearchProvider = "google_public_search" | "brave_public_search" | "tavily_public_search";
+
 export type JumiaSearchResult = {
   id: string;
   title: string;
@@ -18,12 +37,12 @@ export type JumiaSearchResult = {
   imageUrl: string | null;
   price: number | null;
   currency: string | null;
-  source: "google_public_search";
+  source: SearchProvider;
 };
 
 export type JumiaSearchResponse = {
   configured: boolean;
-  provider: "google_public_search" | "unconfigured";
+  provider: SearchProvider | "unconfigured";
   query: string;
   results: JumiaSearchResult[];
   message: string;
@@ -36,6 +55,16 @@ function getGoogleConfig() {
   const key = process.env.GOOGLE_CUSTOM_SEARCH_API_KEY || process.env.GOOGLE_SEARCH_API_KEY || "";
   const cx = process.env.GOOGLE_CUSTOM_SEARCH_CX || process.env.GOOGLE_SEARCH_CX || "";
   return key && cx ? { key, cx } : null;
+}
+
+function getTavilyConfig() {
+  const key = process.env.TAVILY_API_KEY || process.env.TAVILY_SEARCH_API_KEY || "";
+  return key ? { key } : null;
+}
+
+function getBraveConfig() {
+  const key = process.env.BRAVE_SEARCH_API_KEY || process.env.BRAVE_SEARCH_API_TOKEN || "";
+  return key ? { key } : null;
 }
 
 function isJumiaUrl(value: string) {
@@ -58,29 +87,57 @@ function firstMeta(item: GoogleSearchItem, names: string[]) {
   return "";
 }
 
-function extractPrice(item: GoogleSearchItem) {
-  const value = firstMeta(item, ["product:price:amount", "og:price:amount", "price"]);
+function parsePrice(value: string) {
   const number = Number(value.replace(/[^0-9.]/g, ""));
   return Number.isFinite(number) && number > 0 ? number : null;
 }
 
-function sanitizeItem(item: GoogleSearchItem, index: number): JumiaSearchResult | null {
+function extractGooglePrice(item: GoogleSearchItem) {
+  return parsePrice(firstMeta(item, ["product:price:amount", "og:price:amount", "price"]));
+}
+
+function extractTextPrice(value: string) {
+  const match = value.match(/(?:KES|KSh|Ksh|K\.S\.H)\s*([\d,]+(?:\.\d{1,2})?)/i);
+  return match ? parsePrice(match[1]) : null;
+}
+
+function resultId(url: string, index: number) {
+  const encoded = Buffer.from(url).toString("base64url").slice(0, 24);
+  return `${index}-${encoded}`;
+}
+
+function sanitizeGoogleItem(item: GoogleSearchItem, index: number): JumiaSearchResult | null {
   const url = item.link?.trim() || "";
   const title = item.title?.trim().replace(/\s+/g, " ") || "";
   if (!isJumiaUrl(url) || title.length < 3) return null;
   const snippet = (item.snippet || "Jumia Kenya product page").trim().replace(/\s+/g, " ").slice(0, 500);
   const imageCandidate = item.pagemap?.cse_image?.[0]?.src || firstMeta(item, ["og:image", "twitter:image"]);
   const imageUrl = imageCandidate && /^https:\/\//i.test(imageCandidate) ? imageCandidate.slice(0, 1_000) : null;
-  const encoded = Buffer.from(url).toString("base64url").slice(0, 24);
-  return { id: `${index}-${encoded}`, title: title.slice(0, 180), url, snippet, imageUrl, price: extractPrice(item), currency: extractPrice(item) ? "KES" : null, source: "google_public_search" };
+  const price = extractGooglePrice(item) || extractTextPrice(`${title} ${snippet}`);
+  return { id: resultId(url, index), title: title.slice(0, 180), url, snippet, imageUrl, price, currency: price ? "KES" : null, source: "google_public_search" };
 }
 
-export async function searchJumiaPublicProducts(query: string): Promise<JumiaSearchResponse> {
-  const normalized = query.trim().replace(/\s+/g, " ").slice(0, 120);
-  if (normalized.length < 3) return { configured: false, provider: "unconfigured", query: normalized, results: [], message: "Enter at least three characters to search Jumia Kenya." };
-  const config = getGoogleConfig();
-  if (!config) return { configured: false, provider: "unconfigured", query: normalized, results: [], message: "Live Jumia discovery is not connected yet. Add the Google search credentials to enable public Jumia result cards." };
+function sanitizeBraveItem(item: BraveSearchItem, index: number): JumiaSearchResult | null {
+  const url = item.url?.trim() || "";
+  const title = item.title?.trim().replace(/\s+/g, " ") || "";
+  if (!isJumiaUrl(url) || title.length < 3) return null;
+  const snippet = (item.description || "Jumia Kenya product page").replace(/<[^>]*>/g, "").trim().replace(/\s+/g, " ").slice(0, 500);
+  const price = extractTextPrice(`${title} ${snippet}`);
+  return { id: resultId(url, index), title: title.slice(0, 180), url, snippet, imageUrl: null, price, currency: price ? "KES" : null, source: "brave_public_search" };
+}
 
+function sanitizeTavilyItem(item: TavilySearchItem, index: number): JumiaSearchResult | null {
+  const url = item.url?.trim() || "";
+  const title = item.title?.trim().replace(/\s+/g, " ") || "";
+  if (!isJumiaUrl(url) || title.length < 3) return null;
+  const snippet = (item.content || "Jumia Kenya product page").replace(/<[^>]*>/g, "").trim().replace(/\s+/g, " ").slice(0, 500);
+  const imageCandidate = item.images?.find(image => image.url && /^https:\/\//i.test(image.url))?.url || null;
+  const imageUrl = imageCandidate ? imageCandidate.slice(0, 1_000) : null;
+  const price = extractTextPrice(`${title} ${snippet}`);
+  return { id: resultId(url, index), title: title.slice(0, 180), url, snippet, imageUrl, price, currency: price ? "KES" : null, source: "tavily_public_search" };
+}
+
+async function searchWithGoogle(normalized: string, config: { key: string; cx: string }): Promise<JumiaSearchResponse> {
   const url = new URL("https://www.googleapis.com/customsearch/v1");
   url.searchParams.set("key", config.key);
   url.searchParams.set("cx", config.cx);
@@ -90,6 +147,45 @@ export async function searchJumiaPublicProducts(query: string): Promise<JumiaSea
   const response = await fetch(url, { headers: { Accept: "application/json" }, signal: AbortSignal.timeout(8_000) });
   if (!response.ok) throw new Error("The Jumia search provider is temporarily unavailable.");
   const payload = await response.json() as GoogleSearchResponse;
-  const results = (payload.items ?? []).map((item, index) => sanitizeItem(item, index)).filter((item): item is JumiaSearchResult => Boolean(item));
-  return { configured: true, provider: "google_public_search", query: normalized, results, message: results.length ? "Public Jumia Kenya pages found. Price and availability are confirmed before fulfilment." : "No matching Jumia Kenya pages were found for that search." };
+  const results = (payload.items ?? []).map((item, index) => sanitizeGoogleItem(item, index)).filter((item): item is JumiaSearchResult => Boolean(item));
+  return { configured: true, provider: "google_public_search", query: normalized, results, message: results.length ? "Jumia products found." : "No matching Jumia products were found." };
+}
+
+async function searchWithTavily(normalized: string, config: { key: string }): Promise<JumiaSearchResponse> {
+  const response = await fetch("https://api.tavily.com/search", {
+    method: "POST",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify({ api_key: config.key, query: `site:jumia.co.ke ${normalized}`, search_depth: "basic", max_results: MAX_RESULTS, include_answer: false, include_raw_content: false, include_images: true, include_domains: ["jumia.co.ke"], country: "kenya", safe_search: true }),
+    signal: AbortSignal.timeout(8_000),
+  });
+  if (!response.ok) throw new Error("The Jumia search provider is temporarily unavailable.");
+  const payload = await response.json() as TavilySearchResponse;
+  const results = (payload.results ?? []).map((item, index) => sanitizeTavilyItem(item, index)).filter((item): item is JumiaSearchResult => Boolean(item));
+  return { configured: true, provider: "tavily_public_search", query: normalized, results, message: results.length ? "Jumia products found." : "No matching Jumia products were found." };
+}
+
+async function searchWithBrave(normalized: string, config: { key: string }): Promise<JumiaSearchResponse> {
+  const url = new URL("https://api.search.brave.com/res/v1/web/search");
+  url.searchParams.set("q", `site:jumia.co.ke ${normalized}`);
+  url.searchParams.set("count", String(MAX_RESULTS));
+  url.searchParams.set("country", "KE");
+  url.searchParams.set("search_lang", "en");
+  url.searchParams.set("safesearch", "strict");
+  const response = await fetch(url, { headers: { Accept: "application/json", "X-Subscription-Token": config.key }, signal: AbortSignal.timeout(8_000) });
+  if (!response.ok) throw new Error("The Jumia search provider is temporarily unavailable.");
+  const payload = await response.json() as BraveSearchResponse;
+  const results = (payload.web?.results ?? []).map((item, index) => sanitizeBraveItem(item, index)).filter((item): item is JumiaSearchResult => Boolean(item));
+  return { configured: true, provider: "brave_public_search", query: normalized, results, message: results.length ? "Jumia products found." : "No matching Jumia products were found." };
+}
+
+export async function searchJumiaPublicProducts(query: string): Promise<JumiaSearchResponse> {
+  const normalized = query.trim().replace(/\s+/g, " ").slice(0, 120);
+  if (normalized.length < 3) return { configured: false, provider: "unconfigured", query: normalized, results: [], message: "Enter at least three characters to search Jumia Kenya." };
+  const googleConfig = getGoogleConfig();
+  if (googleConfig) return searchWithGoogle(normalized, googleConfig);
+  const tavilyConfig = getTavilyConfig();
+  if (tavilyConfig) return searchWithTavily(normalized, tavilyConfig);
+  const braveConfig = getBraveConfig();
+  if (braveConfig) return searchWithBrave(normalized, braveConfig);
+  return { configured: false, provider: "unconfigured", query: normalized, results: [], message: "Live product search is not connected yet." };
 }
