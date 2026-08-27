@@ -51,7 +51,7 @@ describe("Jumia public discovery", () => {
     expect(result.configured).toBe(true);
     expect(result.provider).toBe("tavily_public_search");
     expect(result.results).toHaveLength(1);
-    expect(result.results[0]).toMatchObject({ title: "Samsung TV Jumia Kenya", url: "https://www.jumia.co.ke/samsung-tv", price: 34999, currency: "KES", imageUrl: "https://ke.jumia.is/p_9n_2Fk5GQPGkotcccQ5cDtlHA=/fit-in/500x500/filters:fill(white)/product/31/8481392/1.jpg?7944" });
+    expect(result.results[0]).toMatchObject({ title: "Samsung TV", url: "https://www.jumia.co.ke/samsung-tv", price: 34999, currency: "KES", imageUrl: "https://ke.jumia.is/p_9n_2Fk5GQPGkotcccQ5cDtlHA=/fit-in/500x500/filters:fill(white)/product/31/8481392/1.jpg?7944" });
   });
 
   it("puts image-bearing Jumia cards first while retaining text-only results", async () => {
@@ -79,6 +79,19 @@ describe("Jumia public discovery", () => {
     expect(result.results[0]?.imageUrl).toBe("https://ke.jumia.is/unsafe/fit-in/500x500/filters:fill(white)/product/31/8481392/1.jpg?7944");
   });
 
+  it("removes search-page boilerplate from customer-facing titles and snippets", async () => {
+    process.env.TAVILY_API_KEY = "test-key";
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ results: [
+      { title: "Premier CLOTH CUTTING MACHINE @ Best Price Online | Jumia Kenya", url: "https://www.jumia.co.ke/premier-cloth-cutting-machine-123456.html", content: "Title: Premier CLOTH CUTTING MACHINE @ Best Price Online | Jumia Kenya product_image_name-Premier-CLOTH-CUTTING-MACHINE- ## This website uses cookies. For further information. Official Stores Appliances Home & Office" },
+    ] }), { status: 200 }));
+
+    const result = await searchJumiaPublicProducts("cloth cutting machine");
+
+    expect(result.results[0]?.title).toBe("Premier CLOTH CUTTING MACHINE");
+    expect(result.results[0]?.snippet).not.toMatch(/cookies|product_image_name|official stores|appliances/i);
+    expect(result.results[0]?.snippet).toContain("View current product details");
+  });
+
   it("uses Brave Web Search when configured and keeps only HTTPS Jumia Kenya results", async () => {
     process.env.BRAVE_SEARCH_API_KEY = "test-key";
     vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ web: { results: [
@@ -92,7 +105,7 @@ describe("Jumia public discovery", () => {
     expect(result.configured).toBe(true);
     expect(result.provider).toBe("brave_public_search");
     expect(result.results).toHaveLength(1);
-    expect(result.results[0]).toMatchObject({ title: "Samsung TV Jumia Kenya", url: "https://www.jumia.co.ke/samsung-tv", price: 34999, currency: "KES" });
+    expect(result.results[0]).toMatchObject({ title: "Samsung TV", url: "https://www.jumia.co.ke/samsung-tv", price: 34999, currency: "KES" });
   });
 
   it("keeps only HTTPS Jumia Kenya results and sanitizes public metadata", async () => {
@@ -109,6 +122,6 @@ describe("Jumia public discovery", () => {
     expect(result.configured).toBe(true);
     expect(result.provider).toBe("google_public_search");
     expect(result.results).toHaveLength(1);
-    expect(result.results[0]).toMatchObject({ title: "Smart TV | Jumia Kenya", url: "https://www.jumia.co.ke/smart-tv", price: 34999, currency: "KES", imageUrl: "https://ke.jumia.is/p_9n_2Fk5GQPGkotcccQ5cDtlHA=/fit-in/500x500/filters:fill(white)/product/31/8481392/1.jpg?7944" });
+    expect(result.results[0]).toMatchObject({ title: "Smart TV", url: "https://www.jumia.co.ke/smart-tv", price: 34999, currency: "KES", imageUrl: "https://ke.jumia.is/p_9n_2Fk5GQPGkotcccQ5cDtlHA=/fit-in/500x500/filters:fill(white)/product/31/8481392/1.jpg?7944" });
   });
 });
