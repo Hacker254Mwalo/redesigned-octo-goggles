@@ -69,6 +69,12 @@ The applied migration enables RLS on all three V3 tables. It creates no public p
 
 The repository now contains a compatible public discovery adapter for the V3 product columns. It keeps V3 products as an empty launch-stage catalogue until an owner-controlled write path is separately implemented. TypeScript, 22 Vitest files / 76 tests, the Vercel production build, and the production dependency audit all pass after the reconciliation.
 
+## Production-directive compatibility addendum
+
+The later production-core directive was reviewed against the deployed V3 baseline. It repeats `profiles`, `products`, and `orders`, which were already replaced by the owner-confirmed V3 migration. Running the proposed `CREATE TABLE IF NOT EXISTS` script would therefore not establish its assumed role, price, source, or embedding fields on the current tables, and could leave the application and database contracts inconsistent.
+
+The pgvector column/function, source URL, sourcing requests, and escrow-oriented states were not added. Vector search needs an approved embedding model, price/credit budget, input-redaction and retention policy, error/rate-limit path, human review boundary, and regression coverage before any model call. Sourcing and payment features require a least-privilege write path and a verified buyer/owner identity model; neither is created by a public client page. The existing public catalogue remains limited to V3 `ACTIVE` products, while the basket can record only a local, confirmation-gated collection preference.
+
 ## References
 
 [1]: https://www.centralbank.go.ke/national-payments-system/ "Central Bank of Kenya — National Payments System and authorised PSP directory"
