@@ -94,12 +94,14 @@ function parsePrice(value: string) {
 }
 
 function cleanTitle(value: string) {
-  let title = value.replace(/\s+/g, " ").trim();
+  let title = value.replace(/\s+/g, " ").replace(/^\s*(?:title\s*:\s*|add to cart\s+|buy\s+)/i, "").trim();
   title = title.replace(/\s+@\s*best price.*$/i, "");
   title = title.replace(/\s+available\s+at\s+best price.*$/i, "");
+  title = title.replace(/\s*(?:\||[-–])\s*(?:best prices?|price)\s+online.*$/i, "");
+  title = title.replace(/\s*\|\s*buy\s*(?:&|and)?\s*shop online.*$/i, "");
   title = title.replace(/\s*[-–]\s*buy\b.*?\bonline\b.*?\bjumia kenya\b.*$/i, "");
   title = title.replace(/\s*\|\s*(?:smart\s*&\s*digital tvs|official stores).*?\bjumia kenya\b.*$/i, "");
-  title = title.replace(/\s*(?:\||[-–])\s*jumia kenya.*$/i, "");
+  title = title.replace(/\s*(?:\||[-–])\s*jumia\s*(?:kenya|ke).*$/i, "");
   title = title.replace(/\s+jumia kenya.*$/i, "");
   return title.replace(/[|–-]+\s*$/, "").replace(/\s+/g, " ").trim().slice(0, 180);
 }
