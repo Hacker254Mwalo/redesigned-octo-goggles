@@ -13,3 +13,8 @@ After commit `e570e14` was pushed to `main`, `https://siayaonlinemarket.vercel.a
 ## Homepage verification after storefront polish
 
 At 2026-08-27 16:21 GMT+3, the live homepage still returned the previous copy (`Shop local. Or let MtaaMarket help.`, `Browse with confidence`, and the old search placeholder) after commit `e6d4d8a`. The repository and local build contain the refreshed product-led homepage, but the Vercel deployment has not yet switched to the latest `main` commit.
+
+
+## Successful deployment check
+
+At 2026-08-27 16:44 GMT+3, `https://siayaonlinemarket.vercel.app/jumia` served the updated Jumia storefront. The live page showed the normal order form, delivery or collection choices, pay-at-hand-off language, and no customer-facing founder/JForce wording. This confirms that the latest Vercel deployment is now serving the pushed implementation.
