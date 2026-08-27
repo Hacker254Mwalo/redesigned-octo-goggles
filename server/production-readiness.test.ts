@@ -9,9 +9,10 @@ describe("MtaaMarket production readiness", () => {
     expect(readiness.overallState).toBe("protected_runtime_blocked");
     expect(readiness.gates.find(gate => gate.id === "database")?.state).toBe("ready");
     expect(readiness.gates.find(gate => gate.id === "publicDiscovery")?.state).toBe("ready");
-    expect(readiness.gates.find(gate => gate.id === "server")?.state).toBe("blocked");
-    expect(readiness.gates.find(gate => gate.id === "auth")?.state).toBe("blocked");
-    expect(readiness.gates.find(gate => gate.id === "auth")?.detail).toMatch(/email-session/i);
+    expect(readiness.gates.find(gate => gate.id === "server")?.state).toBe("ready");
+    expect(readiness.gates.find(gate => gate.id === "server")?.detail).toMatch(/server-verified Supabase UUIDs/i);
+    expect(readiness.gates.find(gate => gate.id === "auth")?.state).toBe("ready");
+    expect(readiness.gates.find(gate => gate.id === "auth")?.detail).toMatch(/code-only signup and recovery/i);
     expect(readiness.gates.find(gate => gate.id === "storage")?.state).toBe("blocked");
     expect(readiness.gates.find(gate => gate.id === "commerce")?.state).toBe("intentional");
   });
