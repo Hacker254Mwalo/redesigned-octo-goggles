@@ -3,18 +3,24 @@ import { JumiaGoogleSearch, hasJumiaGoogleSearch } from "@/components/JumiaGoogl
 import { MarketplaceLayout } from "@/components/MarketplaceLayout";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import { trpc } from "@/lib/trpc";
-import { ArrowRight, CheckCircle2, ImageOff, MapPin, Plus, Search, ShieldCheck, Trash2, Truck } from "lucide-react";
+import { ArrowRight, BadgeCheck, CheckCircle2, ChevronRight, Footprints, Home as HomeIcon, ImageOff, Laptop, MapPin, PackageCheck, Plus, Search, ShieldCheck, Shirt, ShoppingBag, Sparkles, Speaker, Sun, Trash2, Truck, Tv, Watch, Smartphone } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "wouter";
 
 type OrderItem = { title: string; details: string; quantity: number; sourceUrl?: string; imageUrl?: string | null; price?: number | null; currency?: string | null };
 type SelectedResult = { title: string; url: string; snippet: string; imageUrl: string | null; price: number | null; currency: string | null };
+type SearchResult = SelectedResult & { id: string; source: string };
 
-function JumiaProductImage({ src, alt, className = "h-36 w-full" }: { src?: string | null; alt: string; className?: string }) {
-  const [failed, setFailed] = useState(false);
-  if (!src || failed) return <div className={`${className} jumia-image-fallback`} role="img" aria-label={`${alt} image unavailable`}><ImageOff size={24} /><span>Product photo unavailable</span></div>;
-  return <img className={`${className} rounded-xl object-cover`} src={src} alt={alt} loading="lazy" onError={() => setFailed(true)} />;
-}
+const browseCategories = [
+  { label: "Phones", query: "smartphone phone", icon: Smartphone, tone: "mint" },
+  { label: "Solar & lighting", query: "solar lights", icon: Sun, tone: "gold" },
+  { label: "Smartwatches", query: "smartwatch", icon: Watch, tone: "plum" },
+  { label: "Shoes", query: "shoes", icon: Footprints, tone: "rose" },
+  { label: "Laptops", query: "laptop", icon: Laptop, tone: "sky" },
+  { label: "TVs", query: "smart TV", icon: Tv, tone: "leaf" },
+  { label: "Home audio", query: "music system speakers", icon: Speaker, tone: "coral" },
+  { label: "Home & kitchen", query: "home kitchen appliances", icon: HomeIcon, tone: "sand" },
+];
 
 const statusCopy: Record<string, string> = {
   placed: "Order received",
@@ -26,6 +32,24 @@ const statusCopy: Record<string, string> = {
   completed: "Completed",
   cancelled: "Cancelled",
 };
+
+function JumiaProductImage({ src, alt, className = "h-36 w-full" }: { src?: string | null; alt: string; className?: string }) {
+  const [failed, setFailed] = useState(false);
+  if (!src || failed) return <div className={`${className} jumia-image-fallback`} role="img" aria-label={`${alt} image unavailable`}><ImageOff size={24} /><span>Product photo unavailable</span></div>;
+  return <img className={`${className} rounded-xl object-cover`} src={src} alt={alt} loading="lazy" onError={() => setFailed(true)} />;
+}
+
+function SearchResultCard({ result, onSelect }: { result: SearchResult; onSelect: (result: SearchResult) => void }) {
+  return <article className="selection-card">
+    <JumiaProductImage src={result.imageUrl} alt={result.title} className="selection-card-image" />
+    <div className="selection-card-body">
+      <div className="selection-card-kicker"><span>Product result</span><span>{result.price ? "Price shown" : "Check current price"}</span></div>
+      <h3 className="selection-card-title">{result.title}</h3>
+      <p className="selection-card-description">{result.snippet}</p>
+      <div className="selection-card-footer"><strong>{result.price ? `KES ${result.price.toLocaleString("en-KE")}` : "Price on product page"}</strong><button className="primary-cta selection-card-button" type="button" onClick={() => onSelect(result)}>Select</button></div>
+    </div>
+  </article>;
+}
 
 export default function JumiaStorePage() {
   const { session } = useSupabaseAuth();
@@ -58,13 +82,24 @@ export default function JumiaStorePage() {
 
   function runSearch() {
     const query = searchTerm.trim();
-    if (query.length >= 3) setSearchQuery(query);
+    if (query.length >= 3) {
+      setSearchQuery(query);
+      window.setTimeout(() => document.getElementById("catalog-live-search")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
+    }
+  }
+
+  function chooseCategory(query: string) {
+    setSearchTerm(query);
+    setSearchQuery(query);
+    setSelectedResult(null);
+    window.setTimeout(() => document.getElementById("catalog-live-search")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
   }
 
   function selectResult(result: SelectedResult) {
     setSelectedResult(result);
     setSearchTerm(result.title);
     setItemOption("");
+    window.setTimeout(() => document.getElementById("catalog-selection")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
   }
 
   function addItem() {
@@ -75,6 +110,7 @@ export default function JumiaStorePage() {
     const details = option || selectedResult?.snippet || "Product selected from search.";
     setItems(current => [...current, { title, details: details.slice(0, 3_000), quantity: parsedQuantity, sourceUrl: selectedResult?.url, imageUrl: selectedResult?.imageUrl, price: selectedResult?.price, currency: selectedResult?.currency }]);
     setSearchTerm(""); setItemOption(""); setQuantity("1"); setSelectedResult(null);
+    window.setTimeout(() => document.getElementById("catalog-basket")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
   }
 
   function submit(event: React.FormEvent<HTMLFormElement>) {
@@ -85,32 +121,24 @@ export default function JumiaStorePage() {
   }
 
   return <MarketplaceLayout>
-    <div className="mx-auto max-w-6xl px-5 py-10 sm:py-14">
-      <section className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-end">
-        <div>
-          <p className="eyebrow">MtaaMarket Select · broader choice</p>
-          <h1 className="mt-2 text-4xl font-semibold tracking-tight sm:text-6xl">More choice,<br /><em>made easy in Siaya.</em></h1>
-          <p className="mt-5 max-w-2xl text-base leading-7 text-muted-foreground">Explore a wider selection, choose what you like, and place one simple order for collection or delivery across Siaya.</p>
-          <div className="mt-6 flex flex-wrap gap-3 text-sm text-[#245441]"><span className="inline-flex items-center gap-2 rounded-full bg-[#e8f4ec] px-3 py-2"><ShieldCheck size={16} /> Clear pricing</span><span className="inline-flex items-center gap-2 rounded-full bg-[#e8f4ec] px-3 py-2"><Truck size={16} /> Collection or delivery</span></div>
-        </div>
-        <aside className="rounded-3xl border border-[#cfe3d7] bg-[#f4faf5] p-6"><div className="flex items-center gap-3 text-[#0e6c53]"><Truck size={24} /><p className="eyebrow !text-[#0e6c53]">Across Siaya</p></div><p className="mt-4 text-lg font-semibold text-[#0e2f27]">Everything you need in one simple order.</p><p className="mt-3 text-sm leading-6 text-[#35584a]">Browse, choose your favourites, and let us bring them closer to you.</p></aside>
-      </section>
+    <div className="catalog-page">
+      {submittedOrder ? <section className="catalog-confirmation" aria-live="polite"><div className="catalog-confirmation-icon"><CheckCircle2 size={25} /></div><div><p className="eyebrow">Order received</p><h1>{submittedOrder.order_number} is being prepared.</h1><p>Your order has been received. You can follow its progress from your account.</p></div><div className="catalog-confirmation-actions"><button className="primary-cta" type="button" onClick={() => setSubmittedOrder(null)}>Continue shopping <ArrowRight size={17} /></button><Link className="secondary-cta" href="/dashboard">View my orders</Link></div></section> : <form className="catalog-order-form" onSubmit={submit}>
+        <section className="catalog-top"><div className="catalog-top-copy"><p className="eyebrow">MtaaMarket Select · broader choice</p><h1>Shop more.<br /><em>Closer to home.</em></h1><p>Search the live selection, choose what you like, and keep collection or home delivery in one simple order.</p><div className="catalog-trust-row"><span><ShieldCheck size={15} /> Clear product details</span><span><Truck size={15} /> Collection or delivery</span></div></div><aside className="catalog-top-card"><div className="catalog-top-card-icon"><ShoppingBag size={22} /></div><p className="eyebrow">SHOPPING TODAY</p><strong>Find the right item, then make it yours.</strong><span><BadgeCheck size={14} /> Made for Siaya buyers</span></aside></section>
 
-      {submittedOrder ? <section className="mt-10 rounded-3xl border border-[#b9dcc5] bg-white p-6 shadow-sm sm:p-8" aria-live="polite"><div className="flex items-start gap-4"><div className="rounded-full bg-[#e8f4ec] p-3 text-[#0e7c5a]"><CheckCircle2 size={25} /></div><div><p className="eyebrow">Order received</p><h2 className="mt-1 text-2xl font-semibold">{submittedOrder.order_number} is being prepared.</h2><p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">Your order has been received. You can follow its progress from your account.</p></div></div><div className="mt-6 flex flex-wrap gap-3"><button className="primary-cta" type="button" onClick={() => setSubmittedOrder(null)}>Continue shopping <ArrowRight size={17} /></button><Link className="secondary-cta" href="/dashboard">View my orders</Link></div></section> : <form className="mt-10 grid gap-8 lg:grid-cols-[1fr_0.78fr]" onSubmit={submit}>
-        <section className="rounded-3xl border bg-white p-6 shadow-sm sm:p-8">
-          <div className="flex items-start justify-between gap-4"><div><p className="eyebrow">MtaaMarket Select</p><h2 className="mt-1 text-2xl font-semibold">Find what you want</h2></div><Search className="text-[#1b6a55]" /></div>
-          <p className="mt-3 text-sm leading-6 text-muted-foreground">Search the live selection, compare your options, and add a choice to your basket.</p>
-          {googleSearchEnabled && <div className="mt-6 rounded-2xl border border-[#cfe3d7] bg-[#f4faf5] p-4"><div className="flex items-center justify-between gap-3"><p className="text-sm font-semibold text-[#0e2f27]">Live selection</p><span className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-[#245441]">Search</span></div><JumiaGoogleSearch query={searchQuery} onSelect={selectResult} /></div>}
-          <div className={googleSearchEnabled ? "hidden" : "mt-6 rounded-2xl border border-[#cfe3d7] bg-[#f4faf5] p-4"}><div className="flex items-center justify-between gap-3"><p className="text-sm font-semibold text-[#0e2f27]">Live selection</p><span className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-[#245441]">Search</span></div><div className="mt-3 flex gap-2"><input className="min-w-0 flex-1 rounded-xl border border-border bg-white p-3 text-base" value={searchTerm} onChange={event => { setSearchTerm(event.target.value); setSelectedResult(null); }} onKeyDown={event => { if (event.key === "Enter") { event.preventDefault(); runSearch(); } }} placeholder="Search phones, TVs, shoes…" autoComplete="off" aria-label="Search product selection" /><button className="secondary-cta shrink-0" type="button" onClick={runSearch} disabled={searchTerm.trim().length < 3 || searchResults.isFetching}><Search size={17} />{searchResults.isFetching ? "Searching…" : "Search"}</button></div>{searchResults.isError && <p className="mt-3 rounded-xl bg-white p-3 text-sm text-destructive" role="alert">Search is temporarily unavailable. Please try again.</p>}{searchResults.data && <p className="mt-3 text-sm text-[#35584a]">{searchResults.data.message}</p>}{searchResults.data?.results.length ? <><p className="selection-count">Showing {searchResults.data.results.length} live choices</p><div className="selection-grid">{searchResults.data.results.map(result => <article className="selection-card" key={result.id}><JumiaProductImage src={result.imageUrl} alt={result.title} className="selection-card-image" /><div className="selection-card-body"><div className="selection-card-kicker"><span>Product result</span><span>{result.price ? "Price shown" : "Check current price"}</span></div><h3 className="selection-card-title">{result.title}</h3><p className="selection-card-description">{result.snippet}</p><div className="selection-card-footer"><strong>{result.price ? `KES ${result.price.toLocaleString("en-KE")}` : "Price on product page"}</strong><button className="primary-cta selection-card-button" type="button" onClick={() => selectResult(result)}>Select</button></div></div></article>)}</div></> : null}</div>
-          <div className="mt-6 space-y-4">{selectedResult ? <div className="flex items-start gap-3 rounded-2xl border border-[#b9dcc5] bg-[#f4faf5] p-4"><JumiaProductImage src={selectedResult.imageUrl} alt="" className="h-20 w-20 shrink-0" /><div className="min-w-0"><p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#0e7c5a]">Selected item</p><p className="mt-2 font-semibold text-[#0e2f27]">{selectedResult.title}</p>{selectedResult.price ? <p className="mt-1 text-sm font-medium text-[#0e7c5a]">KES {selectedResult.price.toLocaleString("en-KE")}</p> : <p className="mt-1 text-sm font-medium text-[#0e7c5a]">Price on product page</p>}</div></div> : <div className="rounded-2xl border border-dashed border-[#cfe3d7] bg-[#fbfefa] p-4 text-sm text-muted-foreground">Choose a product from the search results to continue.</div>}<label className="block text-sm font-medium">Variant <span className="font-normal text-muted-foreground">(optional)</span><input className="mt-2 w-full rounded-xl border border-border bg-white p-3 text-base" value={itemOption} onChange={event => setItemOption(event.target.value)} placeholder="Size, colour or model" maxLength={180} /></label><div className="grid gap-4 sm:grid-cols-[1fr_auto]"><label className="block text-sm font-medium">Quantity<input className="mt-2 w-full rounded-xl border border-border bg-white p-3 text-base" type="number" min="1" max="20" value={quantity} onChange={event => setQuantity(event.target.value)} /></label><button className="secondary-cta self-end" type="button" onClick={addItem} disabled={!selectedResult}><Plus size={17} /> Add to basket</button></div></div>
-          {items.length > 0 && <div id="jumia-basket" className="mt-7 space-y-3"><div className="flex items-center justify-between"><p className="text-sm font-semibold text-[#0e2f27]">Your basket</p><span className="text-xs text-muted-foreground">{items.length} item{items.length === 1 ? "" : "s"}</span></div>{items.map((item, index) => <article className="flex items-start justify-between gap-4 rounded-2xl bg-[#f4faf5] p-4" key={`${item.title}-${index}`}><div className="flex min-w-0 items-start gap-3"><JumiaProductImage src={item.imageUrl} alt="" className="h-16 w-16 shrink-0" /><div className="min-w-0"><h3 className="font-semibold">{item.title}</h3>{item.price ? <p className="mt-1 text-sm font-medium text-[#0e7c5a]">KES {item.price.toLocaleString("en-KE")}</p> : <p className="mt-1 text-sm font-medium text-[#0e7c5a]">Price on product page</p>}<p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{item.details !== "Product selected from search." ? item.details : "Selected item"}</p><p className="mt-2 text-xs font-medium text-[#35584a]">Quantity: {item.quantity}</p></div></div><button className="rounded-full p-2 text-destructive hover:bg-white" type="button" onClick={() => setItems(current => current.filter((_, itemIndex) => itemIndex !== index))} aria-label={`Remove ${item.title}`}><Trash2 size={16} /></button></article>)}</div>}
-        </section>
+        <section id="catalog-live-search" className="catalog-search-card"><div className="catalog-search-heading"><div><p className="eyebrow">Live selection</p><h2>What are you looking for?</h2></div><Search className="catalog-search-icon" /></div><div className="catalog-search-shell"><Search size={19} /><input value={searchTerm} onChange={event => { setSearchTerm(event.target.value); setSelectedResult(null); }} onKeyDown={event => { if (event.key === "Enter") { event.preventDefault(); runSearch(); } }} placeholder="Search phones, TVs, shoes…" autoComplete="off" aria-label="Search live products" /><button type="button" onClick={runSearch} disabled={searchTerm.trim().length < 3 || searchResults.isFetching}>{searchResults.isFetching ? "Searching…" : "Search"}<ArrowRight size={15} /></button></div>{googleSearchEnabled && <JumiaGoogleSearch query={searchQuery} onSelect={selectResult} />}{!googleSearchEnabled && <>{searchResults.isError && <p className="catalog-search-message error" role="alert">Search is temporarily unavailable. Please try again.</p>}{searchResults.data && <p className="catalog-search-message" role="status">{searchResults.data.message}</p>}{searchResults.data?.results.length ? <><p className="selection-count">Showing {searchResults.data.results.length} live choices</p><div className="selection-grid">{searchResults.data.results.map(result => <SearchResultCard result={result} onSelect={selectResult} key={result.id} />)}</div></> : null}</>}</section>
 
-        {items.length > 0 && <section className="rounded-3xl border border-[#cfe3d7] bg-[#fbfefa] p-6 shadow-sm sm:p-8"><p className="eyebrow">Delivery details</p><h2 className="mt-1 text-2xl font-semibold">Choose how to receive it.</h2><p className="mt-3 text-sm leading-6 text-muted-foreground">Your basket is ready. Choose collection or home delivery, then place your order.</p><div className="mt-6 space-y-5"><label className="block text-sm font-medium">How would you like to receive it?<select className="mt-2 w-full rounded-xl border border-border bg-white p-3 text-base" value={fulfilmentMethod} onChange={event => setFulfilmentMethod(event.target.value as typeof fulfilmentMethod)}><option value="siaya_pickup">Collect in Siaya</option><option value="collection_point">Collection point</option><option value="home_delivery">Home delivery</option></select></label><label className="block text-sm font-medium"><MapPin size={15} className="mr-1 inline" />Location<input className="mt-2 w-full rounded-xl border border-border bg-white p-3 text-base" value={preferredLocation} onChange={event => setPreferredLocation(event.target.value)} placeholder="e.g. Siaya Town" maxLength={180} required={fulfilmentMethod === "home_delivery"} /></label><div className="grid gap-4 sm:grid-cols-2"><label className="block text-sm font-medium">Your name <span className="font-normal text-muted-foreground">(if not saved)</span><input className="mt-2 w-full rounded-xl border border-border bg-white p-3 text-base" value={fullName} onChange={event => setFullName(event.target.value)} placeholder="Full name" maxLength={90} /></label><label className="block text-sm font-medium">Kenyan phone <span className="font-normal text-muted-foreground">(if not saved)</span><input className="mt-2 w-full rounded-xl border border-border bg-white p-3 text-base" value={phone} onChange={event => setPhone(event.target.value)} placeholder="2547XXXXXXXX" maxLength={13} /></label></div>{order.isError && <p className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive" role="alert">{order.error.message}</p>}<button className="primary-cta w-full justify-center" type="submit" disabled={order.isPending || !canSubmit}>{order.isPending ? "Placing order…" : session ? "Place order" : "Sign in to place order"}<ArrowRight size={17} /></button></div></section>}
+        <section id="catalog-categories" className="catalog-category-section"><div className="catalog-section-heading"><div><p className="eyebrow">Browse by need</p><h2>Shop popular categories</h2></div><span>Live search</span></div><div className="catalog-category-grid">{browseCategories.map(({ label, query, icon: Icon, tone }) => <button type="button" key={label} className={`catalog-category-card ${tone}`} onClick={() => chooseCategory(query)}><span className="catalog-category-icon"><Icon size={22} /></span><strong>{label}</strong><small>Browse choices</small><ChevronRight size={16} /></button>)}</div></section>
+
+        <section id="catalog-selection" className="catalog-selection-card"><div className="catalog-section-heading"><div><p className="eyebrow">Your choice</p><h2>Build your basket</h2></div><PackageCheck className="catalog-selection-icon" /></div>{selectedResult ? <div className="selected-item"><JumiaProductImage src={selectedResult.imageUrl} alt="" className="h-20 w-20 shrink-0" /><div className="min-w-0"><p className="selected-item-label">Selected item</p><p className="selected-item-title">{selectedResult.title}</p>{selectedResult.price ? <p className="selected-item-price">KES {selectedResult.price.toLocaleString("en-KE")}</p> : <p className="selected-item-price">Price on product page</p>}</div></div> : <div className="catalog-selection-empty"><Sparkles size={20} /><p>Select a real product result above to add it to your basket.</p></div>}<div className="catalog-selection-controls"><label>Variant <span>(optional)</span><input value={itemOption} onChange={event => setItemOption(event.target.value)} placeholder="Size, colour or model" maxLength={180} /></label><label>Quantity<input type="number" min="1" max="20" value={quantity} onChange={event => setQuantity(event.target.value)} /></label><button className="secondary-cta" type="button" onClick={addItem} disabled={!selectedResult}><Plus size={17} /> Add to basket</button></div></section>
+
+        {items.length > 0 && <section id="catalog-basket" className="catalog-basket-card"><div className="catalog-section-heading"><div><p className="eyebrow">Ready when you are</p><h2>Your basket</h2></div><span>{items.length} item{items.length === 1 ? "" : "s"}</span></div>{items.map((item, index) => <article className="catalog-basket-item" key={`${item.title}-${index}`}><div className="catalog-basket-item-main"><JumiaProductImage src={item.imageUrl} alt="" className="h-16 w-16 shrink-0" /><div className="min-w-0"><h3>{item.title}</h3>{item.price ? <p className="catalog-item-price">KES {item.price.toLocaleString("en-KE")}</p> : <p className="catalog-item-price">Price on product page</p>}<p className="catalog-item-detail">{item.details !== "Product selected from search." ? item.details : "Selected item"}</p><p className="catalog-item-quantity">Quantity: {item.quantity}</p></div></div><button className="catalog-remove" type="button" onClick={() => setItems(current => current.filter((_, itemIndex) => itemIndex !== index))} aria-label={`Remove ${item.title}`}><Trash2 size={16} /></button></article>)}</section>}
+
+        {items.length > 0 && <section className="catalog-checkout-card"><div className="catalog-section-heading"><div><p className="eyebrow">Checkout</p><h2>Choose how to receive it.</h2></div><MapPin className="catalog-selection-icon" /></div><p className="catalog-checkout-intro">Your basket is ready. Choose collection or home delivery, then place your order.</p><div className="catalog-checkout-fields"><label>Fulfilment<select value={fulfilmentMethod} onChange={event => setFulfilmentMethod(event.target.value as typeof fulfilmentMethod)}><option value="siaya_pickup">Collect in Siaya</option><option value="collection_point">Collection point</option><option value="home_delivery">Home delivery</option></select></label><label>Location<input value={preferredLocation} onChange={event => setPreferredLocation(event.target.value)} placeholder="e.g. Siaya Town" maxLength={180} required={fulfilmentMethod === "home_delivery"} /></label><label>Your name <span>(if not saved)</span><input value={fullName} onChange={event => setFullName(event.target.value)} placeholder="Full name" maxLength={90} /></label><label>Kenyan phone <span>(if not saved)</span><input value={phone} onChange={event => setPhone(event.target.value)} placeholder="2547XXXXXXXX" maxLength={13} /></label><label>Preferred timing <span>(optional)</span><input value={deliverySchedule} onChange={event => setDeliverySchedule(event.target.value)} placeholder="e.g. Tomorrow afternoon" maxLength={120} /></label><label>Order note <span>(optional)</span><input value={orderNote} onChange={event => setOrderNote(event.target.value)} placeholder="Any helpful detail" maxLength={600} /></label></div>{order.isError && <p className="catalog-search-message error" role="alert">{order.error.message}</p>}<button className="primary-cta catalog-place-order" type="submit" disabled={order.isPending || !canSubmit}>{order.isPending ? "Placing order…" : session ? "Place order" : "Sign in to place order"}<ArrowRight size={17} /></button></section>}
       </form>}
 
-      {session && recentOrders.length > 0 && <section className="mt-10 rounded-3xl border bg-white p-6 shadow-sm sm:p-8"><div className="flex items-end justify-between gap-4"><div><p className="eyebrow">Your orders</p><h2 className="mt-1 text-2xl font-semibold">Order history</h2></div><Link className="text-sm font-semibold text-[#0e7c5a] underline" href="/dashboard">View all</Link></div><div className="mt-6 grid gap-3 md:grid-cols-2">{recentOrders.map(orderItem => <article className="rounded-2xl bg-[#f4faf5] p-4" key={orderItem.id}><div className="flex items-center justify-between gap-3"><strong>{orderItem.order_number}</strong><span className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-[#245441]">{statusCopy[orderItem.status] ?? orderItem.status}</span></div><p className="mt-2 text-sm text-muted-foreground">{orderItem.items.map((item: OrderItem) => `${item.title} × ${item.quantity}`).join(", ")}</p></article>)}</div></section>}
+      {session && recentOrders.length > 0 && <section className="catalog-order-history"><div className="catalog-section-heading"><div><p className="eyebrow">Your orders</p><h2>Follow your fulfilment</h2></div><Link className="text-cta" href="/dashboard">View all <ArrowRight size={15} /></Link></div><div className="catalog-order-history-grid">{recentOrders.map(orderItem => <article key={orderItem.id}><div><strong>{orderItem.order_number}</strong><span>{statusCopy[orderItem.status] ?? orderItem.status}</span></div><p>{orderItem.items.map((item: OrderItem) => `${item.title} × ${item.quantity}`).join(", ")}</p></article>)}</div></section>}
     </div>
+    {!submittedOrder && <nav className="catalog-mobile-bar" aria-label="Shopping shortcuts"><Link href="/" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}><HomeIcon size={18} /><span>Home</span></Link><a href="#catalog-categories"><PackageCheck size={18} /><span>Categories</span></a><a href="#catalog-basket"><ShoppingBag size={18} /><span>Basket ({items.length})</span></a><button type="button" onClick={() => setAccountOpen(true)}><Sparkles size={18} /><span>Account</span></button></nav>}
     <MtaaAccountDialog open={accountOpen} onClose={() => setAccountOpen(false)} />
   </MarketplaceLayout>;
 }
