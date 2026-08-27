@@ -48,5 +48,8 @@ describe("MtaaMarket email/password account safeguards", () => {
     expect(accountDialogSource).toContain("window.addEventListener(\"keydown\", handleEscape)");
     expect(accountDialogSource).toContain("returnFocusRef.current?.focus()");
     expect(accountDialogSource).toContain("ref={emailInputRef}");
+    expect(accountDialogSource).toContain("Recommended: email link is ready now.");
+    expect(accountDialogSource).toContain("Google sign-in will appear only after the MtaaMarket Google provider is securely configured.");
+    expect(accountDialogSource).not.toContain("signInWithGoogle");
   });
 });

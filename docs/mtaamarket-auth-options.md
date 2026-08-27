@@ -63,6 +63,8 @@ MtaaMarket now has a local account dialog for magic-link sign-in, email/password
 
 The recommended safe activation order is: first complete one controlled production verification of signup/confirmation, password sign-in, reset-request, reset-completion, and generic error views. The hosted eight-character letters-and-digits policy is now in place. Reauthentication should be enabled only after the in-session password-change experience can collect and validate the nonce. Current-password enforcement should remain disabled until the recovery flow is separately confirmed compatible, because a reset user will not possess a current password. Supabase describes both reauthentication and current-password checks as additional update-password controls, not replacements for recovery. [12]
 
+On 27 August 2026, the founder explicitly approved one controlled account-flow verification. The public dialog was opened on the Vercel deployment, but no email, password, code, recovery link, customer account, order, vendor record, payment, delivery, or role action had been submitted at the start of this controlled test.
+
 Google needs a founder-owned Google Cloud OAuth web client, MtaaMarket’s authorised origin, the exact Supabase Google callback URI shown in its provider screen, and a private client secret entered only in Supabase. [2] Until those prerequisites exist, a visible active Google control would be misleading and is prohibited.
 
 ## Primary and backup delivery design
