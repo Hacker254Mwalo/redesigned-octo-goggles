@@ -50,6 +50,7 @@ export type JumiaSearchResponse = {
 
 const MAX_RESULTS = 10;
 const JUMIA_HOSTS = new Set(["jumia.co.ke", "www.jumia.co.ke"]);
+const JUMIA_IMAGE_HOSTS = new Set(["ke.jumia.is"]);
 
 function getGoogleConfig() {
   const key = process.env.GOOGLE_CUSTOM_SEARCH_API_KEY || process.env.GOOGLE_SEARCH_API_KEY || "";
@@ -92,6 +93,33 @@ function parsePrice(value: string) {
   return Number.isFinite(number) && number > 0 ? number : null;
 }
 
+function isJumiaImageUrl(value: string) {
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "https:" && JUMIA_IMAGE_HOSTS.has(parsed.hostname.toLowerCase()) && /\/product\/\d{1,3}\/\d{5,10}\/\d+\.(?:jpg|jpeg|png|webp)$/i.test(parsed.pathname);
+  } catch {
+    return false;
+  }
+}
+
+function extractImageFromContent(value: string) {
+  const fullUrl = value.match(/https:\/\/ke\.jumia\.is\/[^"'<>\s)]+?\.(?:jpg|jpeg|png|webp)(?:\?[^"'<>\s)]*)?/i)?.[0] || "";
+  if (isJumiaImageUrl(fullUrl)) return fullUrl.slice(0, 1_000);
+
+  const productPath = value.match(/\/product\/\d{1,3}\/\d{5,10}\/\d+\.(?:jpg|jpeg|png|webp)(?:\?[^"'<>\s)]*)?/i)?.[0] || "";
+  if (!productPath) return null;
+  const safePath = productPath.replace(/[^a-zA-Z0-9/?=&._-]/g, "");
+  const fallbackUrl = `https://ke.jumia.is/unsafe/fit-in/500x500/filters:fill(white)${safePath}`;
+  return isJumiaImageUrl(fallbackUrl) ? fallbackUrl.slice(0, 1_000) : null;
+}
+
+function firstJumiaImage(candidates: Array<string | undefined>, content = "") {
+  for (const candidate of candidates) {
+    if (candidate && isJumiaImageUrl(candidate)) return candidate.slice(0, 1_000);
+  }
+  return extractImageFromContent(content);
+}
+
 function extractGooglePrice(item: GoogleSearchItem) {
   return parsePrice(firstMeta(item, ["product:price:amount", "og:price:amount", "price"]));
 }
@@ -111,8 +139,7 @@ function sanitizeGoogleItem(item: GoogleSearchItem, index: number): JumiaSearchR
   const title = item.title?.trim().replace(/\s+/g, " ") || "";
   if (!isJumiaUrl(url) || title.length < 3) return null;
   const snippet = (item.snippet || "Jumia Kenya product page").trim().replace(/\s+/g, " ").slice(0, 500);
-  const imageCandidate = item.pagemap?.cse_image?.[0]?.src || firstMeta(item, ["og:image", "twitter:image"]);
-  const imageUrl = imageCandidate && /^https:\/\//i.test(imageCandidate) ? imageCandidate.slice(0, 1_000) : null;
+  const imageUrl = firstJumiaImage([item.pagemap?.cse_image?.[0]?.src, firstMeta(item, ["og:image", "twitter:image"])]);
   const price = extractGooglePrice(item) || extractTextPrice(`${title} ${snippet}`);
   return { id: resultId(url, index), title: title.slice(0, 180), url, snippet, imageUrl, price, currency: price ? "KES" : null, source: "google_public_search" };
 }
@@ -122,8 +149,9 @@ function sanitizeBraveItem(item: BraveSearchItem, index: number): JumiaSearchRes
   const title = item.title?.trim().replace(/\s+/g, " ") || "";
   if (!isJumiaUrl(url) || title.length < 3) return null;
   const snippet = (item.description || "Jumia Kenya product page").replace(/<[^>]*>/g, "").trim().replace(/\s+/g, " ").slice(0, 500);
+  const imageUrl = extractImageFromContent(item.description || "");
   const price = extractTextPrice(`${title} ${snippet}`);
-  return { id: resultId(url, index), title: title.slice(0, 180), url, snippet, imageUrl: null, price, currency: price ? "KES" : null, source: "brave_public_search" };
+  return { id: resultId(url, index), title: title.slice(0, 180), url, snippet, imageUrl, price, currency: price ? "KES" : null, source: "brave_public_search" };
 }
 
 function sanitizeTavilyItem(item: TavilySearchItem, index: number): JumiaSearchResult | null {
@@ -131,8 +159,7 @@ function sanitizeTavilyItem(item: TavilySearchItem, index: number): JumiaSearchR
   const title = item.title?.trim().replace(/\s+/g, " ") || "";
   if (!isJumiaUrl(url) || title.length < 3) return null;
   const snippet = (item.content || "Jumia Kenya product page").replace(/<[^>]*>/g, "").trim().replace(/\s+/g, " ").slice(0, 500);
-  const imageCandidate = item.images?.find(image => image.url && /^https:\/\//i.test(image.url))?.url || null;
-  const imageUrl = imageCandidate ? imageCandidate.slice(0, 1_000) : null;
+  const imageUrl = firstJumiaImage((item.images ?? []).map(image => image.url), item.content || "");
   const price = extractTextPrice(`${title} ${snippet}`);
   return { id: resultId(url, index), title: title.slice(0, 180), url, snippet, imageUrl, price, currency: price ? "KES" : null, source: "tavily_public_search" };
 }

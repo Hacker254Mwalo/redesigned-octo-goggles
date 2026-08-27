@@ -1,4 +1,5 @@
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
+import { trpc } from "@/lib/trpc";
 import {
   ACCOUNT_EMAIL_ACTION_COOLDOWN_SECONDS,
   ACCOUNT_MIN_PASSWORD_LENGTH,
@@ -10,7 +11,7 @@ import {
 } from "@/lib/auth-account";
 import { emailCodeDeliveryNotice } from "@/lib/auth-delivery";
 import { isMtaaMarketAccountCode } from "@/lib/auth-code-flow";
-import { CheckCircle2, KeyRound, Loader2, LogOut, MailCheck, ShieldCheck, X } from "lucide-react";
+import { CheckCircle2, KeyRound, Loader2, LogOut, MailCheck, ShieldCheck, Store, UserRound, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 
@@ -49,6 +50,7 @@ export function MtaaAccountDialog({ open, onClose }: { open: boolean; onClose: (
   const [submitting, setSubmitting] = useState(false);
   const [cooldownUntil, setCooldownUntil] = useState<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
+  const vendorAccess = trpc.marketplace.v3VendorAccess.useQuery(undefined, { enabled: Boolean(session && open), retry: false });
 
   useEffect(() => {
     if (!cooldownUntil) return;
@@ -178,7 +180,8 @@ export function MtaaAccountDialog({ open, onClose }: { open: boolean; onClose: (
   };
 
   if (session) {
-    return <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-labelledby="mtaamarket-account-title"><section className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"><div className="flex items-start justify-between gap-4"><div><p className="eyebrow">MtaaMarket account</p><h2 id="mtaamarket-account-title" className="mt-2 text-2xl font-semibold">You are signed in</h2></div><button type="button" className="icon-action" onClick={onClose} aria-label="Close account dialog"><X size={18} /></button></div><p className="mt-3 text-sm text-muted-foreground">Your account is ready for browsing and protected buyer actions. Approved vendors can use Seller Studio, and founder owners can submit owner-managed listings directly for moderation.</p><div className="mt-5 rounded-xl bg-[#f2f6f1] p-4 text-sm text-[#24463a]"><CheckCircle2 className="mb-2" size={18} />Your email was verified by MtaaMarket. Name and phone details are requested only for a protected hub-pickup request; one Kenyan contact number can be linked to one buyer account.</div><button className="secondary-cta mt-5 w-full justify-center" type="button" onClick={() => void signOut().then(onClose)}><LogOut size={17} />Sign out securely</button><Link href="/privacy" className="mt-4 block text-center text-xs font-medium underline underline-offset-2">How account data is used</Link></section></div>;
+    const isOwner = vendorAccess.data?.isOwner === true;
+    return <div className="account-overlay" role="dialog" aria-modal="true" aria-labelledby="mtaamarket-account-title"><section className="account-dialog"><div className="account-dialog-header"><div><p className="eyebrow">MtaaMarket account</p><h2 id="mtaamarket-account-title" className="mt-2 text-2xl font-semibold">{isOwner ? "Owner account" : "You are signed in"}</h2><p className="account-email">{session.user.email || "Verified MtaaMarket account"}</p></div><button type="button" className="icon-action" onClick={onClose} aria-label="Close account dialog"><X size={18} /></button></div><p className="account-dialog-copy">{isOwner ? "Your single verified account has owner access. Open the owner console to manage the marketplace, or continue shopping as a buyer." : "Your account is ready for browsing and protected buyer actions. Seller Studio becomes available when your vendor account is approved."}</p>{vendorAccess.isLoading ? <div className="account-role-card account-role-loading" aria-live="polite"><ShieldCheck size={20} /><div><strong>Checking workspace access</strong><span>Confirming your MtaaMarket role…</span></div></div> : isOwner ? <div className="account-role-card account-role-owner"><ShieldCheck size={20} /><div><p className="eyebrow">Owner workspace</p><strong>Owner access is active</strong><span>Manage orders, listings, vendors, and marketplace safety.</span></div></div> : <div className="account-role-card"><CheckCircle2 size={20} /><div><p className="eyebrow">Buyer account</p><strong>Ready to shop</strong><span>Browse products, use your basket, and track your orders.</span></div></div>}{vendorAccess.isError && <p className="account-dialog-notice" role="status">Your sign-in is active, but workspace access could not be checked. Refresh before opening a protected action.</p>}<div className="account-dialog-actions">{isOwner && <Link href="/admin" onClick={onClose} className="primary-cta justify-center"><ShieldCheck size={17} />Open owner console</Link>}<Link href="/dashboard" onClick={onClose} className="secondary-cta account-workspace-link justify-center"><UserRound size={17} />Open my workspace</Link>{vendorAccess.data?.canSubmitListings && <Link href="/vendor/upload" onClick={onClose} className="secondary-cta account-workspace-link justify-center"><Store size={17} />Open Seller Studio</Link>}</div><button className="account-signout secondary-cta w-full justify-center" type="button" onClick={() => void signOut().then(onClose)}><LogOut size={17} />Sign out securely</button><Link href="/privacy" onClick={onClose} className="account-privacy">How account data is used</Link></section></div>;
   }
 
   const actionLabel = submitting ? "Please wait…" : challenge ? "Verify code & continue" : cooldownRemaining > 0 ? `Wait ${cooldownRemaining}s before another email` : mode === "password" ? "Sign in" : mode === "signup" ? "Create account & send code" : "Send recovery code";
