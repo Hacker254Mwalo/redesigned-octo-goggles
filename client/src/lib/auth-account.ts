@@ -22,6 +22,15 @@ export function accountActionErrorMessage(error?: unknown) {
   if (code === "same_password" || message.includes("different from the old password")) {
     return "Choose a different password than your current password, then save it again.";
   }
+  if (code === "invalid_credentials" || message.includes("invalid login credentials")) {
+    return "That email or password is incorrect. Check both and try again.";
+  }
+  if (code === "email_not_confirmed" || message.includes("email not confirmed")) {
+    return "Verify your email from the newest MtaaMarket message before signing in.";
+  }
+  if (message.includes("failed to fetch") || message.includes("network")) {
+    return "MtaaMarket could not reach the account service. Check your connection and try again.";
+  }
   return "MtaaMarket could not complete that account step. Check your details and try again later.";
 }
 

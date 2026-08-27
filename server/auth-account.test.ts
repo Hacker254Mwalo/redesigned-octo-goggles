@@ -34,6 +34,12 @@ describe("MtaaMarket email/password account safeguards", () => {
     expect(accountActionErrorMessage({ code: "unexpected" })).toContain("could not complete");
   });
 
+  it("gives actionable login diagnostics without revealing account existence", () => {
+    expect(accountActionErrorMessage({ code: "invalid_credentials" })).toContain("email or password is incorrect");
+    expect(accountActionErrorMessage({ message: "Email not confirmed" })).toContain("Verify your email");
+    expect(accountActionErrorMessage({ message: "Failed to fetch" })).toContain("could not reach the account service");
+  });
+
   it("uses a short, transparent cooldown to reduce duplicate account-email requests", () => {
     expect(ACCOUNT_EMAIL_ACTION_COOLDOWN_SECONDS).toBe(60);
     expect(accountEmailCooldownNotice()).toContain("wait 60 seconds");

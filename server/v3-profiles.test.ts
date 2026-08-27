@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("./supabase", () => ({ getSupabaseServiceClient: vi.fn() }));
 
 import { getSupabaseServiceClient } from "./supabase";
-import { applyForV3Vendor, bootstrapV3Owner, saveV3BuyerOrderProfile } from "./v3-profiles";
+import { applyForV3Vendor, bootstrapV3Owner, getV3VendorAccess, saveV3BuyerOrderProfile } from "./v3-profiles";
 
 const founder = { subject: "11111111-1111-4111-8111-111111111111", email: "founder@example.test", issuedAt: 0 };
 const vendor = { subject: "22222222-2222-4222-8222-222222222222", email: "vendor@example.test", issuedAt: 0 };
@@ -35,6 +35,15 @@ describe("V3 owner bootstrap", () => {
     expect(insert.insert).toHaveBeenCalledWith({ id: founder.subject, role: "admin" });
 
     await expect(bootstrapV3Owner(vendor)).rejects.toThrow("not authorized");
+  });
+});
+
+describe("V3 founder Seller Studio access", () => {
+  it("allows the admin founder role to submit owner-managed listings without vendor self-approval", async () => {
+    const ownerProfile = readQuery({ id: founder.subject, full_name: "Founder", is_vendor: false, is_vendor_approved: false, role: "admin", vendor_agreement_accepted_at: null, created_at: "2026-08-27T00:00:00.000Z" });
+    vi.mocked(getSupabaseServiceClient).mockReturnValue({ from: vi.fn().mockReturnValue(ownerProfile) } as never);
+
+    await expect(getV3VendorAccess(founder)).resolves.toEqual({ isVendor: false, isVendorApproved: false, isOwner: true, agreementAcceptedAt: null, canSubmitListings: true });
   });
 });
 

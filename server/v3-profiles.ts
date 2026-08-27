@@ -14,6 +14,7 @@ type V3ProfileRow = {
 export type V3VendorAccess = {
   isVendor: boolean;
   isVendorApproved: boolean;
+  isOwner: boolean;
   agreementAcceptedAt: string | null;
   canSubmitListings: boolean;
 };
@@ -44,11 +45,12 @@ function maskPhone(phone: string) {
   return `${phone.slice(0, 5)}••••${phone.slice(-3)}`;
 }
 
-function mapVendorAccess(profile: Pick<V3ProfileRow, "is_vendor" | "is_vendor_approved" | "vendor_agreement_accepted_at"> | null): V3VendorAccess {
+function mapVendorAccess(profile: Pick<V3ProfileRow, "is_vendor" | "is_vendor_approved" | "vendor_agreement_accepted_at" | "role"> | null): V3VendorAccess {
   const agreementAcceptedAt = profile?.vendor_agreement_accepted_at ?? null;
   const isVendor = Boolean(profile?.is_vendor);
   const isVendorApproved = Boolean(profile?.is_vendor_approved);
-  return { isVendor, isVendorApproved, agreementAcceptedAt, canSubmitListings: isVendor && isVendorApproved && Boolean(agreementAcceptedAt) };
+  const isOwner = profile?.role === "admin";
+  return { isVendor, isVendorApproved, isOwner, agreementAcceptedAt, canSubmitListings: isOwner || (isVendor && isVendorApproved && Boolean(agreementAcceptedAt)) };
 }
 
 export async function requireV3Owner(identity: SupabaseIdentity | null) {
@@ -121,15 +123,15 @@ export async function applyForV3Vendor(identity: SupabaseIdentity | null, agreem
   if (!agreementAccepted) throw new Error("Accept the vendor agreement before requesting approval.");
 
   const client = getSupabaseServiceClient();
-  const existing = await client.from("profiles").select("id,is_vendor,is_vendor_approved,vendor_agreement_accepted_at").eq("id", identity.subject).maybeSingle();
+  const existing = await client.from("profiles").select("id,is_vendor,is_vendor_approved,role,vendor_agreement_accepted_at").eq("id", identity.subject).maybeSingle();
   if (existing.error) throw new Error("MtaaMarket could not check the vendor profile.");
 
   const agreementAcceptedAt = new Date().toISOString();
   const result = existing.data
-    ? await client.from("profiles").update({ is_vendor: true, is_vendor_approved: false, vendor_agreement_accepted_at: agreementAcceptedAt }).eq("id", identity.subject).select("id,is_vendor,is_vendor_approved,vendor_agreement_accepted_at").maybeSingle()
-    : await client.from("profiles").insert({ id: identity.subject, is_vendor: true, is_vendor_approved: false, role: "buyer", vendor_agreement_accepted_at: agreementAcceptedAt }).select("id,is_vendor,is_vendor_approved,vendor_agreement_accepted_at").maybeSingle();
+    ? await client.from("profiles").update({ is_vendor: true, is_vendor_approved: false, vendor_agreement_accepted_at: agreementAcceptedAt }).eq("id", identity.subject).select("id,is_vendor,is_vendor_approved,role,vendor_agreement_accepted_at").maybeSingle()
+    : await client.from("profiles").insert({ id: identity.subject, is_vendor: true, is_vendor_approved: false, role: "buyer", vendor_agreement_accepted_at: agreementAcceptedAt }).select("id,is_vendor,is_vendor_approved,role,vendor_agreement_accepted_at").maybeSingle();
   if (result.error || !result.data) throw new Error("MtaaMarket could not record your vendor request.");
-  return mapVendorAccess(result.data as Pick<V3ProfileRow, "is_vendor" | "is_vendor_approved" | "vendor_agreement_accepted_at">);
+  return mapVendorAccess(result.data as Pick<V3ProfileRow, "is_vendor" | "is_vendor_approved" | "vendor_agreement_accepted_at" | "role">);
 }
 
 export async function listV3VendorApplications(identity: SupabaseIdentity | null) {
@@ -140,7 +142,7 @@ export async function listV3VendorApplications(identity: SupabaseIdentity | null
     .eq("is_vendor", true)
     .order("created_at", { ascending: true });
   if (error) throw new Error("MtaaMarket could not load vendor applications.");
-  return (data as V3ProfileRow[] ?? []).map(profile => ({
+  return (data as V3ProfileRow[] ?? []).filter(profile => profile.role !== "admin").map(profile => ({
     id: profile.id,
     fullName: profile.full_name,
     isApproved: profile.is_vendor_approved,

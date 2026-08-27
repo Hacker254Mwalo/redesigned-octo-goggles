@@ -170,15 +170,15 @@ export function MtaaAccountDialog({ open, onClose }: { open: boolean; onClose: (
         await requestPasswordReset(email);
         markEmailSent("recovery", passwordRecoveryNotice());
       }
-    } catch {
-      setNotice(mode === "recovery" ? passwordRecoveryNotice() : accountActionErrorMessage());
+    } catch (error) {
+      setNotice(mode === "recovery" ? passwordRecoveryNotice() : accountActionErrorMessage(error));
     } finally {
       setSubmitting(false);
     }
   };
 
   if (session) {
-    return <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-labelledby="mtaamarket-account-title"><section className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"><div className="flex items-start justify-between gap-4"><div><p className="eyebrow">MtaaMarket account</p><h2 id="mtaamarket-account-title" className="mt-2 text-2xl font-semibold">You are signed in</h2></div><button type="button" className="icon-action" onClick={onClose} aria-label="Close account dialog"><X size={18} /></button></div><p className="mt-3 text-sm text-muted-foreground">Your account is ready for browsing and protected buyer actions. Seller access is reviewed separately.</p><div className="mt-5 rounded-xl bg-[#f2f6f1] p-4 text-sm text-[#24463a]"><CheckCircle2 className="mb-2" size={18} />Your email was verified by MtaaMarket. Name and phone details are requested only for a protected hub-pickup request; one Kenyan contact number can be linked to one buyer account.</div><button className="secondary-cta mt-5 w-full justify-center" type="button" onClick={() => void signOut().then(onClose)}><LogOut size={17} />Sign out securely</button><Link href="/privacy" className="mt-4 block text-center text-xs font-medium underline underline-offset-2">How account data is used</Link></section></div>;
+    return <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-labelledby="mtaamarket-account-title"><section className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"><div className="flex items-start justify-between gap-4"><div><p className="eyebrow">MtaaMarket account</p><h2 id="mtaamarket-account-title" className="mt-2 text-2xl font-semibold">You are signed in</h2></div><button type="button" className="icon-action" onClick={onClose} aria-label="Close account dialog"><X size={18} /></button></div><p className="mt-3 text-sm text-muted-foreground">Your account is ready for browsing and protected buyer actions. Approved vendors can use Seller Studio, and founder owners can submit owner-managed listings directly for moderation.</p><div className="mt-5 rounded-xl bg-[#f2f6f1] p-4 text-sm text-[#24463a]"><CheckCircle2 className="mb-2" size={18} />Your email was verified by MtaaMarket. Name and phone details are requested only for a protected hub-pickup request; one Kenyan contact number can be linked to one buyer account.</div><button className="secondary-cta mt-5 w-full justify-center" type="button" onClick={() => void signOut().then(onClose)}><LogOut size={17} />Sign out securely</button><Link href="/privacy" className="mt-4 block text-center text-xs font-medium underline underline-offset-2">How account data is used</Link></section></div>;
   }
 
   const actionLabel = submitting ? "Please wait…" : challenge ? "Verify code & continue" : cooldownRemaining > 0 ? `Wait ${cooldownRemaining}s before another email` : mode === "password" ? "Sign in" : mode === "signup" ? "Create account & send code" : "Send recovery code";

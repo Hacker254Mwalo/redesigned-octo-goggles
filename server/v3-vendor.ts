@@ -133,10 +133,11 @@ export async function submitV3VendorProduct(identity: SupabaseIdentity | null, i
   if (!identity) throw new Error("Sign in with your verified vendor email session.");
   normalizeListingSubmission(input);
   const client = getSupabaseServiceClient();
-  const { data: profile } = await client.from("profiles").select("id,is_vendor,is_vendor_approved,vendor_agreement_accepted_at").eq("id", identity.subject).maybeSingle();
-  if (!profile?.is_vendor || !profile.is_vendor_approved) throw new Error("Your vendor profile must be approved by the MtaaMarket owner before you can submit a listing.");
-  if (!profile.vendor_agreement_accepted_at) throw new Error("Accept the vendor agreement with the MtaaMarket owner before submitting a listing.");
-  return createV3PendingListing(input, { vendorId: identity.subject, isAdminConcierge: false, storagePrefix: "vendor-listings", storageOwnerId: identity.subject });
+  const { data: profile } = await client.from("profiles").select("id,role,is_vendor,is_vendor_approved,vendor_agreement_accepted_at").eq("id", identity.subject).maybeSingle();
+  const isOwner = profile?.role === "admin";
+  if (!isOwner && (!profile?.is_vendor || !profile.is_vendor_approved)) throw new Error("Your vendor profile must be approved by the MtaaMarket owner before you can submit a listing.");
+  if (!isOwner && !profile?.vendor_agreement_accepted_at) throw new Error("Accept the vendor agreement with the MtaaMarket owner before submitting a listing.");
+  return createV3PendingListing(input, { vendorId: isOwner ? null : identity.subject, isAdminConcierge: isOwner, storagePrefix: isOwner ? "owner-listings" : "vendor-listings", storageOwnerId: identity.subject });
 }
 
 /** Founder-only intake for original MtaaMarket-owned goods. It still enters owner moderation as PENDING. */

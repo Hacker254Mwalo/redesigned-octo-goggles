@@ -45,6 +45,21 @@ const validVendorListing = {
 beforeEach(() => vi.clearAllMocks());
 
 describe("V3 vendor product submission", () => {
+  it("allows the verified owner role to use Seller Studio without a vendor approval record and keeps the listing in owner moderation", async () => {
+    const profile = profileQuery({ id: ownerIdentity.subject, role: "admin", is_vendor: false, is_vendor_approved: false, vendor_agreement_accepted_at: null });
+    const products = { insert: vi.fn(), select: vi.fn(), single: vi.fn() };
+    products.insert.mockReturnValue(products);
+    products.select.mockReturnValue(products);
+    products.single.mockResolvedValue({ data: { id: "33333333-3333-4333-8333-333333333333", status: "PENDING" }, error: null });
+    const client = { from: vi.fn().mockImplementation((table: string) => table === "profiles" ? profile : products) };
+    vi.mocked(getSupabaseServiceClient).mockReturnValue(client as never);
+    vi.mocked(storagePut).mockResolvedValue({ key: "owner-listings/owner/listing.png", url: "/manus-storage/owner-listing.png" });
+
+    await expect(submitV3VendorProduct(ownerIdentity, validVendorListing)).resolves.toEqual({ id: "33333333-3333-4333-8333-333333333333", status: "PENDING" });
+    expect(storagePut).toHaveBeenCalledWith(expect.stringMatching(new RegExp(`^owner-listings/${ownerIdentity.subject}/.+\\.png$`)), expect.any(Buffer), "image/png");
+    expect(products.insert).toHaveBeenCalledWith(expect.objectContaining({ vendor_id: null, is_admin_concierge: true, status: "PENDING" }));
+  });
+
   it("requires an approved vendor profile and recorded agreement before handling image bytes", async () => {
     const profile = profileQuery({ id: vendorIdentity.subject, is_vendor: true, is_vendor_approved: true, vendor_agreement_accepted_at: null });
     vi.mocked(getSupabaseServiceClient).mockReturnValue({ from: vi.fn().mockReturnValue(profile) } as never);

@@ -108,9 +108,10 @@ export default function VendorUpload() {
   return (
     <MarketplaceLayout>
       <main className="mx-auto max-w-xl px-5 py-14">
-        <p className="eyebrow">Approved vendor workspace</p>
+        <p className="eyebrow">{vendorAccess.data?.isOwner ? "Founder owner workspace" : "Approved vendor workspace"}</p>
         <h1 className="mt-2 text-4xl font-semibold">Submit a product</h1>
         <p className="mt-3 text-muted-foreground">Every listing is owner-reviewed before it can appear publicly. Add an original product photo, accurate category, price, and available quantity for Siaya buyers.</p>
+        {vendorAccess.data?.isOwner && <p className="mt-3 rounded-xl border border-[#d5e8de] bg-[#f1f8f4] p-4 text-sm text-[#275847]">Founder owner access is active. Your listing will enter the same <strong>PENDING</strong> moderation queue; no vendor self-approval is required.</p>}
 
         {!configured && <section className="mt-8 rounded-2xl border bg-white p-6"><h2 className="font-semibold">Vendor access is being prepared</h2><p className="mt-2 text-sm text-muted-foreground">Email account access is not available in this environment yet. Please return after it has been configured.</p></section>}
         {configured && loading && <section className="mt-8 rounded-2xl border bg-white p-6" aria-live="polite"><h2 className="font-semibold">Checking your email session</h2><p className="mt-2 text-sm text-muted-foreground">Your Vendor Studio will open once the secure session check is complete.</p></section>}
@@ -120,8 +121,8 @@ export default function VendorUpload() {
         {configured && !loading && session && vendorAccess.isError && <section className="mt-8 rounded-2xl border bg-white p-6"><h2 className="font-semibold">Vendor access could not be checked</h2><p className="mt-2 text-sm text-muted-foreground">Refresh the page and try again. No listing has been created.</p></section>}
         {configured && !loading && session && vendorAccess.data && !vendorAccess.data.canSubmitListings && (
           <section className="mt-8 rounded-2xl border bg-white p-6">
-            <h2 className="font-semibold">{vendorAccess.data.isVendor ? "Vendor approval is pending" : "Request vendor approval"}</h2>
-            <p className="mt-2 text-sm text-muted-foreground">{vendorAccess.data.isVendor ? "Your agreement is recorded. The MtaaMarket owner must approve your vendor profile before you can submit a listing." : "Vendor access starts with an explicit agreement and an owner review. Your contact details remain platform-managed."}</p>
+            <h2 className="font-semibold">{vendorAccess.data.isOwner ? "Founder Seller Studio access is active" : vendorAccess.data.isVendor ? "Vendor approval is pending" : "Request vendor approval"}</h2>
+            <p className="mt-2 text-sm text-muted-foreground">{vendorAccess.data.isOwner ? "Your verified founder owner role can submit owner-managed listings directly for moderation." : vendorAccess.data.isVendor ? "Your agreement is recorded. The MtaaMarket owner must approve your vendor profile before you can submit a listing." : "Vendor access starts with an explicit agreement and an owner review. Your contact details remain platform-managed."}</p>
             {!vendorAccess.data.isVendor && <label className="mt-5 flex items-start gap-3 rounded-xl bg-muted p-4 text-sm"><input className="mt-0.5 size-4" type="checkbox" checked={agreementAccepted} onChange={event => setAgreementAccepted(event.target.checked)} /><span>I confirm I will provide original product information, use the platform-managed buyer communication process, and follow MtaaMarket’s physical-products rules for Siaya buyers.</span></label>}
             {!vendorAccess.data.isVendor && <button className="primary-cta mt-5" type="button" disabled={!agreementAccepted || applyForVendor.isPending} onClick={() => applyForVendor.mutate({ agreementAccepted: true })}>{applyForVendor.isPending ? "Sending request…" : "Accept agreement & request approval"}</button>}
           </section>
