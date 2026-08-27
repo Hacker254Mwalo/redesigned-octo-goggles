@@ -54,6 +54,20 @@ describe("Jumia public discovery", () => {
     expect(result.results[0]).toMatchObject({ title: "Samsung TV Jumia Kenya", url: "https://www.jumia.co.ke/samsung-tv", price: 34999, currency: "KES", imageUrl: "https://ke.jumia.is/p_9n_2Fk5GQPGkotcccQ5cDtlHA=/fit-in/500x500/filters:fill(white)/product/31/8481392/1.jpg?7944" });
   });
 
+  it("puts image-bearing Jumia cards first while retaining text-only results", async () => {
+    process.env.TAVILY_API_KEY = "test-key";
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ results: [
+      { title: "Text-only result", url: "https://www.jumia.co.ke/text-only", content: "Samsung television" },
+      { title: "Visual result", url: "https://www.jumia.co.ke/visual", content: "Samsung television", images: [{ url: "https://ke.jumia.is/p_9n_2Fk5GQPGkotcccQ5cDtlHA=/fit-in/500x500/filters:fill(white)/product/31/8481392/1.jpg?7944" }] },
+    ] }), { status: 200 }));
+
+    const result = await searchJumiaPublicProducts("Samsung TV");
+
+    expect(result.results).toHaveLength(2);
+    expect(result.results[0]?.title).toBe("Visual result");
+    expect(result.results[1]?.title).toBe("Text-only result");
+  });
+
   it("derives a safe Jumia CDN image from an indexed product path when Tavily has no image field", async () => {
     process.env.TAVILY_API_KEY = "test-key";
     vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ results: [
