@@ -86,6 +86,15 @@ describe("public performance and mobile foundations", () => {
     expect(callback).not.toContain("You are signed in with email.");
   });
 
+  it("distinguishes the public Seller Studio guide from the protected legacy workspace", () => {
+    const dashboard = readFileSync(resolve(projectRoot, "client/src/pages/DashboardPage.tsx"), "utf8");
+
+    expect(dashboard).toContain("Workspace access is being prepared.");
+    expect(dashboard).toContain("Open Seller Studio guide");
+    expect(dashboard).toContain("protected account and role migration is complete");
+    expect(dashboard).not.toContain("Sign in to manage orders and listings.");
+  });
+
   it("keeps a conservative vendor-chunk strategy for public performance", () => {
     const config = readFileSync(resolve(projectRoot, "vite.config.ts"), "utf8");
 

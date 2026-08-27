@@ -10,7 +10,6 @@ type SupabaseAuthState = {
   requestMagicLink: (email: string) => Promise<void>;
   requestEmailCode: (email: string) => Promise<void>;
   verifyEmailCode: (email: string, token: string) => Promise<void>;
-  signInWithGoogle: () => Promise<void>;
   signUpWithPassword: (email: string, password: string) => Promise<void>;
   signInWithPassword: (email: string, password: string) => Promise<void>;
   requestPasswordReset: (email: string) => Promise<void>;
@@ -66,13 +65,6 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
       if (error || !data.session) throw error || new Error("MtaaMarket could not verify this code.");
       mirrorAccessToken(data.session);
       setSession(data.session);
-    },
-    async signInWithGoogle() {
-      const { error } = await getSupabaseBrowserClient().auth.signInWithOAuth({
-        provider: "google",
-        options: { redirectTo: `${window.location.origin}/auth/callback` },
-      });
-      if (error) throw error;
     },
     async signUpWithPassword(email, password) {
       const { error } = await getSupabaseBrowserClient().auth.signUp({

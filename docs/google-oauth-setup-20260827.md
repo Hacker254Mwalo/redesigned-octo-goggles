@@ -37,9 +37,27 @@ The founder authorized creation of a separate Google Cloud project named **MtaaM
 
 The browser automation then lost the dynamic consent-screen form before its first step could be advanced. No OAuth client was created, no client ID or secret was generated, no Supabase provider setting was changed, and no Google sign-in control was enabled. The next safe action is to recover the selected `mtaamarket-oauth` project view, complete the consent-screen wizard with a private support contact, and create the Web application client using only the origins and callback listed above.
 
+## Confirmed credential and redirect controls
+
+Google’s current client guidance treats a web OAuth client as a confidential client: its client secret must be protected, must not be committed to source control, and—for newly created clients—is only shown in full at the point of creation. The production configuration must therefore paste the client ID and secret directly into the isolated Supabase Google provider panel, not into MtaaMarket code, browser-visible environment variables, chat, or version control. Google also requires the redirect URI to match an authorized redirect URI exactly; the client must use only the Supabase callback recorded above. [3] [4]
+
+The eventual production client should request only basic sign-in identity data. Google’s guidance requires an application to request only permissions needed for the implemented purpose and recommends contextual, incremental permission requests for any future additional data. MtaaMarket will not enable Drive, Gmail, Contacts, Calendar, Photos, payment, offline-access, or refresh-token scopes. [4]
+
+Google can delete an OAuth client after six months without a credential/token request or configuration activity. That does not require a workaround now, but it means the final client should be created only when the MtaaMarket Google sign-in path is ready for its controlled production verification. [3]
+
+## Production-branding progress and domain gate
+
+The public MtaaMarket privacy disclosure is now deployed at `https://siayaonlinemarket.vercel.app/privacy`, and the Google Auth Platform consent configuration has been created for the dedicated project. The app is configured as an external audience and has the public homepage and privacy-policy URLs prepared in the Google branding form. No extra Google API scope was added.
+
+Google’s branding page requires an **authorised domain** and states that this domain must be preregistered through Google Search Console. The shared default Vercel hostname has been entered for validation but has **not** been saved or accepted. The configuration must not be presented as production-ready until Google accepts the domain and permits the account to change publishing status from testing to production. If Google rejects the shared `vercel.app` host or requires ownership verification unavailable for that shared host, a founder-owned custom domain is a hard requirement for production Google sign-in; email sign-in remains available separately.
+
+Google validation was then attempted with the shared `vercel.app` host. The branding form rejected it with two blocking messages: the MtaaMarket hostname was missing from the authorised-domain list and the value must be a **top private domain**. The invalid entry was discarded without saving the branding form. This confirms that the default `siayaonlinemarket.vercel.app` deployment can continue to host the public website and email-auth callback, but cannot be used for a production-published Google OAuth consent configuration. A founder-owned domain must be linked to the website and verified in Google Search Console before the client, Supabase provider, or public Google button can be truthfully enabled for production.
+
 Once these settings are complete, a separate controlled browser test is required: open the MtaaMarket account dialog, choose Google only after it is visibly enabled, complete consent in the provider window, confirm return to the deployed `/auth/callback` route, and verify that the session is buyer-only. That test must not assign a founder, vendor, or administrator role and must not create an order, request, payment, delivery, or seller record.
 
 ## References
 
 [1]: https://supabase.com/docs/guides/auth/social-login/auth-google "Supabase Docs — Login with Google"
 [2]: https://developers.google.com/identity/protocols/oauth2/web-server "Google for Developers — Using OAuth 2.0 for Web Server Applications"
+[3]: https://support.google.com/cloud/answer/15549257?hl=en "Google Cloud Help — Manage OAuth clients"
+[4]: https://developers.google.com/identity/protocols/oauth2/web-server "Google for Developers — Using OAuth 2.0 for Web Server Applications"

@@ -49,14 +49,14 @@ describe("MtaaMarket email/password account safeguards", () => {
     expect(accountDialogSource).toContain("returnFocusRef.current?.focus()");
     expect(accountDialogSource).toContain("ref={emailInputRef}");
     expect(accountDialogSource).toContain("Recommended: email link is ready now.");
-    expect(accountDialogSource).toContain("Google sign-in will appear only after the MtaaMarket Google provider is securely configured.");
+    expect(accountDialogSource).toContain("Google sign-in is not available on the current website address.");
     expect(accountDialogSource).not.toContain("signInWithGoogle");
   });
 
-  it("keeps the Google OAuth bridge dormant until the provider is configured", () => {
-    expect(supabaseAuthContextSource).toContain('provider: "google"');
-    expect(supabaseAuthContextSource).toContain('redirectTo: `${window.location.origin}/auth/callback`');
-    expect(accountDialogSource).toContain("Google sign-in will appear only after the MtaaMarket Google provider is securely configured.");
-    expect(accountDialogSource).not.toContain("signInWithGoogle");
+  it("keeps the unavailable default-domain Google OAuth provider out of the client account bridge", () => {
+    expect(supabaseAuthContextSource).not.toContain('provider: "google"');
+    expect(supabaseAuthContextSource).not.toContain("signInWithGoogle");
+    expect(accountDialogSource).toContain("Google sign-in is not available on the current website address.");
+    expect(accountDialogSource).toContain("Use email link or email and password instead.");
   });
 });

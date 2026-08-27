@@ -119,3 +119,9 @@ GitHub/Vercel deployment `144c83d` completed successfully. A live source inspect
 The shared public layout now includes a **Skip to market content** link before the repeated market header and a focusable `#main-content` target. GitHub/Vercel deployment `b1a951a` completed successfully. A non-mutating live homepage review confirmed that the skip link is the first link exposed to keyboard and assistive-technology users, while the ordinary market navigation, basket, account trigger, search, Request Desk links, and public catalogue state remain available.
 
 The link is visually hidden until keyboard focus and then receives a high-contrast outline, which makes the repeated navigation bypass discoverable without changing the visual landing-page composition. This is a public accessibility improvement only: no sign-in occurred and no request, seller, role, payment, delivery, or provider action was submitted.
+
+## Seller-area visibility clarification
+
+The deployed `/vendor` Seller Studio page was checked after the founder reported that the vendor area was not showing. The public page is loading normally and presents the Siaya seller-governance, original-listing, photo-readiness, and owner-reviewed support information. This is intentionally an information and readiness surface; it does not expose an unprotected seller workspace.
+
+The deployed `/dashboard` route separately renders a sign-in entry panel. That route is intentionally gated because the protected PostgreSQL account/profile/role migration is incomplete; a Supabase email session alone must not unlock legacy seller, order, payment, or owner controls. The next safe improvement is clearer entry wording that distinguishes the visible Seller Studio guidance from the later protected workspace rather than implying that ordinary sign-in currently opens listing management.
