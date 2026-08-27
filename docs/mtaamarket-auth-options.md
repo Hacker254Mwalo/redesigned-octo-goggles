@@ -65,6 +65,8 @@ The recommended safe activation order is: first complete one controlled producti
 
 On 27 August 2026, the founder explicitly approved one controlled account-flow verification. The public dialog was opened on the Vercel deployment, but no email, password, code, recovery link, customer account, order, vendor record, payment, delivery, or role action had been submitted at the start of this controlled test.
 
+Founder-provided mobile evidence later confirmed that the controlled email-link message reached the Inbox and the same-device link completed a buyer-only MtaaMarket session. A password-recovery request also displayed the intended generic confirmation and resend cooldown. The evidence contains no retained email address, password, code, or link in project documentation. Password-account signup, password sign-in, and reset completion remain unverified; therefore the password route is not represented as a general-public launch method.
+
 Google needs a founder-owned Google Cloud OAuth web client, MtaaMarket’s authorised origin, the exact Supabase Google callback URI shown in its provider screen, and a private client secret entered only in Supabase. [2] Until those prerequisites exist, a visible active Google control would be misleading and is prohibited.
 
 ## Primary and backup delivery design

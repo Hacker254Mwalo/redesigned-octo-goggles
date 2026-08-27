@@ -79,3 +79,5 @@ The authenticated Supabase Storage verification creates and removes a temporary 
 ## Deployed account-dialog check
 
 The deployed public Sign in dialog was opened without entering an email, password, code, or recovery request. It rendered the verified email-link method and the email/password route, disclosed that Google remains unavailable until a secure provider configuration exists, and repeated that the protected workspace remains unavailable pending the separate role migration. The deployed dialog’s close control and email input were present, and a direct Escape-key check closed the dialog without submitting an action. No sign-in, signup, reset, order, vendor, payment, delivery, or role action was submitted during this check.
+
+The subsequent email-first guidance update was also checked on the deployed Vercel site. The account dialog now visibly identifies the email-link flow as the recommended working method and labels its action as **Send secure sign-in link**. It continues to disclose the unavailable Google-provider boundary rather than displaying a non-functional Google sign-in control. No account form was submitted during this review.
