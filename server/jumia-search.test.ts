@@ -43,8 +43,10 @@ describe("Jumia public discovery", () => {
     const result = await searchJumiaPublicProducts("Samsung TV");
     const request = fetchSpy.mock.calls[0]?.[1];
     const payload = JSON.parse(String(request?.body));
-    expect(payload).toMatchObject({ query: "site:jumia.co.ke Samsung TV", search_depth: "basic", country: "kenya", safe_search: true, include_images: true });
+    expect(payload).toMatchObject({ query: "site:jumia.co.ke Samsung TV", search_depth: "basic", max_results: 10, include_images: true, include_answer: false, include_raw_content: false });
     expect(payload).not.toHaveProperty("include_domains");
+    expect(payload).not.toHaveProperty("country");
+    expect(payload).not.toHaveProperty("safe_search");
 
     expect(result.configured).toBe(true);
     expect(result.provider).toBe("tavily_public_search");

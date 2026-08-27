@@ -4,7 +4,7 @@
 
 MtaaMarket now has a server-side `jumiaSearch` procedure, a customer-facing search panel on `/jumia`, and an optional embedded Google Standard Search Element. When a supported search provider is configured, the customer searches by keyword, sees sanitized Jumia Kenya result cards, selects a result, and adds it to the normal unpaid MtaaMarket order. The selected page URL, displayed image, and displayed price are retained as reference data for the private fulfilment review.
 
-The customer sees that results come from public Jumia Kenya pages and that price, stock, variant, and delivery are confirmed before fulfilment. The customer still uses the ordinary MtaaMarket order path: choose delivery or collection, schedule the hand-off, and pay only at hand-off.
+Results are discovered from public Jumia Kenya pages and sanitized server-side. The customer uses the ordinary MtaaMarket order path: choose collection or delivery, add one or more items to the page-local basket, and place the order without upfront payment.
 
 ## Production configuration
 
@@ -21,7 +21,7 @@ The aliases `GOOGLE_SEARCH_API_KEY`, `GOOGLE_SEARCH_CX`, `TAVILY_SEARCH_API_KEY`
 
 For the Google Standard Search Element, the browser uses the separate `VITE_GOOGLE_PSE_CX` variable. This is only a Programmable Search Engine ID, not a secret API key. Configure that engine to search `jumia.co.ke`; the standard client-side element is designed for embedded site search and does not require the closed JSON API.
 
-The server query is restricted to `site:jumia.co.ke`, uses safe-search settings where supported, requests at most ten results, accepts only HTTPS Jumia Kenya URLs, and ignores non-Jumia results. The server does not accept arbitrary external URLs as selected Jumia references.
+The server query is restricted with the `site:jumia.co.ke <query>` search operator, uses safe-search settings where supported, requests at most ten results, accepts only HTTPS Jumia Kenya URLs, and ignores non-Jumia results. Tavily is intentionally not sent an additional `include_domains` filter because production testing showed that combination could suppress valid Jumia results. The server does not accept arbitrary external URLs as selected Jumia references.
 
 ## Important provider status
 
@@ -31,7 +31,7 @@ The provider boundary is intentionally isolated in `server/jumia-search.ts`, whi
 
 ## Customer and founder flow
 
-A customer searches for a product inside MtaaMarket and selects a public result. The customer may add multiple selected items to one unpaid order, choose Siaya collection, a collection point, or home delivery, and submit the order. The founder verifies current stock, variant, price, and delivery route before supplier fulfilment. If the item is unavailable, the founder cancels the order. If payment had already been recorded, the founder marks `refund_due`; the server calculates a three-working-day target and the founder later marks `refunded`.
+A customer searches for a product inside MtaaMarket and selects a public result. The customer may add multiple selected items to one unpaid page-local basket, choose Siaya collection, a collection point, or home delivery, and submit the order. The private owner workspace then manages the order lifecycle. If the item is unavailable, the owner cancels the order. If payment had already been recorded, the order enters `refund_due`; the server calculates a three-working-day target and the owner later marks `refunded`. Search coverage depends on the provider index, so a narrower term may return fewer cards than a broader equivalent.
 
 ## References
 
