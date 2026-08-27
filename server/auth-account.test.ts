@@ -23,6 +23,8 @@ describe("MtaaMarket email/password account safeguards", () => {
   it("keeps password recovery responses non-enumerating", () => {
     const notice = passwordRecoveryNotice();
     expect(notice).toContain("If an account matches that email");
+    expect(notice).toContain("verification code");
+    expect(notice).not.toContain("six-digit");
     expect(notice).not.toContain("does not exist");
   });
 
@@ -50,6 +52,8 @@ describe("MtaaMarket email/password account safeguards", () => {
     expect(accountDialogSource).toContain("ref={emailInputRef}");
     expect(accountDialogSource).toContain("Use the email and password for your MtaaMarket account.");
     expect(accountDialogSource).toContain("Creating an account does not make you a seller.");
+    expect(accountDialogSource).toContain("maxLength={8}");
+    expect(accountDialogSource).not.toContain("six-digit code");
     expect(accountDialogSource).not.toContain("signInWithGoogle");
   });
 
