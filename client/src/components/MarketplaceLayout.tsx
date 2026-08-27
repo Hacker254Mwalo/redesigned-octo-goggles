@@ -4,12 +4,13 @@ import { MtaaAccountDialog } from "@/components/MtaaAccountDialog";
 import { useCart } from "@/contexts/CartContext";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import { cn } from "@/lib/utils";
-import { Heart, HandHeart, Menu, Search, ShoppingBag, Store, UserRound, X } from "lucide-react";
+import { Heart, HandHeart, Menu, Search, ShieldCheck, ShoppingBag, Store, UserRound, X } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 
 const navItems = [
   { href: "/", label: "Market", icon: Search },
+  { href: "/how-it-works", label: "How it works", icon: ShieldCheck },
   { href: "/request", label: "Request an item", icon: HandHeart },
   { href: "/vendor", label: "Seller Studio", icon: Store },
 ];
@@ -55,7 +56,7 @@ export function MarketplaceLayout({ children }: { children: React.ReactNode }) {
       <main id="main-content" tabIndex={-1}>{children}</main>
       <footer className="site-footer">
         <div><div className="brand footer-brand"><span className="brand-mark">M</span><span><small>Siaya Online</small>Mtaa<span>Market</span></span></div><p>A local market platform for products, assisted orders, and carefully managed fulfilment.</p></div>
-        <div className="footer-links"><Link href="/request">Request an item</Link><Link href="/vendor">Seller Studio</Link><Link href="/cart">Your basket</Link><Link href="/privacy">Privacy and account data</Link></div>
+        <div className="footer-links"><Link href="/how-it-works">How assisted sourcing works</Link><Link href="/request">Request an item</Link><Link href="/vendor">Seller Studio</Link><Link href="/cart">Your basket</Link><Link href="/privacy">Privacy and account data</Link></div>
         <div className="footer-trust"><Heart size={16} fill="currentColor" /> Built to serve Siaya buyers</div>
       </footer>
     </div>

@@ -144,6 +144,25 @@ describe("public performance and mobile foundations", () => {
     expect(home).not.toContain("Sellers serve Siaya buyers");
   });
 
+  it("offers a public owner-managed assisted-sourcing guide without activating supplier or payment actions", () => {
+    const app = readFileSync(resolve(projectRoot, "client/src/App.tsx"), "utf8");
+    const layout = readFileSync(resolve(projectRoot, "client/src/components/MarketplaceLayout.tsx"), "utf8");
+    const home = readFileSync(resolve(projectRoot, "client/src/pages/Home.tsx"), "utf8");
+    const guide = readFileSync(resolve(projectRoot, "client/src/pages/AssistedSourcingPage.tsx"), "utf8");
+
+    expect(app).toContain('lazy(() => import("./pages/AssistedSourcingPage"))');
+    expect(app).toContain('path={"/how-it-works"}');
+    expect(layout).toContain('href="/how-it-works"');
+    expect(home).toContain('href="/how-it-works"');
+    expect(guide).toContain("MtaaMarket checks possible routes");
+    expect(guide).toContain("Before any payment instruction");
+    expect(guide).toContain("No automatic supplier purchase");
+    expect(guide).toContain("No affiliation claim.");
+    expect(guide).toContain("No copied catalogue content.");
+    expect(guide).toContain("No automatic checkout.");
+    expect(guide).not.toMatch(/(?:fetch\(|axios|invokeLLM|signIn|checkout\()/);
+  });
+
   it("keeps a conservative vendor-chunk strategy for public performance", () => {
     const config = readFileSync(resolve(projectRoot, "vite.config.ts"), "utf8");
 

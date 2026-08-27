@@ -9,6 +9,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 
 const CartPage = lazy(() => import("./pages/CartPage"));
+const AssistedSourcingPage = lazy(() => import("./pages/AssistedSourcingPage"));
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const PickupStations = lazy(() => import("./pages/PickupStations"));
 const PrivacyPage = lazy(() => import("./pages/PrivacyPage"));
@@ -28,6 +29,7 @@ function Router() {
     <Suspense fallback={<RouteLoadingState />}>
       <Switch>
         <Route path={"/"} component={Home} />
+        <Route path={"/how-it-works"} component={AssistedSourcingPage} />
         <Route path={"/products/:slug"} component={ProductDetail} />
         <Route path={"/cart"} component={CartPage} />
         <Route path={"/privacy"} component={PrivacyPage} />
