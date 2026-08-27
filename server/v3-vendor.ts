@@ -1,6 +1,7 @@
 import { storagePut } from "./storage";
 import { getSupabaseServiceClient } from "./supabase";
 import type { SupabaseIdentity } from "./supabase-auth";
+import { V3_LISTING_CATEGORY_SLUGS, type V3ListingCategorySlug } from "@shared/v3-listing";
 import { randomUUID } from "node:crypto";
 
 const MAX_IMAGE_BYTES = 5_000_000;
@@ -81,15 +82,20 @@ function decodeVendorImage(imageData: string, imageType: string) {
   return { image, extension: imageExtensions[imageType as SupportedImageType] };
 }
 
-export async function submitV3VendorProduct(identity: SupabaseIdentity | null, input: { title: string; price: number; imageData: string; imageType: string }) {
+export async function submitV3VendorProduct(identity: SupabaseIdentity | null, input: { title: string; categorySlug: V3ListingCategorySlug; price: number; stockQuantity: number; imageData: string; imageType: string }) {
   if (!identity) throw new Error("Sign in with your verified vendor email session.");
+  const title = input.title.trim();
+  if (title.length < 3 || title.length > 180) throw new Error("Use a product title between 3 and 180 characters.");
+  if (!V3_LISTING_CATEGORY_SLUGS.includes(input.categorySlug)) throw new Error("Choose a valid MtaaMarket category.");
+  if (!Number.isFinite(input.price) || input.price <= 0 || input.price > 10_000_000) throw new Error("Enter a valid price in Kenyan shillings.");
+  if (!Number.isSafeInteger(input.stockQuantity) || input.stockQuantity < 1 || input.stockQuantity > 100_000) throw new Error("Enter an available quantity between 1 and 100,000.");
   const client = getSupabaseServiceClient();
   const { data: profile } = await client.from("profiles").select("id,is_vendor,is_vendor_approved,vendor_agreement_accepted_at").eq("id", identity.subject).maybeSingle();
   if (!profile?.is_vendor || !profile.is_vendor_approved) throw new Error("Your vendor profile must be approved by the MtaaMarket owner before you can submit a listing.");
   if (!profile.vendor_agreement_accepted_at) throw new Error("Accept the vendor agreement with the MtaaMarket owner before submitting a listing.");
   const { image, extension } = decodeVendorImage(input.imageData, input.imageType);
   const { url } = await storagePut(`vendor-listings/${identity.subject}/${randomUUID()}.${extension}`, image, input.imageType);
-  const { data, error } = await client.from("products").insert({ vendor_id: identity.subject, title: input.title, image_url: url, base_price: input.price, final_price: input.price, status: "PENDING" }).select("id,status").single();
+  const { data, error } = await client.from("products").insert({ vendor_id: identity.subject, title, category_slug: input.categorySlug, image_url: url, base_price: input.price, final_price: input.price, stock_quantity: input.stockQuantity, status: "PENDING" }).select("id,status").single();
   if (error || !data) throw new Error("MtaaMarket could not submit this listing.");
   return data;
 }

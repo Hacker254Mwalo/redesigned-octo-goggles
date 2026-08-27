@@ -60,19 +60,21 @@ describe("Supabase public marketplace adapter", () => {
       id: "5e33d1ac-a841-4994-a5e5-ca3fb59128bf",
       vendor_id: null,
       title: "Siaya market test listing",
+      category_slug: "phones-electronics",
       description: "Original MtaaMarket listing content for a physical item.",
       image_url: "https://example.test/original-listing.jpg",
       base_price: "1200.00",
       final_price: "1250.00",
+      stock_quantity: 6,
       is_admin_concierge: true,
       allow_pay_on_pickup: true,
       status: "ACTIVE",
       created_at: "2026-08-26T00:00:00.000Z",
     });
 
-    expect(entry.product).toMatchObject({ id: "5e33d1ac-a841-4994-a5e5-ca3fb59128bf", price: 1250, stockQuantity: 0 });
+    expect(entry.product).toMatchObject({ id: "5e33d1ac-a841-4994-a5e5-ca3fb59128bf", price: 1250, stockQuantity: 6 });
     expect(entry.product.slug).toBe("v3-5e33d1ac-a841-4994-a5e5-ca3fb59128bf");
-    expect(entry.category.slug).toBe("general-goods");
+    expect(entry.category.slug).toBe("phones-electronics");
     expect(entry.vendor).toBeNull();
   });
 
@@ -80,16 +82,19 @@ describe("Supabase public marketplace adapter", () => {
     expect(mapOptionalSupabasePublicProduct(null)).toBeNull();
   });
 
-  it("queries only V3 ACTIVE products and never requests the removed legacy moderation field", async () => {
+  it("queries only V3 ACTIVE products, applies a requested V3 category, and never requests the removed legacy moderation field", async () => {
     const query = createV3ProductsQuery();
     const client = { from: vi.fn().mockReturnValue(query) };
     vi.mocked(getSupabaseServiceClient).mockReturnValue(client as never);
 
-    await expect(listSupabasePublicProducts({ limit: 12 })).resolves.toEqual([]);
+    await expect(listSupabasePublicProducts({ limit: 12, categorySlug: "phones-electronics" })).resolves.toEqual([]);
 
     expect(client.from).toHaveBeenCalledWith("products");
-    expect(query.eq).toHaveBeenCalledTimes(1);
+    expect(query.eq).toHaveBeenCalledTimes(2);
     expect(query.eq).toHaveBeenCalledWith("status", "ACTIVE");
+    expect(query.eq).toHaveBeenCalledWith("category_slug", "phones-electronics");
+    expect(query.select).toHaveBeenCalledWith(expect.stringContaining("category_slug"));
+    expect(query.select).toHaveBeenCalledWith(expect.stringContaining("stock_quantity"));
     expect(query.select).toHaveBeenCalledWith(expect.not.stringContaining("base_price"));
     expect(query.select).toHaveBeenCalledWith(expect.not.stringContaining("moderation_status"));
   });

@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import { trpc } from "@/lib/trpc";
+import { getV3ListingCategory } from "@shared/v3-listing";
 import { ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -18,6 +19,8 @@ import { toast } from "sonner";
 type ModerationProduct = {
   id: string;
   title: string;
+  category_slug: string;
+  stock_quantity: number;
   image_url: string;
   vendor_id: string | null;
   final_price: string | number;
@@ -89,6 +92,8 @@ export default function Admin() {
                 <img className="h-44 w-full rounded-xl object-cover" src={product.image_url} alt={`${product.title} listing image`} />
                 <div className="mt-4 flex items-start justify-between gap-3"><h2 className="font-semibold">{product.title}</h2><span className="shrink-0 rounded-full bg-muted px-2.5 py-1 text-xs font-medium">{statusText[product.status]}</span></div>
                 <p className="mt-2 text-sm text-muted-foreground">Vendor: {product.vendor_id ? "Approved vendor listing" : "Owner listing"}</p>
+                <p className="mt-1 text-sm text-muted-foreground">Category: {getV3ListingCategory(product.category_slug)?.name ?? "Uncategorised"}</p>
+                <p className="mt-1 text-sm text-muted-foreground">Available quantity: {product.stock_quantity.toLocaleString("en-KE")}</p>
                 <p className="mt-1 font-medium">KES {Number(product.final_price).toLocaleString("en-KE")}</p>
                 <div className="mt-5 flex flex-wrap gap-2">
                   {product.status !== "ACTIVE" && <button className="primary-cta" disabled={actionPending} onClick={() => updateProduct(product.id, "ACTIVE")}>{product.status === "FLAGGED" ? "Restore active" : "Approve listing"}</button>}

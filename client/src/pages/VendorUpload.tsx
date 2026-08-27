@@ -1,6 +1,8 @@
 import { MarketplaceLayout } from "@/components/MarketplaceLayout";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
+import { AI_LISTING_MANUAL_FALLBACK, prepareListingImageForSubmission } from "@/lib/ai-listing";
 import { trpc } from "@/lib/trpc";
+import { V3_LISTING_CATEGORIES, type V3ListingCategorySlug } from "@shared/v3-listing";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -11,10 +13,13 @@ export default function VendorUpload() {
   const { configured, loading, session } = useSupabaseAuth();
   const fileInput = useRef<HTMLInputElement>(null);
   const [title, setTitle] = useState("");
+  const [categorySlug, setCategorySlug] = useState<V3ListingCategorySlug | "">("");
   const [price, setPrice] = useState("");
+  const [stockQuantity, setStockQuantity] = useState("1");
   const [imageData, setImageData] = useState("");
   const [imageType, setImageType] = useState<(typeof ACCEPTED_IMAGE_TYPES)[number] | null>(null);
   const [selectedFileName, setSelectedFileName] = useState("");
+  const [imagePreparationMessage, setImagePreparationMessage] = useState<string>(AI_LISTING_MANUAL_FALLBACK.image);
   const [formError, setFormError] = useState("");
   const [agreementAccepted, setAgreementAccepted] = useState(false);
   const vendorAccess = trpc.marketplace.v3VendorAccess.useQuery(undefined, { enabled: Boolean(session), retry: false });
@@ -30,10 +35,13 @@ export default function VendorUpload() {
   const submit = trpc.marketplace.submitV3VendorProduct.useMutation({
     onSuccess: () => {
       setTitle("");
+      setCategorySlug("");
       setPrice("");
+      setStockQuantity("1");
       setImageData("");
       setImageType(null);
       setSelectedFileName("");
+      setImagePreparationMessage(AI_LISTING_MANUAL_FALLBACK.image);
       if (fileInput.current) fileInput.current.value = "";
       toast.success("Listing submitted for owner review.");
     },
@@ -49,19 +57,23 @@ export default function VendorUpload() {
     if (!ACCEPTED_IMAGE_TYPES.includes(file.type as (typeof ACCEPTED_IMAGE_TYPES)[number])) {
       setImageData("");
       setImageType(null);
+      setSelectedFileName("");
       return setFormError("Choose a JPEG, PNG, or WebP image.");
     }
     if (file.size > MAX_IMAGE_BYTES) {
       setImageData("");
       setImageType(null);
+      setSelectedFileName("");
       return setFormError("Choose an image smaller than 5 MB.");
     }
 
     const reader = new FileReader();
-    reader.onload = () => {
-      setImageData(String(reader.result));
-      setImageType(file.type as (typeof ACCEPTED_IMAGE_TYPES)[number]);
+    reader.onload = async () => {
+      const prepared = await prepareListingImageForSubmission({ imageData: String(reader.result), imageType: file.type as (typeof ACCEPTED_IMAGE_TYPES)[number] });
+      setImageData(prepared.imageData);
+      setImageType(prepared.imageType);
       setSelectedFileName(file.name);
+      setImagePreparationMessage(prepared.message);
     };
     reader.onerror = () => setFormError("MtaaMarket could not read that image. Please choose another file.");
     reader.readAsDataURL(file);
@@ -71,7 +83,10 @@ export default function VendorUpload() {
     event.preventDefault();
     setFormError("");
     if (!imageData || !imageType) return setFormError("Choose a supported product image before submitting.");
-    submit.mutate({ title, price: Number(price), imageData, imageType });
+    if (!categorySlug) return setFormError("Choose the product category before submitting.");
+    const quantity = Number(stockQuantity);
+    if (!Number.isSafeInteger(quantity) || quantity < 1) return setFormError("Enter at least one available item.");
+    submit.mutate({ title, categorySlug, price: Number(price), stockQuantity: quantity, imageData, imageType });
   }
 
   return (
@@ -79,7 +94,7 @@ export default function VendorUpload() {
       <main className="mx-auto max-w-xl px-5 py-14">
         <p className="eyebrow">Approved vendor workspace</p>
         <h1 className="mt-2 text-4xl font-semibold">Submit a product</h1>
-        <p className="mt-3 text-muted-foreground">Every listing is owner-reviewed before it can appear publicly. Only original, physical products for Siaya buyers are accepted.</p>
+        <p className="mt-3 text-muted-foreground">Every listing is owner-reviewed before it can appear publicly. Add an original product photo, accurate category, price, and available quantity for Siaya buyers.</p>
 
         {!configured && <section className="mt-8 rounded-2xl border bg-white p-6"><h2 className="font-semibold">Vendor access is being prepared</h2><p className="mt-2 text-sm text-muted-foreground">Email account access is not available in this environment yet. Please return after it has been configured.</p></section>}
         {configured && loading && <section className="mt-8 rounded-2xl border bg-white p-6" aria-live="polite"><h2 className="font-semibold">Checking your email session</h2><p className="mt-2 text-sm text-muted-foreground">Your Vendor Studio will open once the secure session check is complete.</p></section>}
@@ -104,13 +119,23 @@ export default function VendorUpload() {
                 <span className="mt-2 block text-xs font-normal text-muted-foreground">JPEG, PNG, or WebP only. Up to 5 MB; maximum 6,000 pixels per side.</span>
               </label>
               {selectedFileName && <p className="rounded-lg bg-muted px-3 py-2 text-sm text-foreground" aria-live="polite">Selected: {selectedFileName}</p>}
+              <p className="rounded-xl border border-[#d5e8de] bg-[#f1f8f4] p-4 text-sm text-[#275847]" aria-live="polite">{imagePreparationMessage}</p>
               <label className="block text-sm font-medium">Listing title
                 <input className="mt-2 w-full rounded-lg border border-border bg-white p-3 text-base" required minLength={3} maxLength={180} value={title} onChange={event => setTitle(event.target.value)} autoComplete="off" />
+              </label>
+              <label className="block text-sm font-medium">Category
+                <select className="mt-2 w-full rounded-lg border border-border bg-white p-3 text-base" required value={categorySlug} onChange={event => setCategorySlug(event.target.value as V3ListingCategorySlug | "")}>
+                  <option value="" disabled>Choose a category</option>
+                  {V3_LISTING_CATEGORIES.map(category => <option key={category.slug} value={category.slug}>{category.name}</option>)}
+                </select>
               </label>
               <label className="block text-sm font-medium">Price (KES)
                 <input className="mt-2 w-full rounded-lg border border-border bg-white p-3 text-base" type="number" inputMode="decimal" min="1" max="10000000" step="1" required value={price} onChange={event => setPrice(event.target.value)} />
               </label>
-              <p className="rounded-xl border border-[#d5e8de] bg-[#f1f8f4] p-4 text-sm text-[#275847]">Your profile, owner approval, and vendor agreement are checked securely when you submit. If approval is still pending, no listing is created.</p>
+              <label className="block text-sm font-medium">Quantity available
+                <input className="mt-2 w-full rounded-lg border border-border bg-white p-3 text-base" type="number" inputMode="numeric" min="1" max="100000" step="1" required value={stockQuantity} onChange={event => setStockQuantity(event.target.value)} />
+              </label>
+              <p className="rounded-xl border border-[#d5e8de] bg-[#f1f8f4] p-4 text-sm text-[#275847]">Your profile, owner approval, and vendor agreement are checked securely when you submit. The original photo and manual listing facts create a <strong>PENDING</strong> record for owner review; image cleanup and automatic Sheng/English copy are not active.</p>
               {formError && <p role="alert" className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">{formError}</p>}
               <button className="primary-cta" type="submit" disabled={submit.isPending || !imageData || !imageType}>{submit.isPending ? "Submitting securely…" : "Submit for owner review"}</button>
             </fieldset>

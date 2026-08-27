@@ -98,6 +98,23 @@ Before inserting an order, the server requires both protected pickup fields, con
 
 > This is duplicate-request protection for the controlled pre-payment flow, not a payment, stock-reservation, collection guarantee, or anti-fraud system. Concurrent-order constraints, fulfilment confirmation, M-Pesa initiation, reconciliation, and payment-provider webhooks remain separate milestones.
 
+## Category, inventory, and manual-first listing-studio update
+
+The verified isolated project now has a non-destructive V3 extension for `category_slug` and `stock_quantity` on `public.products`. The categories are constrained to MtaaMarket’s existing public taxonomy, and quantity must be a non-negative integer at the database layer. The protected listing procedure applies a stronger submission rule of one to 100,000 available units. This supports truthful owner review of what a vendor says is available; it does **not** reserve stock, decrement inventory after an order, promise availability, or add a vendor self-publishing path.
+
+The approved-vendor form now collects a title, constrained category, price, available quantity, and an original JPEG, PNG, or WebP image. It preserves the existing server-side approved-vendor and agreement checks, uploads only the validated original file to the project storage path, and creates only a `PENDING` record. The protected owner queue includes category and quantity alongside the original image, title, price, and listing status. A future owner moderation decision remains required before the public `ACTIVE` feed can contain the listing.
+
+| Decision area | Current implementation | Future activation gate |
+| --- | --- | --- |
+| Photo preparation | The browser’s `ai-listing` interface preserves the selected original file unchanged and returns a clear inactive fallback. There is no Cloudinary credential, request, derivative, queue item, scheduled job, or worker. | Founder-selected provider and budget; explicit vendor consent immediately before sending a photo; documented original/derived-file retention and deletion approach; timeouts, retry limit, rate limit, and manual-original fallback tests. |
+| Listing-copy assistance | The interface returns no Sheng or English draft while a model is unconfigured. The vendor’s manual title remains the submitted value. | A server-only, user-triggered model request with explicit model identifier, per-request budget, user-visible notice that calls consume project credits, low-volume rate limit, editable draft UI, disclosure, and a no-output/timeout fallback. |
+| Commercial decisions | No assistance can set a price, quantity, availability, vendor status, fulfilment option, supplier claim, or product status. | Keep the same prohibition in server-side validation and behavioural tests. AI output must never publish, approve, alter stock, or contact a buyer or supplier. |
+| Processing timing | There is no background processing queue. Submission remains a synchronous original-media upload followed by `PENDING` owner review. | A separate event-processing design only after workload, retention, delivery guarantees, and operating cost are chosen. It must not require an always-on worker merely to provide optional listing drafting. |
+
+> **Vendor notice requirement for any later AI activation.** Before a photo or listing facts leave MtaaMarket’s project storage/server boundary, the vendor must see the provider name, what is sent, whether the original or derivative is retained, the optional nature of the feature, and that any resulting text is an editable draft subject to owner review. A manual listing submission must always remain available if the feature is declined, unavailable, or fails.
+
+Cloudinary’s background-removal pathway remains unconnected because it creates provider-side processing and potentially additional transformed assets; its asynchronous workflow and credit/add-on model require the separate selection described above.[4] [5] Similarly, Vercel AI SDK code is not installed or invoked: any later image-aware text generation must use a selected model with explicit token/credit controls, timeout/retry policy, and privacy review rather than a client-side request.[6] [7] [8]
+
 ## References
 
 [1]: https://www.centralbank.go.ke/national-payments-system/ "Central Bank of Kenya — National Payments System and authorised PSP directory"

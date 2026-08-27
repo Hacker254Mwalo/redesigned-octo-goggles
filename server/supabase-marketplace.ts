@@ -1,4 +1,5 @@
 import { getSupabaseServiceClient, isSupabaseConfigured } from "./supabase";
+import { getV3ListingCategory } from "@shared/v3-listing";
 
 type SupabaseCategoryRow = {
   id: string;
@@ -58,9 +59,11 @@ type SupabasePublicProductRow = {
   id: string;
   vendor_id: string | null;
   title: string;
+  category_slug: string;
   description: string | null;
   image_url: string;
   final_price: string | number;
+  stock_quantity: number;
   is_admin_concierge: boolean;
   status: "PENDING" | "ACTIVE" | "REJECTED" | "FLAGGED";
   allow_pay_on_pickup: boolean;
@@ -72,10 +75,11 @@ function first<T>(value: T | T[] | null): T | null {
 }
 
 export function mapSupabasePublicProduct(row: SupabasePublicProductRow) {
+  const categoryDefinition = getV3ListingCategory(row.category_slug);
   const category: PublicMarketplaceCategory = {
-    id: "v3-general-goods",
-    name: "General goods",
-    slug: "general-goods",
+    id: `v3-${row.category_slug}`,
+    name: categoryDefinition?.name ?? "General goods",
+    slug: row.category_slug,
     icon: "Package",
     description: "Owner-reviewed physical products for Siaya buyers.",
     sortOrder: 999,
@@ -92,7 +96,7 @@ export function mapSupabasePublicProduct(row: SupabasePublicProductRow) {
       slug: `v3-${row.id}`,
       description: row.description ?? "Owner-reviewed listing details are being prepared.",
       price: Number(row.final_price),
-      stockQuantity: 0,
+      stockQuantity: row.stock_quantity,
       imageUrl: row.image_url,
       imageKey: null,
       imageAlt: row.title,
@@ -116,7 +120,7 @@ export function mapOptionalSupabasePublicProduct(row: SupabasePublicProductRow |
   return row ? mapSupabasePublicProduct(row) : null;
 }
 
-const PUBLIC_PRODUCT_SELECT = "id,vendor_id,title,description,image_url,final_price,is_admin_concierge,status,allow_pay_on_pickup,created_at";
+const PUBLIC_PRODUCT_SELECT = "id,vendor_id,title,category_slug,description,image_url,final_price,stock_quantity,is_admin_concierge,status,allow_pay_on_pickup,created_at";
 
 function safeSearchTerm(search?: string) {
   return search?.trim().replace(/[%,_()]/g, " ").replace(/\s+/g, " ").slice(0, 100) || undefined;
@@ -134,6 +138,7 @@ export async function listSupabasePublicProducts(input?: { categorySlug?: string
 
   const search = safeSearchTerm(input?.search);
   if (search) query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%`);
+  if (input?.categorySlug) query = query.eq("category_slug", input.categorySlug);
 
   const { data, error } = await query;
   if (error) throw new Error(`MtaaMarket products could not be read from Supabase: ${error.message}`);
