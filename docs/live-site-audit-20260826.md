@@ -113,3 +113,9 @@ The deployed unknown-route path was opened at `https://siayaonlinemarket.vercel.
 The deployed page source previously retained an unresolved analytics-template script reference. Because no privacy-reviewed analytics provider has been selected or configured for the production site, that reference could only produce a malformed browser request rather than measured analytics. The script was removed instead of silently substituting a provider, preserving the current no-new-provider and no-unreviewed-data-sharing boundary.
 
 GitHub/Vercel deployment `144c83d` completed successfully. A live source inspection confirmed that the document now contains neither the `VITE_ANALYTICS` placeholder nor a `/umami` script reference. The Content Security Policy, anti-framing, nosniff, referrer, and device-permission response headers remained present after the release. Analytics is therefore intentionally **inactive**, not partially configured, until a separate privacy notice, provider assessment, and explicit activation decision are complete.
+
+## Keyboard navigation deployment verification
+
+The shared public layout now includes a **Skip to market content** link before the repeated market header and a focusable `#main-content` target. GitHub/Vercel deployment `b1a951a` completed successfully. A non-mutating live homepage review confirmed that the skip link is the first link exposed to keyboard and assistive-technology users, while the ordinary market navigation, basket, account trigger, search, Request Desk links, and public catalogue state remain available.
+
+The link is visually hidden until keyboard focus and then receives a high-contrast outline, which makes the repeated navigation bypass discoverable without changing the visual landing-page composition. This is a public accessibility improvement only: no sign-in occurred and no request, seller, role, payment, delivery, or provider action was submitted.
