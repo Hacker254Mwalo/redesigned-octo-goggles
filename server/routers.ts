@@ -53,7 +53,7 @@ import { createV3HubOrder } from "./v3-orders";
 import { deleteV3Product, listV3ModerationProducts, moderateV3Product } from "./v3-moderation";
 import { submitV3OwnerProduct, submitV3VendorProduct } from "./v3-vendor";
 import { applyForV3Vendor, bootstrapV3Owner, getV3BuyerOrderAccess, getV3VendorAccess, listV3VendorApplications, saveV3BuyerOrderProfile, updateV3VendorApproval } from "./v3-profiles";
-import { createV3ItemRequest, listV3OwnerItemRequests } from "./v3-requests";
+import { createV3AssistedOrderFromRequest, createV3ItemRequest, listV3OwnerAssistedOrders, listV3OwnerItemRequests, updateV3AssistedOrder, updateV3ItemRequest } from "./v3-requests";
 
 const safeSearch = z.string().trim().max(100);
 const phone = z.string().trim().regex(/^\+?254[17]\d{8}$/, "Use a Kenyan number beginning with 254.").optional();
@@ -105,6 +105,10 @@ export const appRouter = router({
     updateV3VendorApproval: publicProcedure.input(z.object({ profileId: z.string().uuid(), approved: z.boolean() })).mutation(({ ctx, input }) => updateV3VendorApproval(ctx.supabaseIdentity, input.profileId, input.approved)),
     createV3ItemRequest: publicProcedure.input(z.object({ title: z.string().trim().min(4).max(180), details: z.string().trim().min(10).max(3_000), budgetHint: z.number().positive().max(10_000_000).optional(), preferredFulfilment: z.enum(["siaya_pickup", "home_delivery", "collection_point", "special_order"]), preferredLocation: z.string().trim().max(180).optional() })).mutation(({ ctx, input }) => createV3ItemRequest(ctx.supabaseIdentity, input)),
     v3OwnerItemRequests: publicProcedure.query(({ ctx }) => listV3OwnerItemRequests(ctx.supabaseIdentity)),
+    updateV3ItemRequest: publicProcedure.input(z.object({ requestId: z.string().uuid(), status: z.enum(["submitted", "reviewing", "quoted", "accepted", "sourcing", "completed", "unavailable", "cancelled"]), sourceRoute: z.enum(["mtaa_select", "approved_vendor", "supplier", "external_marketplace", "other"]).optional(), quotedPrice: z.number().positive().max(10_000_000).optional(), platformReply: z.string().trim().max(3_000).optional() })).mutation(({ ctx, input }) => updateV3ItemRequest(ctx.supabaseIdentity, input)),
+    createV3AssistedOrderFromRequest: publicProcedure.input(z.object({ requestId: z.string().uuid(), externalSourceDisclosure: z.string().trim().max(600).optional(), externalContentAttestation: z.boolean().optional() })).mutation(({ ctx, input }) => createV3AssistedOrderFromRequest(ctx.supabaseIdentity, input.requestId, input.externalSourceDisclosure, input.externalContentAttestation)),
+    v3OwnerAssistedOrders: publicProcedure.query(({ ctx }) => listV3OwnerAssistedOrders(ctx.supabaseIdentity)),
+    updateV3AssistedOrder: publicProcedure.input(z.object({ assistedOrderId: z.string().uuid(), status: z.enum(["recorded", "confirmed", "sourcing", "ready", "out_for_delivery", "completed", "cancelled"]), platformNotes: z.string().trim().max(3_000).optional(), quotedAmount: z.number().positive().max(10_000_000).optional(), paymentTiming: z.enum(["pay_before", "pay_on_collection", "pay_on_delivery", "confirm_with_mtaamarket"]).optional(), fulfilmentMethod: z.enum(["siaya_pickup", "home_delivery", "collection_point", "special_order"]).optional() })).mutation(({ ctx, input }) => updateV3AssistedOrder(ctx.supabaseIdentity, input)),
 
     myProfile: protectedProcedure.query(({ ctx }) => ensureMarketplaceProfile(ctx.user.id, ctx.user.name)),
     buyerWorkspace: protectedProcedure.query(async ({ ctx }) => {

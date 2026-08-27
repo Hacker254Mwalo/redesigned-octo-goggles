@@ -12,8 +12,8 @@ import {
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import { trpc } from "@/lib/trpc";
 import { getV3ListingCategory, V3_LISTING_CATEGORIES, type V3ListingCategorySlug } from "@shared/v3-listing";
-import { ShieldCheck } from "lucide-react";
-import { useRef, useState, type FormEvent } from "react";
+import { ArrowRight, ClipboardList, PackageCheck, ShieldCheck } from "lucide-react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 
 type ModerationProduct = {
@@ -41,7 +41,64 @@ type V3ItemRequest = {
   preferred_fulfilment: string;
   preferred_location: string | null;
   status: string;
+  source_route: string | null;
+  quoted_price: string | number | null;
+  platform_reply: string | null;
   created_at: string;
+  updated_at: string;
+};
+
+type V3AssistedOrder = {
+  id: string;
+  assisted_order_number: string;
+  item_request_id: string | null;
+  title: string;
+  details: string;
+  quoted_amount: string | number | null;
+  payment_timing: string;
+  fulfilment_method: string;
+  preferred_location: string | null;
+  source_route: string;
+  status: "recorded" | "confirmed" | "sourcing" | "ready" | "out_for_delivery" | "completed" | "cancelled";
+  platform_notes: string | null;
+  confirmed_at: string | null;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+  external_source_disclosure: string | null;
+  external_source_confirmed_at: string | null;
+  external_source_content_attested_at: string | null;
+};
+
+const requestStatusText: Record<string, string> = {
+  submitted: "New request",
+  reviewing: "Under review",
+  quoted: "Quote ready",
+  accepted: "Assisted order opened",
+  sourcing: "Being sourced",
+  completed: "Completed",
+  unavailable: "Unavailable",
+  cancelled: "Cancelled",
+};
+
+const orderStatusText: Record<V3AssistedOrder["status"], string> = {
+  recorded: "Recorded",
+  confirmed: "Confirmed",
+  sourcing: "Sourcing",
+  ready: "Ready for collection",
+  out_for_delivery: "Out for delivery",
+  completed: "Completed",
+  cancelled: "Cancelled",
+};
+
+const nextOrderStatuses: Record<V3AssistedOrder["status"], V3AssistedOrder["status"][]> = {
+  recorded: ["confirmed", "cancelled"],
+  confirmed: ["sourcing", "ready", "cancelled"],
+  sourcing: ["ready", "cancelled"],
+  ready: ["out_for_delivery", "completed", "cancelled"],
+  out_for_delivery: ["completed", "cancelled"],
+  completed: [],
+  cancelled: [],
 };
 
 const statusText = {
@@ -144,11 +201,118 @@ function OwnerListingIntake({ onSubmitted }: { onSubmitted: () => void }) {
   );
 }
 
+function RequestReviewCard({ item, onRefresh }: { item: V3ItemRequest; onRefresh: () => void }) {
+  const [status, setStatus] = useState(item.status);
+  const [sourceRoute, setSourceRoute] = useState(item.source_route ?? "");
+  const [quotedPrice, setQuotedPrice] = useState(item.quoted_price === null ? "" : String(item.quoted_price));
+  const [platformReply, setPlatformReply] = useState(item.platform_reply ?? "");
+  const [externalSourceDisclosure, setExternalSourceDisclosure] = useState("");
+  const [externalContentAttestation, setExternalContentAttestation] = useState(false);
+  const update = trpc.marketplace.updateV3ItemRequest.useMutation({
+    onSuccess: () => { toast.success("Request review saved."); onRefresh(); },
+    onError: error => toast.error(error.message),
+  });
+  const convert = trpc.marketplace.createV3AssistedOrderFromRequest.useMutation({
+    onSuccess: () => { toast.success("Assisted Market order opened."); onRefresh(); },
+    onError: error => toast.error(error.message),
+  });
+  const sourceChanged = sourceRoute !== (item.source_route ?? "");
+  const requestClosed = ["accepted", "completed", "cancelled", "unavailable"].includes(status);
+  const isExternalRoute = sourceRoute === "external_marketplace";
+
+  useEffect(() => {
+    setStatus(item.status);
+    setSourceRoute(item.source_route ?? "");
+    setQuotedPrice(item.quoted_price === null ? "" : String(item.quoted_price));
+    setPlatformReply(item.platform_reply ?? "");
+  }, [item.id, item.status, item.source_route, item.quoted_price, item.platform_reply]);
+
+  function saveReview() {
+    update.mutate({
+      requestId: item.id,
+      status: status as "submitted" | "reviewing" | "quoted" | "accepted" | "sourcing" | "completed" | "unavailable" | "cancelled",
+      sourceRoute: sourceRoute ? sourceRoute as "mtaa_select" | "approved_vendor" | "supplier" | "external_marketplace" | "other" : undefined,
+      quotedPrice: quotedPrice ? Number(quotedPrice) : undefined,
+      platformReply: platformReply || undefined,
+    });
+  }
+
+  function openAssistedOrder() {
+    convert.mutate({
+      requestId: item.id,
+      externalSourceDisclosure: isExternalRoute ? externalSourceDisclosure : undefined,
+      externalContentAttestation: isExternalRoute ? externalContentAttestation : undefined,
+    });
+  }
+
+  return <article className="rounded-2xl border bg-white p-5 shadow-sm">
+    <div className="flex items-start justify-between gap-3">
+      <div><p className="eyebrow">Request Desk</p><h3 className="mt-1 font-semibold">{item.title}</h3></div>
+      <span className="shrink-0 rounded-full bg-muted px-2.5 py-1 text-xs font-medium">{requestStatusText[item.status] ?? item.status}</span>
+    </div>
+    <p className="mt-3 text-sm text-muted-foreground">{item.details}</p>
+    <div className="mt-4 grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
+      {item.budget_hint !== null && <p>Budget hint: <strong className="text-foreground">KES {Number(item.budget_hint).toLocaleString("en-KE")}</strong></p>}
+      <p>Preference: <strong className="text-foreground">{item.preferred_fulfilment.replaceAll("_", " ")}</strong></p>
+      {item.preferred_location && <p className="sm:col-span-2">Broad location: <strong className="text-foreground">{item.preferred_location}</strong></p>}
+    </div>
+    <div className="mt-5 grid gap-4 sm:grid-cols-2">
+      <label className="text-sm font-medium">Review status<select className="mt-2 w-full rounded-lg border border-border bg-white p-3" value={status} onChange={event => setStatus(event.target.value)} disabled={requestClosed}><option value="submitted">New request</option><option value="reviewing">Under review</option><option value="quoted">Quote ready</option><option value="unavailable">Unavailable</option><option value="cancelled">Cancelled</option></select></label>
+      <label className="text-sm font-medium">Manual source route<select className="mt-2 w-full rounded-lg border border-border bg-white p-3" value={sourceRoute} onChange={event => setSourceRoute(event.target.value)} disabled={requestClosed}><option value="">Not selected</option><option value="mtaa_select">MtaaMarket selection</option><option value="approved_vendor">Approved vendor</option><option value="supplier">Manually checked supplier</option><option value="external_marketplace">External marketplace — manual</option><option value="other">Other manually confirmed route</option></select></label>
+    </div>
+    <label className="mt-4 block text-sm font-medium">Confirmed quote (KES, optional)<input className="mt-2 w-full rounded-lg border border-border bg-white p-3" type="number" min="1" max="10000000" value={quotedPrice} onChange={event => setQuotedPrice(event.target.value)} disabled={requestClosed} placeholder="Only after owner review" /></label>
+    <label className="mt-4 block text-sm font-medium">Private owner reply or next step<textarea className="mt-2 min-h-20 w-full rounded-lg border border-border bg-white p-3" maxLength={3000} value={platformReply} onChange={event => setPlatformReply(event.target.value)} disabled={requestClosed} placeholder="Record a concise, factual review note." /></label>
+    {isExternalRoute && !requestClosed && <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950"><p className="font-semibold">External-marketplace confirmation gate</p><p className="mt-1">Before opening an assisted order, record that the customer understands MtaaMarket is sourcing independently, is not affiliated with the external marketplace, and will confirm the final item, price, and fulfilment before payment.</p><textarea className="mt-3 min-h-20 w-full rounded-lg border border-amber-300 bg-white p-3 text-sm" maxLength={600} value={externalSourceDisclosure} onChange={event => setExternalSourceDisclosure(event.target.value)} placeholder="Record the customer confirmation note" /><label className="mt-3 flex items-start gap-3"><input className="mt-0.5 size-4" type="checkbox" checked={externalContentAttestation} onChange={event => setExternalContentAttestation(event.target.checked)} /><span>I confirm the MtaaMarket quote and content are original and do not copy supplier text, images, logos, prices, or reviews.</span></label></div>}
+    {item.platform_reply && <p className="mt-4 rounded-xl bg-muted/50 p-3 text-sm"><strong>Last recorded reply:</strong> {item.platform_reply}</p>}
+    <div className="mt-5 flex flex-wrap gap-2">
+      <button className="primary-cta" type="button" disabled={update.isPending || requestClosed} onClick={saveReview}>{update.isPending ? "Saving…" : "Save review"}</button>
+      <button className="secondary-cta" type="button" disabled={convert.isPending || update.isPending || requestClosed || sourceChanged || !sourceRoute || (isExternalRoute && (externalSourceDisclosure.trim().length < 12 || !externalContentAttestation))} onClick={openAssistedOrder}>{convert.isPending ? "Opening order…" : "Open Assisted Market order"}<ArrowRight size={16} /></button>
+    </div>
+    {sourceChanged && <p className="mt-3 text-xs text-muted-foreground">Save the source route before opening an assisted order.</p>}
+  </article>;
+}
+
+function AssistedOrderCard({ order, onRefresh }: { order: V3AssistedOrder; onRefresh: () => void }) {
+  const [notes, setNotes] = useState(order.platform_notes ?? "");
+  const [quotedAmount, setQuotedAmount] = useState(order.quoted_amount === null ? "" : String(order.quoted_amount));
+  const [paymentTiming, setPaymentTiming] = useState(order.payment_timing);
+  const [fulfilmentMethod, setFulfilmentMethod] = useState(order.fulfilment_method);
+  const update = trpc.marketplace.updateV3AssistedOrder.useMutation({
+    onSuccess: () => { toast.success("Assisted order updated."); onRefresh(); },
+    onError: error => toast.error(error.message),
+  });
+  const nextStatuses = nextOrderStatuses[order.status].filter(next => next !== "out_for_delivery" || order.fulfilment_method === "home_delivery");
+
+  useEffect(() => {
+    setNotes(order.platform_notes ?? "");
+    setQuotedAmount(order.quoted_amount === null ? "" : String(order.quoted_amount));
+    setPaymentTiming(order.payment_timing);
+    setFulfilmentMethod(order.fulfilment_method);
+  }, [order.id, order.status, order.platform_notes, order.quoted_amount, order.payment_timing, order.fulfilment_method]);
+
+  function saveDetails() {
+    update.mutate({ assistedOrderId: order.id, status: order.status, platformNotes: notes, quotedAmount: quotedAmount ? Number(quotedAmount) : undefined, paymentTiming: paymentTiming as "pay_before" | "pay_on_collection" | "pay_on_delivery" | "confirm_with_mtaamarket", fulfilmentMethod: fulfilmentMethod as "siaya_pickup" | "home_delivery" | "collection_point" | "special_order" });
+  }
+
+  return <article className="rounded-2xl border border-[#cfe3d7] bg-[#fbfefa] p-5 shadow-sm">
+    <div className="flex items-start justify-between gap-3"><div><p className="eyebrow">Assisted Market order</p><h3 className="mt-1 font-semibold">{order.assisted_order_number}</h3></div><span className="shrink-0 rounded-full bg-[#e5f2e8] px-2.5 py-1 text-xs font-medium text-[#245441]">{orderStatusText[order.status]}</span></div>
+    <h4 className="mt-4 font-semibold">{order.title}</h4><p className="mt-2 text-sm text-muted-foreground">{order.details}</p>
+    <div className="mt-4 grid gap-2 text-sm text-muted-foreground sm:grid-cols-2"><p>Source: <strong className="text-foreground">{order.source_route.replaceAll("_", " ")}</strong></p><p>Fulfilment: <strong className="text-foreground">{order.fulfilment_method.replaceAll("_", " ")}</strong></p>{order.preferred_location && <p>Broad location: <strong className="text-foreground">{order.preferred_location}</strong></p>}{order.quoted_amount !== null && <p>Quoted amount: <strong className="text-foreground">KES {Number(order.quoted_amount).toLocaleString("en-KE")}</strong></p>}</div>
+    {order.external_source_disclosure && <details className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950"><summary className="cursor-pointer font-semibold">External-source confirmation recorded</summary><p className="mt-2">{order.external_source_disclosure}</p><p className="mt-2 text-xs">Original-content attestation: {order.external_source_content_attested_at ? "Recorded" : "Missing"}</p></details>}
+    <div className="mt-5 grid gap-4 sm:grid-cols-2"><label className="text-sm font-medium">Fulfilment route<select className="mt-2 w-full rounded-lg border border-border bg-white p-3" value={fulfilmentMethod} onChange={event => setFulfilmentMethod(event.target.value)}><option value="siaya_pickup">Siaya collection</option><option value="collection_point">Collection point</option><option value="home_delivery">Home delivery preference</option><option value="special_order">Special-order handover</option></select></label><label className="text-sm font-medium">Payment timing<select className="mt-2 w-full rounded-lg border border-border bg-white p-3" value={paymentTiming} onChange={event => setPaymentTiming(event.target.value)}><option value="confirm_with_mtaamarket">Confirm with MtaaMarket</option><option value="pay_on_collection">Pay on collection</option><option value="pay_on_delivery">Pay on delivery</option><option value="pay_before">Pay before — only after confirmation</option></select></label></div>
+    <label className="mt-4 block text-sm font-medium">Private fulfillment notes<textarea className="mt-2 min-h-20 w-full rounded-lg border border-border bg-white p-3" maxLength={3000} value={notes} onChange={event => setNotes(event.target.value)} placeholder="Record manual sourcing, collection confirmation, or handover notes." /></label>
+    <label className="mt-4 block text-sm font-medium">Confirmed amount (KES, optional)<input className="mt-2 w-full rounded-lg border border-border bg-white p-3" type="number" min="1" max="10000000" value={quotedAmount} onChange={event => setQuotedAmount(event.target.value)} /></label>
+    <div className="mt-5 flex flex-wrap gap-2"><button className="secondary-cta" type="button" disabled={update.isPending} onClick={saveDetails}>{update.isPending ? "Saving…" : "Save fulfillment details"}</button>{nextStatuses.map(next => <button className={next === "cancelled" ? "secondary-cta text-destructive" : "primary-cta"} type="button" key={next} disabled={update.isPending} onClick={() => update.mutate({ assistedOrderId: order.id, status: next })}>{next === "cancelled" ? "Cancel order" : orderStatusText[next]}</button>)}</div>
+    <p className="mt-4 text-xs text-muted-foreground">This owner-only record does not place a supplier order, collect payment, or promise delivery. “Ready for collection” means MtaaMarket has recorded a manual handover checkpoint.</p>
+  </article>;
+}
+
 export default function Admin() {
   const { configured, loading: sessionLoading, session } = useSupabaseAuth();
   const moderationQueue = trpc.marketplace.v3ModerationProducts.useQuery();
   const vendorApplications = trpc.marketplace.v3VendorApplications.useQuery(undefined, { enabled: Boolean(session), retry: false });
   const requestQueue = trpc.marketplace.v3OwnerItemRequests.useQuery(undefined, { enabled: Boolean(session), retry: false });
+  const assistedOrderQueue = trpc.marketplace.v3OwnerAssistedOrders.useQuery(undefined, { enabled: Boolean(session), retry: false });
   const [productToDelete, setProductToDelete] = useState<ModerationProduct | null>(null);
   const bootstrapOwner = trpc.marketplace.bootstrapV3Owner.useMutation({
     onSuccess: () => {
@@ -156,6 +320,7 @@ export default function Admin() {
       moderationQueue.refetch();
       vendorApplications.refetch();
       requestQueue.refetch();
+      assistedOrderQueue.refetch();
     },
     onError: error => toast.error(error.message),
   });
@@ -182,6 +347,7 @@ export default function Admin() {
     onError: error => toast.error(error.message),
   });
   const actionPending = moderate.isPending || remove.isPending;
+  const refreshOwnerQueues = () => { requestQueue.refetch(); assistedOrderQueue.refetch(); };
 
   function updateProduct(productId: string, status: "ACTIVE" | "REJECTED" | "FLAGGED") {
     moderate.mutate({ productId, status });
@@ -224,7 +390,22 @@ export default function Admin() {
         )}
 
         {!moderationQueue.isError && !moderationQueue.isLoading && <section className="mt-12 border-t pt-10"><p className="eyebrow">Vendor governance</p><h2 className="mt-2 text-2xl font-semibold">Agreement-backed vendor applications</h2><p className="mt-2 max-w-2xl text-sm text-muted-foreground">Approve vendors only after confirming their identity and agreement outside the public marketplace. Suspending access stops new listing submissions; it does not delete their past listing records.</p>{vendorApplications.isLoading && <p className="mt-5 text-sm text-muted-foreground" aria-live="polite">Loading vendor applications…</p>}{vendorApplications.data?.length === 0 && <p className="mt-5 rounded-xl border bg-white p-4 text-sm text-muted-foreground">No vendor applications have been submitted yet.</p>}{vendorApplications.data && vendorApplications.data.length > 0 && <div className="mt-5 grid gap-4 sm:grid-cols-2">{vendorApplications.data.map(application => <article className="rounded-2xl border bg-white p-5" key={application.id}><h3 className="font-semibold">{application.fullName || "Vendor application"}</h3><p className="mt-2 text-sm text-muted-foreground">Agreement: {application.agreementAcceptedAt ? "Recorded" : "Missing"}</p><p className="mt-1 text-sm text-muted-foreground">Status: {application.isApproved ? "Approved" : "Pending or suspended"}</p><button className="primary-cta mt-5" disabled={updateVendorApproval.isPending || !application.agreementAcceptedAt} onClick={() => updateVendorApproval.mutate({ profileId: application.id, approved: !application.isApproved })}>{application.isApproved ? "Suspend listing access" : "Approve vendor"}</button></article>)}</div>}</section>}
-        {!moderationQueue.isError && !moderationQueue.isLoading && !requestQueue.isError && <section className="mt-12 border-t pt-10"><p className="eyebrow">Request Desk</p><h2 className="mt-2 text-2xl font-semibold">Private item requests</h2><p className="mt-2 max-w-2xl text-sm text-muted-foreground">Review each request manually. This queue deliberately excludes buyer phone numbers, exact addresses, supplier details, payment instructions, and delivery promises.</p>{requestQueue.isLoading && <p className="mt-5 text-sm text-muted-foreground" aria-live="polite">Loading private requests…</p>}{requestQueue.data?.length === 0 && <p className="mt-5 rounded-xl border bg-white p-4 text-sm text-muted-foreground">No Request Desk submissions have been recorded yet.</p>}{requestQueue.data && requestQueue.data.length > 0 && <div className="mt-5 grid gap-4 sm:grid-cols-2">{requestQueue.data.map((item: V3ItemRequest) => <article className="rounded-2xl border bg-white p-5" key={item.id}><div className="flex items-start justify-between gap-3"><h3 className="font-semibold">{item.title}</h3><span className="shrink-0 rounded-full bg-muted px-2.5 py-1 text-xs font-medium">{item.status}</span></div><p className="mt-3 text-sm text-muted-foreground">{item.details}</p>{item.budget_hint && <p className="mt-3 text-sm text-muted-foreground">Budget hint: KES {Number(item.budget_hint).toLocaleString("en-KE")}</p>}<p className="mt-1 text-sm text-muted-foreground">Preference: {item.preferred_fulfilment.replaceAll("_", " ")}{item.preferred_location ? ` · ${item.preferred_location}` : ""}</p></article>)}</div>}</section>}
+        {!moderationQueue.isError && !moderationQueue.isLoading && <>
+          <section className="mt-12 border-t pt-10">
+            <div className="flex items-start gap-3"><ClipboardList className="mt-1 text-[#1b6a55]" aria-hidden="true" /><div><p className="eyebrow">Request Desk</p><h2 className="mt-2 text-2xl font-semibold">Private item requests</h2><p className="mt-2 max-w-2xl text-sm text-muted-foreground">Review custom requests, record a manual route or quote, and open a protected Assisted Market order when you decide to serve the buyer. Buyer phone numbers and exact addresses stay out of this review queue.</p></div></div>
+            {requestQueue.isError && <p className="mt-5 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive" role="alert">MtaaMarket could not load the Request Desk queue. No request action was taken.</p>}
+            {requestQueue.isLoading && <p className="mt-5 text-sm text-muted-foreground" aria-live="polite">Loading private requests…</p>}
+            {requestQueue.data?.length === 0 && <p className="mt-5 rounded-xl border bg-white p-4 text-sm text-muted-foreground">No Request Desk submissions have been recorded yet.</p>}
+            {requestQueue.data && requestQueue.data.length > 0 && <div className="mt-5 grid gap-5 lg:grid-cols-2">{requestQueue.data.map(item => <RequestReviewCard item={item as V3ItemRequest} key={item.id} onRefresh={refreshOwnerQueues} />)}</div>}
+          </section>
+          <section className="mt-12 border-t pt-10">
+            <div className="flex items-start gap-3"><PackageCheck className="mt-1 text-[#1b6a55]" aria-hidden="true" /><div><p className="eyebrow">Assisted Market</p><h2 className="mt-2 text-2xl font-semibold">Owner fulfillment dashboard</h2><p className="mt-2 max-w-2xl text-sm text-muted-foreground">Progress only the protected owner records you have manually confirmed. Ready means a MtaaMarket collection or handover checkpoint has been recorded; it does not activate payment, courier, or supplier checkout.</p></div></div>
+            {assistedOrderQueue.isError && <p className="mt-5 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive" role="alert">MtaaMarket could not load Assisted Market orders. No fulfillment action was taken.</p>}
+            {assistedOrderQueue.isLoading && <p className="mt-5 text-sm text-muted-foreground" aria-live="polite">Loading Assisted Market orders…</p>}
+            {assistedOrderQueue.data?.length === 0 && <p className="mt-5 rounded-xl border bg-white p-4 text-sm text-muted-foreground">No owner-managed assisted orders have been opened yet.</p>}
+            {assistedOrderQueue.data && assistedOrderQueue.data.length > 0 && <div className="mt-5 grid gap-5 lg:grid-cols-2">{assistedOrderQueue.data.map(order => <AssistedOrderCard order={order as V3AssistedOrder} key={order.id} onRefresh={refreshOwnerQueues} />)}</div>}
+          </section>
+        </>}
       </main>
 
       <AlertDialog open={Boolean(productToDelete)} onOpenChange={open => !open && setProductToDelete(null)}>

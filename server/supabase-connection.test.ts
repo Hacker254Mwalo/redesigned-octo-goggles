@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 
+const supabaseVerificationConfigured = Boolean(process.env.VITE_SUPABASE_URL?.trim() && process.env.SUPABASE_SECRET_KEY?.trim());
+
 describe("isolated MtaaMarket Supabase connection", () => {
-  it("authenticates the server-only key with a read-only category query", async () => {
+  it.skipIf(!supabaseVerificationConfigured)("authenticates the server-only key with a read-only category query", async () => {
     const projectUrl = process.env.VITE_SUPABASE_URL;
     const secretKey = process.env.SUPABASE_SECRET_KEY;
 
@@ -19,7 +21,7 @@ describe("isolated MtaaMarket Supabase connection", () => {
     expect(await response.json()).toBeInstanceOf(Array);
   });
 
-  it("serves every anonymous discovery resource from the isolated project without writing data", async () => {
+  it.skipIf(!supabaseVerificationConfigured)("serves every anonymous discovery resource from the isolated project without writing data", async () => {
     const projectUrl = process.env.VITE_SUPABASE_URL!;
     const secretKey = process.env.SUPABASE_SECRET_KEY!;
     const headers = { apikey: secretKey, Authorization: `Bearer ${secretKey}` };

@@ -2,8 +2,13 @@ import { describe, expect, it } from "vitest";
 import { getSupabaseServiceClient } from "./supabase";
 import { storageGetSignedUrl, storagePut } from "./storage";
 
+const storageVerificationConfigured = Boolean(
+  (process.env.VITE_SUPABASE_URL?.trim() && process.env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim() && process.env.SUPABASE_SECRET_KEY?.trim() && process.env.SUPABASE_JWKS_URL?.trim()) ||
+  (process.env.BUILT_IN_FORGE_API_URL?.trim() && process.env.BUILT_IN_FORGE_API_KEY?.trim()),
+);
+
 describe("isolated MtaaMarket Supabase Storage adapter", () => {
-  it("stores and cleans up a temporary original-media verification object through the existing storage interface", async () => {
+  it.skipIf(!storageVerificationConfigured)("stores and cleans up a temporary original-media verification object through the existing storage interface", async () => {
     const verificationPrefix = `verification/${crypto.randomUUID()}.webp`;
     const saved = await storagePut(verificationPrefix, Buffer.from("RIFF\x00\x00\x00\x00WEBPVP8 ", "binary"), "image/webp");
 
@@ -16,7 +21,7 @@ describe("isolated MtaaMarket Supabase Storage adapter", () => {
     }
   });
 
-  it("creates and cleans up a temporary private record before returning a time-bounded signed URL", async () => {
+  it.skipIf(!storageVerificationConfigured)("creates and cleans up a temporary private record before returning a time-bounded signed URL", async () => {
     const verificationKey = `verification/${crypto.randomUUID()}.pdf`;
     const client = getSupabaseServiceClient();
     const { error } = await client.storage.from("marketplace-private").upload(verificationKey, Buffer.from("MtaaMarket private verification"), { contentType: "application/pdf", upsert: false });
