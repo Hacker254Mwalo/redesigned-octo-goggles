@@ -148,6 +148,8 @@ describe("Jumia public discovery", () => {
       { title: "Samsung 50U8000 50 Inches Crystal UHD 4K Smart TV", url: "https://www.jumia.co.ke/samsung-50u8000-50-inches-crystal-uhd-4k-smart-tv-123456.html", content: "Samsung 50U8000 50 Inches Crystal UHD 4K Smart TV KSh 78,499" },
       { title: "TV category", url: "https://www.jumia.co.ke/category/tvs", content: "TV category" },
       { title: "samsung 50 inch 4k tv", url: "https://www.jumia.co.ke/mlp-samsung-50-inch-4k-tv", content: "50U8000 50 Inches Crystal UHD 4K Smart TV KSh 54,997" },
+      { title: "Smart TV", url: "https://www.jumia.co.ke/smart-tv-123459.html", content: "Jumia Kenya offers Smart TVs from a variety of trusted brands." },
+      { title: "Samsung TVs Available Now | Smart & Digital TVs", url: "https://www.jumia.co.ke/samsung-tvs-available-now-123460.html", content: "Best Deals & Prices on Samsung TV Online Only @ Jumia Kenya - Browse & Buy Samsung TV Online." },
     ] }), { status: 200 }));
 
     const result = await searchJumiaPublicProducts("Smart TV");
@@ -203,7 +205,7 @@ describe("Jumia public discovery", () => {
     process.env.GOOGLE_CUSTOM_SEARCH_API_KEY = "test-key";
     process.env.GOOGLE_CUSTOM_SEARCH_CX = "test-cx";
     vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ items: [
-      { title: "Smart TV | Jumia Kenya", link: "https://www.jumia.co.ke/smart-tv", snippet: "KES 34,999 smart television", pagemap: { cse_image: [{ src: "https://ke.jumia.is/p_9n_2Fk5GQPGkotcccQ5cDtlHA=/fit-in/500x500/filters:fill(white)/product/31/8481392/1.jpg?7944" }], metatags: [{ "product:price:amount": "34999" }] } },
+      { title: "Samsung 65DU7010 Smart TV | Jumia Kenya", link: "https://www.jumia.co.ke/samsung-65du7010-smart-tv", snippet: "KES 34,999 smart television", pagemap: { cse_image: [{ src: "https://ke.jumia.is/p_9n_2Fk5GQPGkotcccQ5cDtlHA=/fit-in/500x500/filters:fill(white)/product/31/8481392/1.jpg?7944" }], metatags: [{ "product:price:amount": "34999" }] } },
       { title: "Outside result", link: "https://example.com/item", snippet: "Should be removed" },
       { title: "Unsafe result", link: "http://www.jumia.co.ke/item", snippet: "Should be removed" },
     ] }), { status: 200 }));
@@ -213,6 +215,6 @@ describe("Jumia public discovery", () => {
     expect(result.configured).toBe(true);
     expect(result.provider).toBe("google_public_search");
     expect(result.results).toHaveLength(1);
-    expect(result.results[0]).toMatchObject({ title: "Smart TV", url: "https://www.jumia.co.ke/smart-tv", price: 34999, currency: "KES", imageUrl: "https://ke.jumia.is/p_9n_2Fk5GQPGkotcccQ5cDtlHA=/fit-in/500x500/filters:fill(white)/product/31/8481392/1.jpg?7944" });
+    expect(result.results[0]).toMatchObject({ title: "Samsung 65DU7010 Smart TV", url: "https://www.jumia.co.ke/samsung-65du7010-smart-tv", price: 34999, currency: "KES", imageUrl: "https://ke.jumia.is/p_9n_2Fk5GQPGkotcccQ5cDtlHA=/fit-in/500x500/filters:fill(white)/product/31/8481392/1.jpg?7944" });
   });
 });

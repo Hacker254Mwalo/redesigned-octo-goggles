@@ -218,12 +218,14 @@ function isSearchLandingUrl(url: string) {
 
 function isGenericCatalogLandingResult(result: JumiaSearchResult) {
   const title = result.title.trim();
-  const hasCategoryLanguage = /\b(?:smartphones?|mobile phones?|phones?|smart tvs?|televisions?|laptops?|shoes?)\b/i.test(title);
-  const hasLandingLanguage = /\b(?:online|store|latest|best\s+(?:price|prices)|buy|shop|range|collection)\b/i.test(title);
+  const hasCategoryLanguage = /\b(?:smartphones?|mobile phones?|phones?|smart tvs?|tvs?|televisions?|laptops?|shoes?)\b/i.test(title);
+  const hasLandingLanguage = /\b(?:online|store|latest|best\s+(?:price|prices)|buy|shop|range|collection|available|deals?|prices?|browse|affordable|offers?)\b/i.test(title);
   const hasConcreteModelSignal = /\d{2,}/.test(title);
-  const genericTitle = hasCategoryLanguage && hasLandingLanguage && !hasConcreteModelSignal && title.length <= 120;
-  const genericCopy = /\b(?:buy|shop\s+for)\s+(?:the\s+)?(?:latest\s+)?(?:smartphones?|mobile phones?|phones?|smart tvs?|televisions?|laptops?)\s+(?:in\s+kenya\s+)?online\b/i.test(result.snippet)
-    || /\b(?:widest|wide|huge|large)\s+range\b.{0,70}\b(?:smartphones?|mobile phones?|phones?|kenya)\b/i.test(result.snippet);
+  const exactCategoryTitle = /^(?:smartphones?|mobile phones?|phones?|smart tvs?|tvs?|televisions?|laptops?|shoes?)$/i.test(title);
+  const genericTitle = exactCategoryTitle || (hasCategoryLanguage && hasLandingLanguage && !hasConcreteModelSignal && title.length <= 120);
+  const genericCopy = /\b(?:buy|shop\s+for|browse\s+&?\s*buy)\s+(?:the\s+)?(?:latest\s+)?(?:smartphones?|mobile phones?|phones?|smart tvs?|tvs?|televisions?|laptops?)\s+(?:in\s+kenya\s+)?online\b/i.test(result.snippet)
+    || /\b(?:widest|wide|huge|large)\s+range\b.{0,70}\b(?:smartphones?|mobile phones?|phones?|smart tvs?|tvs?|televisions?|kenya)\b/i.test(result.snippet)
+    || /\b(?:best deals?|deals?\s*&\s*prices?|available now|variety of trusted brands)\b/i.test(result.snippet);
   return genericTitle || genericCopy;
 }
 
