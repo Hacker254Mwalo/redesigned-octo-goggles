@@ -210,7 +210,7 @@ function isLikelyProductUrl(url: string) {
 function isSearchLandingUrl(url: string) {
   try {
     const pathname = new URL(url).pathname.replace(/\/+$/, "");
-    return /\/(?:slp|mlp|category|categories|search|brand|brands)(?:\/|$)/i.test(pathname);
+    return /\/(?:slp|mlp|category|categories|search|brand|brands)(?:[-/]|$)/i.test(pathname);
   } catch {
     return false;
   }

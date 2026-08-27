@@ -147,6 +147,7 @@ describe("Jumia public discovery", () => {
       { title: "Smart TV search", url: "https://www.jumia.co.ke/slp/smart-tv", content: "Smart TV search landing page" },
       { title: "Samsung 50U8000 50 Inches Crystal UHD 4K Smart TV", url: "https://www.jumia.co.ke/samsung-50u8000-50-inches-crystal-uhd-4k-smart-tv-123456.html", content: "Samsung 50U8000 50 Inches Crystal UHD 4K Smart TV KSh 78,499" },
       { title: "TV category", url: "https://www.jumia.co.ke/category/tvs", content: "TV category" },
+      { title: "samsung 50 inch 4k tv", url: "https://www.jumia.co.ke/mlp-samsung-50-inch-4k-tv", content: "50U8000 50 Inches Crystal UHD 4K Smart TV KSh 54,997" },
     ] }), { status: 200 }));
 
     const result = await searchJumiaPublicProducts("Smart TV");
