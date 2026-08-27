@@ -155,3 +155,9 @@ The empty catalogue state now plainly says that the market is preparing its firs
 GitHub/Vercel deployment `2cd9f96` completed successfully. A non-mutating live review of `/how-it-works` confirmed a new responsive public guide is available from the primary navigation, footer, and Home page. It explains the four bounded stages of assisted sourcing: a buyer describes the item; the owner manually checks possible supply routes; MtaaMarket confirms the exact offer; and the buyer chooses whether to proceed before any payment instruction or fulfilment discussion.
 
 The deployed guide explicitly states that MtaaMarket does not claim supplier affiliation, copy supplier catalogue content, represent a real-time source feed, or run automatic supplier checkout. Its calls to action only lead to the already-gated Request Desk or public discovery. No account, request, supplier, payment, delivery, seller, role, or AI action was submitted during this review.
+
+## Public navigation accessibility verification
+
+GitHub/Vercel deployment `b6dda66` completed successfully. A non-mutating live review of the public assisted-sourcing guide confirmed that the shared navigation retains the new **How it works** route alongside the public market, Request Desk, and Seller Studio paths. The release adds semantic current-page information to public links and gives the mobile navigation control an explicit open/close label plus expanded-state and menu relationship metadata.
+
+The mobile menu is also designed to close on Escape and when its route changes, avoiding a stale open menu after navigation. Responsive Home and assisted-sourcing guide reviews remained visually clear at a 375px viewport. No account, request, supplier, payment, delivery, seller, role, data, or background-operation action was submitted during the verification.
