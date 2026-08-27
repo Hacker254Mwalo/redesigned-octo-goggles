@@ -187,6 +187,16 @@ describe("public performance and mobile foundations", () => {
     expect(styles).toContain(".guide-boundary-list li>div{min-width:0}");
   });
 
+  it("keeps the Siaya hub and payment choices as confirmation-gated basket preferences", () => {
+    const cart = readFileSync(resolve(projectRoot, "client/src/pages/CartPage.tsx"), "utf8");
+
+    expect(cart).toContain("Pickup Location: G4S / Jumia Hub, Siaya Town CBD");
+    expect(cart).toContain("Pay via M-Pesa");
+    expect(cart).toContain("Pay on Pickup at Siaya Hub");
+    expect(cart).toContain("MtaaMarket does not collect payment from this basket");
+    expect(cart).not.toMatch(/\.from\("orders"\)|insert\(.*orders/i);
+  });
+
   it("keeps a conservative vendor-chunk strategy for public performance", () => {
     const config = readFileSync(resolve(projectRoot, "vite.config.ts"), "utf8");
 
