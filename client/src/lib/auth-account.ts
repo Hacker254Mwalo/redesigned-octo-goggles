@@ -8,11 +8,11 @@ export function validateMtaaMarketPassword(password: string) {
 }
 
 export function passwordRecoveryNotice() {
-  return "If an account matches that email, MtaaMarket will send password recovery instructions shortly. Check Spam too while the sender domain is being improved.";
+  return "If an account matches that email, MtaaMarket will send a six-digit recovery code shortly. Check Spam or Junk if it is not visible after a few minutes.";
 }
 
 export function passwordSignupNotice() {
-  return "Check your email to verify the new account before signing in. The verification link expires, so use the newest message.";
+  return "We sent a six-digit code to verify the new password account. Enter it here to complete account setup.";
 }
 
 export function accountActionErrorMessage() {

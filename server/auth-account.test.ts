@@ -43,20 +43,22 @@ describe("MtaaMarket email/password account safeguards", () => {
     expect(supabaseAuthContextSource).not.toMatch(/\brole\s*:/i);
   });
 
-  it("keeps the public account dialog keyboard-accessible without changing account-provider behavior", () => {
-    expect(accountDialogSource).toContain('event.key !== "Escape"');
+  it("keeps the public account dialog keyboard-accessible without adding verification friction to returning users", () => {
+    expect(accountDialogSource).toContain('event.key === "Escape"');
     expect(accountDialogSource).toContain("window.addEventListener(\"keydown\", handleEscape)");
     expect(accountDialogSource).toContain("returnFocusRef.current?.focus()");
     expect(accountDialogSource).toContain("ref={emailInputRef}");
-    expect(accountDialogSource).toContain("Recommended: email link is ready now.");
-    expect(accountDialogSource).toContain("Google sign-in is not available on the current website address.");
+    expect(accountDialogSource).toContain("Use the email and password for your MtaaMarket account.");
+    expect(accountDialogSource).toContain("Creating an account does not make you a seller.");
     expect(accountDialogSource).not.toContain("signInWithGoogle");
   });
 
-  it("keeps the unavailable default-domain Google OAuth provider out of the client account bridge", () => {
+  it("keeps unconfigured Google OAuth and passwordless sign-in out of the production client account bridge", () => {
     expect(supabaseAuthContextSource).not.toContain('provider: "google"');
     expect(supabaseAuthContextSource).not.toContain("signInWithGoogle");
-    expect(accountDialogSource).toContain("Google sign-in is not available on the current website address.");
-    expect(accountDialogSource).toContain("Use email link or email and password instead.");
+    expect(supabaseAuthContextSource).not.toContain("signInWithOtp");
+    expect(supabaseAuthContextSource).not.toContain("requestEmailCode");
+    expect(accountDialogSource).not.toContain("Email code");
+    expect(accountDialogSource).not.toContain("Send six-digit sign-in code");
   });
 });

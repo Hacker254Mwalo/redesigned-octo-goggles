@@ -1,3 +1,5 @@
-export function magicLinkDeliveryNotice(): string {
-  return "Check your email for the secure MtaaMarket sign-in link. It only signs you in; it does not submit a request or activate an order. If it is not in your inbox after a few minutes, check Spam and mark the real MtaaMarket message as not spam. We are completing custom-domain email authentication for stronger inbox placement."
+export type EmailCodePurpose = "account verification" | "password recovery";
+
+export function emailCodeDeliveryNotice(purpose: EmailCodePurpose): string {
+  return `We sent a six-digit MtaaMarket ${purpose} code to your email. Check your inbox, then check Spam or Junk if it is not visible after a few minutes. Enter the code only in this MtaaMarket account window. If it still does not arrive, use Send another code.`;
 }

@@ -1,18 +1,21 @@
 import { getSupabaseBrowserClient, isSupabaseBrowserConfigured, SUPABASE_ACCESS_TOKEN_KEY } from "@/lib/supabase-browser";
+import { buildMtaaAccountCodeResend, buildMtaaAccountCodeVerification } from "@/lib/auth-code-flow";
 import { trpc } from "@/lib/trpc";
 import type { Session } from "@supabase/supabase-js";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
+
+type PasswordSignUpResult = { requiresEmailVerification: boolean };
 
 type SupabaseAuthState = {
   configured: boolean;
   loading: boolean;
   session: Session | null;
-  requestMagicLink: (email: string) => Promise<void>;
-  requestEmailCode: (email: string) => Promise<void>;
-  verifyEmailCode: (email: string, token: string) => Promise<void>;
-  signUpWithPassword: (email: string, password: string) => Promise<void>;
+  signUpWithPassword: (email: string, password: string) => Promise<PasswordSignUpResult>;
+  resendSignupVerificationCode: (email: string) => Promise<void>;
+  verifySignupCode: (email: string, token: string) => Promise<void>;
   signInWithPassword: (email: string, password: string) => Promise<void>;
   requestPasswordReset: (email: string) => Promise<void>;
+  verifyPasswordRecoveryCode: (email: string, token: string) => Promise<void>;
   updatePassword: (password: string) => Promise<void>;
   signOut: () => Promise<void>;
 };
@@ -31,17 +34,30 @@ function mirrorAccessToken(session: Session | null) {
 export function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(isSupabaseBrowserConfigured);
+
   trpc.auth.supabaseSession.useQuery(undefined, {
     enabled: Boolean(session?.access_token),
     retry: false,
     refetchOnWindowFocus: false,
   });
 
+  const establishSession = (nextSession: Session | null) => {
+    if (!nextSession) throw new Error("MtaaMarket could not verify this code.");
+    mirrorAccessToken(nextSession);
+    setSession(nextSession);
+  };
+
   useEffect(() => {
     if (!isSupabaseBrowserConfigured) return;
     const client = getSupabaseBrowserClient();
-    client.auth.getSession().then(({ data }) => { setSession(data.session); mirrorAccessToken(data.session); }).finally(() => setLoading(false));
-    const { data: listener } = client.auth.onAuthStateChange((_event, nextSession) => { setSession(nextSession); mirrorAccessToken(nextSession); });
+    client.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      mirrorAccessToken(data.session);
+    }).finally(() => setLoading(false));
+    const { data: listener } = client.auth.onAuthStateChange((_event, nextSession) => {
+      setSession(nextSession);
+      mirrorAccessToken(nextSession);
+    });
     return () => listener.subscription.unsubscribe();
   }, []);
 
@@ -49,42 +65,34 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
     configured: isSupabaseBrowserConfigured,
     loading,
     session,
-    async requestMagicLink(email) {
-      const { error } = await getSupabaseBrowserClient().auth.signInWithOtp({
-        email,
-        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
-      });
-      if (error) throw error;
-    },
-    async requestEmailCode(email) {
-      const { error } = await getSupabaseBrowserClient().auth.signInWithOtp({ email });
-      if (error) throw error;
-    },
-    async verifyEmailCode(email, token) {
-      const { data, error } = await getSupabaseBrowserClient().auth.verifyOtp({ email, token, type: "email" });
-      if (error || !data.session) throw error || new Error("MtaaMarket could not verify this code.");
-      mirrorAccessToken(data.session);
-      setSession(data.session);
-    },
     async signUpWithPassword(email, password) {
-      const { error } = await getSupabaseBrowserClient().auth.signUp({
-        email,
-        password,
-        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
-      });
+      const { data, error } = await getSupabaseBrowserClient().auth.signUp({ email, password });
       if (error) throw error;
+      if (data.session) establishSession(data.session);
+      return { requiresEmailVerification: !data.session };
+    },
+    async resendSignupVerificationCode(email) {
+      const { error } = await getSupabaseBrowserClient().auth.resend(buildMtaaAccountCodeResend(email));
+      if (error) throw error;
+    },
+    async verifySignupCode(email, token) {
+      const { data, error } = await getSupabaseBrowserClient().auth.verifyOtp(buildMtaaAccountCodeVerification(email, token, "signup"));
+      if (error) throw error;
+      establishSession(data.session);
     },
     async signInWithPassword(email, password) {
       const { data, error } = await getSupabaseBrowserClient().auth.signInWithPassword({ email, password });
-      if (error || !data.session) throw error || new Error("MtaaMarket could not start a session.");
-      mirrorAccessToken(data.session);
-      setSession(data.session);
+      if (error) throw error;
+      establishSession(data.session);
     },
     async requestPasswordReset(email) {
-      const { error } = await getSupabaseBrowserClient().auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
-      });
+      const { error } = await getSupabaseBrowserClient().auth.resetPasswordForEmail(email);
       if (error) throw error;
+    },
+    async verifyPasswordRecoveryCode(email, token) {
+      const { data, error } = await getSupabaseBrowserClient().auth.verifyOtp(buildMtaaAccountCodeVerification(email, token, "recovery"));
+      if (error) throw error;
+      establishSession(data.session);
     },
     async updatePassword(password) {
       const { data, error } = await getSupabaseBrowserClient().auth.updateUser({ password });
@@ -93,6 +101,7 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
     async signOut() {
       if (isSupabaseBrowserConfigured) await getSupabaseBrowserClient().auth.signOut();
       mirrorAccessToken(null);
+      setSession(null);
     },
   }), [loading, session]);
 
