@@ -18,3 +18,8 @@ At 2026-08-27 16:21 GMT+3, the live homepage still returned the previous copy (`
 ## Successful deployment check
 
 At 2026-08-27 16:44 GMT+3, `https://siayaonlinemarket.vercel.app/jumia` served the updated Jumia storefront. The live page showed the normal order form, delivery or collection choices, pay-at-hand-off language, and no customer-facing founder/JForce wording. This confirms that the latest Vercel deployment is now serving the pushed implementation.
+
+
+## Google discovery deployment check
+
+At 2026-08-27 16:55 GMT+3, the live `/jumia` route served the latest storefront build with the new customer search panel, normal unpaid order form, collection/home-delivery options, and three-working-day refund copy. The Google discovery query is present in the deployed client/server build; result cards remain dependent on the server-only Google Custom Search credentials being configured in Vercel.
