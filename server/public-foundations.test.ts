@@ -146,7 +146,7 @@ describe("public performance and mobile foundations", () => {
     expect(requestDesk).not.toContain("draftItemRequest.useMutation");
     expect(requestDesk).not.toContain("Use AI to organise these facts");
     expect(requestDesk).toContain("Before you send:");
-    expect(requestDesk).toContain("MtaaMarket will review every request manually.");
+    expect(requestDesk).toContain("founder will verify the exact Jumia item through JForce");
   });
 
   it("keeps Request Desk on the Supabase account dialog and V3 request path without collecting a phone or entering the legacy workspace", () => {
@@ -162,7 +162,7 @@ describe("public performance and mobile foundations", () => {
     expect(requestDesk).not.toContain('setLocation("/dashboard")');
     expect(v3Requests).toContain('from("item_requests")');
     expect(v3Requests).toContain("customer_phone: null");
-    expect(v3Requests).toContain("source_route: null");
+    expect(v3Requests).toContain('source_route: "external_marketplace"');
     expect(v3Requests).not.toContain("delivery_fee");
   });
 
@@ -206,12 +206,12 @@ describe("public performance and mobile foundations", () => {
     expect(app).toContain('path={"/how-it-works"}');
     expect(layout).toContain('href="/how-it-works"');
     expect(home).toContain('href="/how-it-works"');
-    expect(guide).toContain("MtaaMarket checks possible routes");
+    expect(guide).toContain("The founder checks JForce");
     expect(guide).toContain("Before any payment instruction");
-    expect(guide).toContain("No automatic supplier purchase");
-    expect(guide).toContain("No affiliation claim.");
-    expect(guide).toContain("No copied catalogue content.");
-    expect(guide).toContain("No automatic checkout.");
+    expect(guide).toContain("No payment before hand-off");
+    expect(guide).toContain("Founder-managed fulfilment.");
+    expect(guide).toContain("No extra MtaaMarket charge.");
+    expect(guide).toContain("Cancellation before purchase.");
     expect(guide).not.toMatch(/(?:fetch\(|axios|invokeLLM|signIn|checkout\()/);
   });
 

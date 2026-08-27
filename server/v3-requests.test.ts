@@ -29,14 +29,14 @@ describe("V3 Request Desk intake", () => {
     expect(getSupabaseServiceClient).not.toHaveBeenCalled();
   });
 
-  it("uses the verified profile and stores no buyer phone, customer name, supplier route, payment, or delivery promise", async () => {
+  it("uses the verified profile and stores a Jumia-assisted intent without buyer phone, customer name, payment, or delivery promise", async () => {
     vi.mocked(ensureSupabaseMarketplaceProfile).mockResolvedValue({ id: buyer.subject, displayName: "Buyer", role: "buyer" });
     const requests = chain({ single: { data: { id: "33333333-3333-4333-8333-333333333333", status: "submitted", created_at: "2026-08-27T00:00:00.000Z" }, error: null } });
     vi.mocked(getSupabaseServiceClient).mockReturnValue({ from: vi.fn().mockReturnValue(requests) } as never);
 
     await expect(createV3ItemRequest(buyer, { title: "  School   backpack ", details: " A durable school backpack for a primary learner. ", budgetHint: 2500, preferredFulfilment: "siaya_pickup", preferredLocation: " Siaya Town " })).resolves.toMatchObject({ status: "submitted" });
 
-    expect(requests.insert).toHaveBeenCalledWith({ buyer_profile_id: buyer.subject, created_by_profile_id: buyer.subject, is_assisted: false, customer_name: null, customer_phone: null, title: "School backpack", details: "A durable school backpack for a primary learner.", budget_hint: 2500, preferred_fulfilment: "siaya_pickup", preferred_location: "Siaya Town", status: "submitted", source_route: null });
+    expect(requests.insert).toHaveBeenCalledWith({ buyer_profile_id: buyer.subject, created_by_profile_id: buyer.subject, is_assisted: true, customer_name: null, customer_phone: null, title: "School backpack", details: "A durable school backpack for a primary learner.", budget_hint: 2500, preferred_fulfilment: "siaya_pickup", preferred_location: "Siaya Town", status: "submitted", source_route: "external_marketplace" });
   });
 
   it("allows only the verified owner to load a contact-free Request Desk review queue", async () => {

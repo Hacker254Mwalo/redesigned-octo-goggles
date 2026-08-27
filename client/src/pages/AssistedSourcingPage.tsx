@@ -5,26 +5,26 @@ import { MarketplaceLayout } from "@/components/MarketplaceLayout";
 const steps = [
   {
     number: "01",
-    title: "Describe the item",
-    copy: "Send a focused Request Desk note with the physical product, quantity or size, preferred condition, and any essential details.",
+    title: "Choose the item you want",
+    copy: "Send the item name, quantity or size, preferred condition, and any essential details through the Jumia Assisted Order form.",
     icon: HandHeart,
   },
   {
     number: "02",
-    title: "MtaaMarket checks possible routes",
-    copy: "The owner reviews realistic local options manually. A request is not a stock reservation, price quote, or purchase.",
+    title: "The founder checks JForce",
+    copy: "The founder checks the exact item, current availability, amount, and delivery route through the private JForce workflow.",
     icon: Search,
   },
   {
     number: "03",
-    title: "Review the exact offer",
-    copy: "Before you decide, MtaaMarket confirms the exact item, current amount, and practical fulfilment preference using clear, original MtaaMarket wording.",
+    title: "Review the confirmed order",
+    copy: "MtaaMarket sends you the confirmed item, final amount, and practical fulfilment preference before the Jumia order is placed.",
     icon: ClipboardCheck,
   },
   {
     number: "04",
-    title: "Choose the next step",
-    copy: "You confirm whether to proceed. Payment instructions and a Siaya pickup, collection-point, or home-delivery preference are discussed only after that confirmation.",
+    title: "Confirm or cancel",
+    copy: "You confirm whether to proceed. If the item is unavailable before purchase, the founder can cancel it; payment is due only at collection or delivery.",
     icon: BadgeCheck,
   },
 ];
@@ -36,8 +36,8 @@ export default function AssistedSourcingPage() {
         <section className="assisted-guide-hero">
           <div className="assisted-guide-copy">
             <p className="eyebrow">MtaaMarket assisted sourcing</p>
-            <h1>Ask with clarity.<br /><em>Confirm before you act.</em></h1>
-            <p>When a physical product is not in the verified listings, MtaaMarket can review a managed request. It is a local, owner-managed route—not a live supplier catalogue, an automatic checkout, or a promise that an item is available.</p>
+            <h1>Choose with clarity.<br /><em>Pay at the hand-off.</em></h1>
+            <p>MtaaMarket can help you order a Jumia item through the founder’s JForce workflow. You submit the item normally, receive confirmation before purchase, and pay only when the parcel is collected or delivered.</p>
             <div className="guide-actions">
               <Link href="/request" className="primary-cta">Start an item request <ArrowRight size={17} /></Link>
               <Link href="/" className="secondary-cta">Browse current listings <Search size={16} /></Link>
@@ -46,9 +46,9 @@ export default function AssistedSourcingPage() {
           <div className="assisted-guide-card" aria-label="Managed request process summary">
             <span>MANAGED REQUEST</span>
             <div className="guide-card-icon"><ShieldCheck size={27} /></div>
-            <strong>A human check before a commitment.</strong>
+            <strong>Founder confirmation before purchase.</strong>
             <p>Every request stays subject to owner review and your confirmation.</p>
-            <div className="guide-card-rule"><Info size={15} /> No automatic supplier purchase</div>
+            <div className="guide-card-rule"><Info size={15} /> No payment before hand-off</div>
           </div>
         </section>
 
@@ -75,7 +75,7 @@ export default function AssistedSourcingPage() {
           <div>
             <p className="eyebrow">Before any payment instruction</p>
             <h2>MtaaMarket confirms the decision details first.</h2>
-            <p>The owner must confirm the actual item, current amount, practical hand-off route, and fulfilment preference with you. You can then choose whether to continue; no payment or supplier action is triggered by a request alone.</p>
+            <p>The founder confirms the actual item, current amount, practical hand-off route, and fulfilment preference with you. You can then choose whether to continue. The founder can cancel before purchase if the item is unavailable, and payment remains due at collection or delivery.</p>
           </div>
           <Link href="/request" className="secondary-cta">Send a managed request <ArrowRight size={17} /></Link>
         </section>
@@ -83,13 +83,13 @@ export default function AssistedSourcingPage() {
         <section className="guide-boundaries">
           <div className="guide-boundaries-heading">
             <p className="eyebrow">Built on clear boundaries</p>
-            <h2>What assisted sourcing does not do.</h2>
+            <h2>What the Jumia Assisted Order channel does.</h2>
           </div>
           <ul className="guide-boundary-list">
-            <li><span><ShieldCheck size={16} /></span><div><strong>No affiliation claim.</strong> MtaaMarket does not present itself as a partner of another marketplace or supplier unless a real agreement exists.</div></li>
-            <li><span><ShieldCheck size={16} /></span><div><strong>No copied catalogue content.</strong> MtaaMarket uses its own original descriptions and does not copy supplier photos, reviews, titles, or prices.</div></li>
-            <li><span><ShieldCheck size={16} /></span><div><strong>No live-source promise.</strong> A request does not claim real-time availability or pricing; the owner confirms any current details before you decide.</div></li>
-            <li><span><ShieldCheck size={16} /></span><div><strong>No automatic checkout.</strong> A managed request never places a supplier order or sends a payment instruction by itself.</div></li>
+            <li><span><ShieldCheck size={16} /></span><div><strong>Founder-managed fulfilment.</strong> The founder confirms and places the Jumia order through the private JForce workflow.</div></li>
+            <li><span><ShieldCheck size={16} /></span><div><strong>No extra MtaaMarket charge.</strong> The customer confirms the final amount before the order is placed.</div></li>
+            <li><span><ShieldCheck size={16} /></span><div><strong>Availability confirmation.</strong> The founder checks stock and the final amount before accepting the order.</div></li>
+            <li><span><ShieldCheck size={16} /></span><div><strong>Cancellation before purchase.</strong> If the item is unavailable, the order can be cancelled before the founder buys it.</div></li>
           </ul>
         </section>
 
@@ -97,7 +97,7 @@ export default function AssistedSourcingPage() {
           <div>
             <p className="eyebrow">Ready when you are</p>
             <h2>Tell MtaaMarket what would make your day easier.</h2>
-            <p>Use a broad Siaya area or collection suggestion, not an exact address. The Request Desk starts a review; it does not commit you to buy.</p>
+            <p>Use a broad Siaya area or collection suggestion, not an exact address. Your request starts an order confirmation—not a payment or a forced purchase.</p>
           </div>
           <div className="guide-closing-actions">
             <Link href="/request" className="primary-cta">Open Request Desk <ArrowRight size={17} /></Link>

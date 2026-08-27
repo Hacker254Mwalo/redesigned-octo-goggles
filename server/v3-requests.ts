@@ -86,7 +86,7 @@ function validateExternalSourceDisclosure(sourceRoute: V3SourceRoute, disclosure
   return normalized.slice(0, 600);
 }
 
-/** Creates a private MtaaMarket request from the verified Supabase identity only. It intentionally records neither a buyer phone number nor a supplier route. */
+/** Creates a private Jumia Assisted Order request from the verified Supabase identity only. It records the customer’s order intent, but never places a Jumia order or collects payment. */
 export async function createV3ItemRequest(identity: SupabaseIdentity | null, input: V3ItemRequestInput) {
   if (!identity) throw new Error("Sign in with your verified MtaaMarket email before sending a request.");
   const values = validateV3ItemRequest(input);
@@ -94,7 +94,7 @@ export async function createV3ItemRequest(identity: SupabaseIdentity | null, inp
   const { data, error } = await getSupabaseServiceClient().from("item_requests").insert({
     buyer_profile_id: profile.id,
     created_by_profile_id: profile.id,
-    is_assisted: false,
+    is_assisted: true,
     customer_name: null,
     customer_phone: null,
     title: values.title,
@@ -103,7 +103,7 @@ export async function createV3ItemRequest(identity: SupabaseIdentity | null, inp
     preferred_fulfilment: values.preferredFulfilment,
     preferred_location: values.preferredLocation,
     status: "submitted",
-    source_route: null,
+    source_route: "external_marketplace",
   }).select("id,status,created_at").single();
   if (error || !data) throw new Error("MtaaMarket could not record your request. Please try again later.");
   return data;
