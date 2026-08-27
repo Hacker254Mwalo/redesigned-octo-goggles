@@ -21,7 +21,15 @@ The aliases `GOOGLE_SEARCH_API_KEY`, `GOOGLE_SEARCH_CX`, `TAVILY_SEARCH_API_KEY`
 
 For the Google Standard Search Element, the browser uses the separate `VITE_GOOGLE_PSE_CX` variable. This is only a Programmable Search Engine ID, not a secret API key. Configure that engine to search `jumia.co.ke`; the standard client-side element is designed for embedded site search and does not require the closed JSON API.
 
-The server query is restricted with the `site:jumia.co.ke <query>` search operator, uses safe-search settings where supported, requests at most ten results, accepts only HTTPS Jumia Kenya URLs, and ignores non-Jumia results. Tavily is intentionally not sent an additional `include_domains` filter because production testing showed that combination could suppress valid Jumia results. The server does not accept arbitrary external URLs as selected Jumia references.
+The server query is restricted with the `site:jumia.co.ke <query>` search operator, requests at most ten results, accepts only HTTPS Jumia Kenya URLs, and ignores non-Jumia results. Google and Brave may use their provider-specific safe-search controls; Tavily intentionally receives only the verified basic-search fields because production testing showed that adding `include_domains`, `country`, or `safe_search` can suppress valid results for the active free-tier key. The server does not accept arbitrary external URLs as selected Jumia references.
+
+## Catalogue-card quality and trust boundaries
+
+The server normalizes public provider metadata before it reaches the customer page. It removes search-page labels such as `@ Best Price`, `Buy … Online`, `Best Price Online`, `Price Online`, `Add to cart`, `Jumia Kenya`, cookie notices, navigation categories, product-image tokens, and indexed media paths from displayed titles and snippets. When a result’s content includes a product-like heading, that heading is preferred over a generic search label. Results ending in `.html` and results with a trusted image or exact indexed price are ranked ahead of generic landing pages. An identical indexed image is not reused as the photo for a second result.
+
+Product images are accepted only from strict HTTPS `ke.jumia.is` product paths. Indexed paths may be converted into a token-free, validated Jumia CDN fallback; if no trusted image exists or the browser cannot load it, the UI shows a branded unavailable-photo state rather than unrelated stock art. Exact KES prices are displayed only when the provider exposes a parseable price for a product-like result; otherwise the customer sees `Price on product page`.
+
+This is public discovery rather than a first-party Jumia catalogue feed. The provider index can return category, search, or landing pages, and may omit current photos, prices, stock, variants, and delivery information. The customer flow therefore preserves the selected public URL, image, and price as reference data without fabricating missing values. Exact first-party catalogue fidelity requires a permitted Jumia catalogue feed, partner endpoint, or other approved data source.
 
 ## Important provider status
 
