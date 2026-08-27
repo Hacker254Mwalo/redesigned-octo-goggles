@@ -211,3 +211,9 @@ The deployed protected listing workflow adds title, constrained category, price,
 GitHub/Vercel deployment `8e6ed08` completed successfully. A non-mutating public Home review confirmed the marketplace still renders normally, retains its honest first-listings state, and now exposes **Solar & Energy** alongside the existing public category filters. No catalogue item, account, vendor application, product submission, owner moderation action, order, payment, source lookup, or supplier operation was performed.
 
 The release adds no starter inventory and no `APPROVED` product status. It continues to make only `ACTIVE` listings publicly discoverable. It also keeps source-linked synchronization, automated copy, price markups, fixed collection-point claims, and client-side database writes absent. The authenticated approved-vendor form and owner moderation workflow need a separate founder-controlled operational test before they can be treated as live operating evidence.
+
+## Founder-only original-listing intake verification
+
+GitHub/Vercel deployment `fb1bef9` completed successfully. A non-mutating public Home review confirmed that category discovery, including Solar & Energy, the assisted-request route, account trigger, and first-listings state still render. No sign-in, founder activation, owner listing creation, product approval, vendor action, order, payment, or source lookup was performed.
+
+The release adds a verified-owner-only Admin intake for founder-provided, rights-cleared product facts and original media. Its server procedure checks the owner role before image handling and creates an owner-marked `PENDING` listing only, returning it to the same moderation controls used for approved vendors. It is not an inventory seed, automatic public listing, or supplier integration. An authenticated founder-only test remains deliberately separate.
