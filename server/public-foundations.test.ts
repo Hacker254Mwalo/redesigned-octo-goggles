@@ -238,10 +238,15 @@ describe("public performance and mobile foundations", () => {
 
   it("keeps the Siaya hub and payment choices as confirmation-gated basket preferences", () => {
     const cart = readFileSync(resolve(projectRoot, "client/src/pages/CartPage.tsx"), "utf8");
+    const detail = readFileSync(resolve(projectRoot, "client/src/pages/ProductDetail.tsx"), "utf8");
 
-    expect(cart).toContain("Pickup Location: G4S / Jumia Hub, Siaya Town CBD");
+    expect(cart).toContain("Collection route: confirmed by MtaaMarket");
+    expect(cart).toContain("Pay on collection after confirmation");
+    expect(cart).not.toMatch(/G4S|Jumia Hub/);
+    expect(detail).toContain("Collection route: confirmed by MtaaMarket");
+    expect(detail).not.toMatch(/G4S|Jumia Hub/);
     expect(cart).toContain("Pay via M-Pesa");
-    expect(cart).toContain("Pay on Pickup at Siaya Hub");
+    expect(cart).toContain("Pay on collection after confirmation");
     expect(cart).toContain("MtaaMarket does not collect payment from this basket");
     expect(cart).not.toMatch(/\.from\("orders"\)|insert\(.*orders/i);
   });
@@ -263,9 +268,9 @@ describe("public performance and mobile foundations", () => {
     expect(profiles).toContain("normalizedKenyanPhone");
     expect(profiles).toContain("normalizedBuyerName");
     expect(orders).toContain("buyer?.full_name");
-    expect(detail).toContain("Confirm Order for Hub Pickup");
-    expect(detail).toContain("Save pickup details & continue");
-    expect(detail).toContain("Your Siaya Hub Pickup PIN is:");
+    expect(detail).toContain("Confirm collection request");
+    expect(detail).toContain("Save collection details & continue");
+    expect(detail).toContain("Your MtaaMarket pickup PIN is:");
     expect(detail).not.toContain("confirmV3Order.mutate({ productId: product.id, buyerPhone");
     expect(detail).not.toMatch(/\.from\("orders"\)|insert\(.*orders/i);
   });
