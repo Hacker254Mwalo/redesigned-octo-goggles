@@ -173,3 +173,9 @@ The mobile menu is also designed to close on Escape and when its route changes, 
 A local post-release runtime review identified a React DOM-nesting warning in the public assisted-sourcing guide: its boundary rows placed a `div` inside a `p`, which could produce a hydration mismatch. The affected boundary content is now a semantic unordered list with list items; the responsive grid styling, visible wording, and launch-stage limits are preserved.
 
 The repair adds regression coverage that rejects the invalid paragraph pattern and requires the semantic list and its mobile layout rule. TypeScript, all 22 test files / 76 tests, the Vercel build, and the zero-vulnerability production dependency audit pass. A full mobile guide review after the repair retained the readable four-step and boundary layout. Existing console entries preserve the original warning for diagnostic history; no new occurrence was emitted after the corrected guide was rendered.
+
+## V3 public discovery and activation-foundation verification
+
+GitHub/Vercel deployment `dea44ac` completed successfully. A non-mutating live Home review confirmed that the public V3 product feed safely shows the explicit **first verified listings** empty state when no `ACTIVE` products exist. The revised server adapter now filters only on the V3 `ACTIVE` status and no longer requests the removed legacy moderation field.
+
+The deployed `/vendor/upload` route was also reviewed without signing in or submitting a listing. It presents clear verified-email, owner-approval, and agreement prerequisites instead of an unusable public form. The server-side implementation supports founder-only owner bootstrap, agreement-backed vendor requests, owner approval or suspension, and media validation, but no owner profile, vendor application, listing, order, payment, or external supplier action was created in this verification.
