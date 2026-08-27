@@ -39,6 +39,14 @@ describe("public performance and mobile foundations", () => {
     expect(head).not.toContain("maximum-scale=1");
   });
 
+  it("does not load an unresolved analytics provider placeholder in the public document", () => {
+    const head = readFileSync(resolve(projectRoot, "client/index.html"), "utf8");
+
+    expect(head).not.toContain("VITE_ANALYTICS_ENDPOINT");
+    expect(head).not.toContain("VITE_ANALYTICS_WEBSITE_ID");
+    expect(head).not.toContain("/umami");
+  });
+
   it("keeps public error recovery branded and avoids exposing technical error details", () => {
     const boundary = readFileSync(resolve(projectRoot, "client/src/components/ErrorBoundary.tsx"), "utf8");
     const notFound = readFileSync(resolve(projectRoot, "client/src/pages/NotFound.tsx"), "utf8");
