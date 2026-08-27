@@ -149,3 +149,9 @@ The deployed Request Desk was reviewed without submitting a request. Its former 
 GitHub/Vercel deployment `a40d52c` completed successfully. A non-mutating live homepage review confirmed that the primary public message now says that **owner-reviewed listings are being added** and identifies MtaaMarket as an **owner-reviewed local market** built for **Siaya buyers and sellers**. The discovery surface asks visitors to search current listings or use the Request Desk when an item is unavailable.
 
 The empty catalogue state now plainly says that the market is preparing its first verified listings and directs visitors to a managed request rather than an unconfirmed order. This change corrects launch-stage expectations without adding a vendor, listing, review, order, payment, fulfilment promise, public seller-write path, or automated AI action.
+
+## Public assisted-sourcing guide verification
+
+GitHub/Vercel deployment `2cd9f96` completed successfully. A non-mutating live review of `/how-it-works` confirmed a new responsive public guide is available from the primary navigation, footer, and Home page. It explains the four bounded stages of assisted sourcing: a buyer describes the item; the owner manually checks possible supply routes; MtaaMarket confirms the exact offer; and the buyer chooses whether to proceed before any payment instruction or fulfilment discussion.
+
+The deployed guide explicitly states that MtaaMarket does not claim supplier affiliation, copy supplier catalogue content, represent a real-time source feed, or run automatic supplier checkout. Its calls to action only lead to the already-gated Request Desk or public discovery. No account, request, supplier, payment, delivery, seller, role, or AI action was submitted during this review.
