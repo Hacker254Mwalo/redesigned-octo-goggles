@@ -230,6 +230,10 @@ function isGenericCatalogLandingResult(result: JumiaSearchResult) {
   return genericTitle || genericCopy;
 }
 
+function productTitleFingerprint(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
 function prioritizeVisualResults(results: JumiaSearchResult[]) {
   const filtered = results.filter(result => !isSearchLandingUrl(result.url) && !isGenericCatalogLandingResult(result));
   const sorted = [...filtered].sort((left, right) => {
@@ -237,8 +241,15 @@ function prioritizeVisualResults(results: JumiaSearchResult[]) {
     const rightScore = Number(isLikelyProductUrl(right.url)) * 4 + Number(Boolean(right.imageUrl)) * 2 + Number(Boolean(right.price));
     return rightScore - leftScore;
   });
+  const seenTitles = new Set<string>();
+  const uniqueResults = sorted.filter(result => {
+    const fingerprint = productTitleFingerprint(result.title);
+    if (seenTitles.has(fingerprint)) return false;
+    seenTitles.add(fingerprint);
+    return true;
+  });
   const seenImages = new Set<string>();
-  return sorted.map(result => {
+  return uniqueResults.map(result => {
     if (!result.imageUrl || !seenImages.has(result.imageUrl)) {
       if (result.imageUrl) seenImages.add(result.imageUrl);
       return result;

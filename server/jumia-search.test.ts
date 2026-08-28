@@ -141,6 +141,20 @@ describe("Jumia public discovery", () => {
     expect(result.results[0]?.snippet).toBe("The Samsung 50U8000 is designed for modern households.");
   });
 
+  it("collapses repeated live product titles while keeping the best-ranked record", async () => {
+    process.env.TAVILY_API_KEY = "test-key";
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ results: [
+      { title: "Samsung 50U8000 50 Inches Crystal UHD 4K Smart TV", url: "https://www.jumia.co.ke/samsung-50u8000-first.html", content: "Samsung 50U8000 50 Inches Crystal UHD 4K Smart TV", images: [{ url: "https://ke.jumia.is/p_9n_2Fk5GQPGkotcccQ5cDtlHA=/fit-in/500x500/filters:fill(white)/product/31/8481392/1.jpg?7944" }] },
+      { title: "Samsung 50U8000 50 Inches Crystal UHD 4K Smart TV", url: "https://www.jumia.co.ke/samsung-50u8000-second.html", content: "Samsung 50U8000 50 Inches Crystal UHD 4K Smart TV" },
+    ] }), { status: 200 }));
+
+    const result = await searchJumiaPublicProducts("Samsung 50U8000");
+
+    expect(result.results).toHaveLength(1);
+    expect(result.results[0]?.url).toContain("first.html");
+    expect(result.results[0]?.imageUrl).toBeTruthy();
+  });
+
   it("removes search-landing pages and keeps individual product pages", async () => {
     process.env.TAVILY_API_KEY = "test-key";
     vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ results: [
