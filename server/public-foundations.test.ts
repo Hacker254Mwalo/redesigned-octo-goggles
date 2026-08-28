@@ -72,7 +72,8 @@ describe("public performance and mobile foundations", () => {
   it("exposes clear current-page and mobile-menu semantics in the shared public navigation", () => {
     const layout = readFileSync(resolve(projectRoot, "client/src/components/MarketplaceLayout.tsx"), "utf8");
 
-    expect(layout).toContain('aria-current={location === href ? "page" : undefined}');
+    expect(layout).toContain('aria-current={isCurrent(href) ? "page" : undefined}');
+    expect(layout).toContain('const isCurrent = (href: string) => href === "/" ? location === "/" : location.startsWith(href);');
     expect(layout).toContain('aria-expanded={open}');
     expect(layout).toContain('aria-controls="mtaa-market-mobile-menu"');
     expect(layout).toContain('id="mtaa-market-mobile-menu"');
@@ -239,7 +240,7 @@ describe("public performance and mobile foundations", () => {
     const cart = readFileSync(resolve(projectRoot, "client/src/pages/CartPage.tsx"), "utf8");
     const detail = readFileSync(resolve(projectRoot, "client/src/pages/ProductDetail.tsx"), "utf8");
 
-    expect(cart).toContain("Collection route: confirmed by MtaaMarket");
+    expect(cart).toContain("Confirmed by MtaaMarket");
     expect(cart).toContain("Pay on collection after confirmation");
     expect(cart).not.toMatch(/G4S|Jumia Hub/);
     expect(detail).toContain("Collection route: confirmed by MtaaMarket");
