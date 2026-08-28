@@ -33,41 +33,18 @@ export default function Home() {
   return (
     <MarketplaceLayout>
       <main className="home-page">
-        <section className="home-hero">
-          <div className="home-hero-inner">
-            <div className="home-hero-copy">
-              <div className="home-live-kicker"><span className="home-live-dot" /> Siaya market <span>/</span> live selection</div>
-              <h1>Good finds.<br /><em>Nearer home.</em></h1>
-              <p>Start with trusted local listings, then explore a wider selection through MtaaMarket when you need more choice. Search, choose a hand-off preference, and keep the journey in one place.</p>
-              <form className="home-search" onSubmit={goToSearch}>
-                <Search size={19} />
-                <input value={quickSearch} onChange={event => setQuickSearch(event.target.value)} placeholder="What are you looking for?" aria-label="Start a product search" autoComplete="off" />
-                <button type="submit">Find it <ArrowRight size={15} /></button>
-              </form>
-              <div className="home-hero-actions"><Link href="#local-market" className="primary-cta">Browse local products <ArrowRight size={16} /></Link><Link href="/request" className="home-text-link">Request an item <ChevronRight size={16} /></Link></div>
-              <div className="home-proof-row"><span><CheckCircle2 size={15} /> Local shopping</span><span><Truck size={15} /> Collection or delivery preference</span></div>
-            </div>
-            <aside className="home-hero-card">
-              <div className="home-hero-card-head"><span className="eyebrow">THE MTAAMARKET WAY</span><span className="home-card-number">01</span></div>
-              <div className="home-hero-card-main"><span className="home-hero-card-icon"><ShoppingBag size={21} /></span><div><strong>Shop local first.</strong><p>Use the wider selection when the local feed does not have what you need.</p></div></div>
-              <div className="home-hero-card-list"><div><span className="home-card-mark mint"><MapPin size={15} /></span><p><strong>Closer to home</strong><small>Made for Siaya buyers</small></p></div><div><span className="home-card-mark gold"><Wrench size={15} /></span><p><strong>One clear journey</strong><small>Search, basket, updates</small></p></div></div>
-              <div className="home-hero-card-footer"><span><Sparkles size={14} /> Built around real choices</span><Link href="/how-it-works">See how it works <ArrowRight size={14} /></Link></div>
-            </aside>
-          </div>
+        <section className="home-storefront-head">
+          <div className="home-storefront-title"><div className="home-live-kicker"><span className="home-live-dot" /> Siaya marketplace <span>/</span> shop local first</div><h1>Shop for what you need.</h1><p>Browse local sellers, then move to the wider live selection when you need more choice.</p></div>
+          <form className="home-search" onSubmit={goToSearch}><Search size={19} /><input value={quickSearch} onChange={event => setQuickSearch(event.target.value)} placeholder="Search phones, TVs, shoes…" aria-label="Start a product search" autoComplete="off" /><button type="submit">Search <ArrowRight size={15} /></button></form>
+          <div className="home-storefront-actions"><Link href="#local-market" className="primary-cta">Browse local products <ArrowRight size={16} /></Link><Link href="/jumia" className="secondary-cta">Browse more choices <ArrowRight size={16} /></Link><Link href="/request" className="home-text-link">Request an item <ChevronRight size={16} /></Link><Link href="/how-it-works" className="home-text-link">How shopping works <ChevronRight size={16} /></Link><span className="home-storefront-proof"><CheckCircle2 size={14} /> Local shopping</span></div>
         </section>
 
-        <section className="home-department-rail" aria-label="Browse departments">
-          <div className="home-rail-label"><span className="home-live-dot" /> Browse by need</div>
-          <div className="home-department-links">{departments.slice(0, 4).map(({ label, query, icon: Icon }) => <Link key={label} href={`/jumia?item=${encodeURIComponent(query)}`}><Icon size={16} /><span>{label}</span><ArrowRight size={14} /></Link>)}</div>
-        </section>
+        <section className="home-department-rail" aria-label="Browse departments"><div className="home-rail-label"><span className="home-live-dot" /> Shop by department</div><div className="home-department-links">{departments.slice(0, 4).map(({ label, query, icon: Icon }) => <Link key={label} href={`/jumia?item=${encodeURIComponent(query)}`}><Icon size={16} /><span>{label}</span><ArrowRight size={14} /></Link>)}</div></section>
 
-        <section className="home-departments">
-          <div className="section-heading"><div><p className="eyebrow">Start with what you need</p><h2>Shop by department.</h2></div><Link href="/jumia" className="text-cta">Browse more choices <ArrowRight size={15} /></Link></div>
-          <div className="popular-search-grid">{departments.map(({ label, query, icon: Icon, tone }) => <Link key={label} href={`/jumia?item=${encodeURIComponent(query)}`} className={`popular-search-card ${tone}`}><span><Icon size={22} /></span><div><strong>{label}</strong><small>Browse in MtaaMarket</small></div><ChevronRight size={17} /></Link>)}</div>
-        </section>
+        <section className="home-departments"><div className="section-heading"><div><p className="eyebrow">Browse the market</p><h2>Find your category.</h2></div><Link href="/jumia" className="text-cta">Open live catalogue <ArrowRight size={15} /></Link></div><div className="popular-search-grid">{departments.map(({ label, query, icon: Icon, tone }) => <Link key={label} href={`/jumia?item=${encodeURIComponent(query)}`} className={`popular-search-card ${tone}`}><span><Icon size={22} /></span><div><strong>{label}</strong><small>Open live results</small></div><ChevronRight size={17} /></Link>)}</div></section>
 
         <section id="local-market" className="discover-section home-local-section">
-          <div className="home-local-heading"><div><p className="eyebrow">Siaya sellers</p><h2>What’s available locally.</h2></div><div><span className="home-feed-status"><span className="home-live-dot" /> Live listing feed</span><p>Real products from MtaaMarket sellers, with a wider selection one tap away.</p></div></div>
+          <div className="home-local-heading"><div><p className="eyebrow">Siaya sellers</p><h2>What’s available locally.</h2></div><div><span className="home-feed-status"><span className="home-live-dot" /> Live listing feed</span><p>Real products from MtaaMarket sellers; explore a wider selection through MtaaMarket when you need more choice.</p></div></div>
           <div className="home-local-tools"><div className="search-panel"><Search size={19} /><input value={search} onChange={event => setSearch(event.target.value)} placeholder="Search local products" aria-label="Search local products" /><button type="button" onClick={() => { setSearch(""); setCategory(undefined); }}>Reset</button></div><div className="category-discovery-caption"><span>Local categories</span><small>Swipe to explore</small></div><div className="category-row" role="group" aria-label="Browse local product categories"><button onClick={() => setCategory(undefined)} className={!category ? "category-chip selected" : "category-chip"} aria-pressed={!category}>All products</button>{categories.data?.map(item => <button key={item.id} onClick={() => setCategory(item.slug)} className={category === item.slug ? "category-chip selected" : "category-chip"} aria-pressed={category === item.slug}>{item.name}</button>)}</div></div>
           {category === "poultry-livestock" && <aside className="home-category-note"><strong>Local poultry &amp; livestock:</strong> browse current listings from Siaya sellers.</aside>}
           <div className="product-grid">{products.isLoading ? Array.from({ length: 8 }).map((_, index) => <div className="product-skeleton" key={index} />) : products.isError ? <div className="empty-discovery"><Search size={28} /><h3>Local listings are taking a moment.</h3><p>Browse the wider selection while local listings load.</p><Link href="/jumia" className="text-cta">Explore more <ArrowRight size={15} /></Link></div> : productList.length ? productList.map((entry: { product: { id: string | number } }) => <ProductCard key={entry.product.id} entry={entry as any} />) : <div className="empty-discovery home-empty-state"><span className="empty-state-icon"><ShoppingBag size={25} /></span><p className="eyebrow">Local catalogue</p><h3>{search ? `No local listing for “${search}” yet.` : "Local listings are being added."}</h3><p>Start with the wider live selection, or send a request and let MtaaMarket know what you need.</p><div className="empty-state-actions"><Link href={`/jumia${search ? `?item=${encodeURIComponent(search)}` : ""}`} className="primary-cta">Find more options <ArrowRight size={16} /></Link><Link href={`/request${search ? `?item=${encodeURIComponent(search)}` : ""}`} className="secondary-cta">Request this item <ArrowRight size={16} /></Link></div></div>}</div>

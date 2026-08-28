@@ -10,6 +10,7 @@ import { Link } from "wouter";
 type OrderItem = { title: string; details: string; quantity: number; sourceUrl?: string; imageUrl?: string | null; price?: number | null; currency?: string | null };
 type SelectedResult = { title: string; url: string; snippet: string; imageUrl: string | null; price: number | null; currency: string | null };
 type SearchResult = SelectedResult & { id: string; source: string };
+type ResultFilter = "all" | "photos" | "priced";
 
 const DEFAULT_CATALOG_QUERY = "Android smartphone";
 
@@ -60,6 +61,7 @@ export default function JumiaStorePage() {
   const initialCatalogQuery = new URLSearchParams(window.location.search).get("item")?.trim().slice(0, 120) || DEFAULT_CATALOG_QUERY;
   const [searchTerm, setSearchTerm] = useState(initialCatalogQuery);
   const [searchQuery, setSearchQuery] = useState(initialCatalogQuery);
+  const [resultFilter, setResultFilter] = useState<ResultFilter>("all");
   const [selectedResult, setSelectedResult] = useState<SelectedResult | null>(null);
   const [itemOption, setItemOption] = useState("");
   const [quantity, setQuantity] = useState("1");
@@ -83,11 +85,18 @@ export default function JumiaStorePage() {
   const paymentTiming = fulfilmentMethod === "home_delivery" ? "pay_on_delivery" : "pay_on_collection";
   const canSubmit = items.length > 0 && (fulfilmentMethod !== "home_delivery" || preferredLocation.trim().length > 0);
   const recentOrders = useMemo(() => (buyerOrders.data ?? []).slice(0, 4), [buyerOrders.data]);
+  const visibleResults = useMemo(() => {
+    const results = searchResults.data?.results ?? [];
+    if (resultFilter === "photos") return results.filter(result => Boolean(result.imageUrl));
+    if (resultFilter === "priced") return results.filter(result => Boolean(result.price));
+    return results;
+  }, [resultFilter, searchResults.data?.results]);
 
   function runSearch() {
     const query = searchTerm.trim();
     if (query.length >= 3) {
       setSearchQuery(query);
+      setResultFilter("all");
       window.setTimeout(() => document.getElementById("catalog-live-search")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
     }
   }
@@ -95,6 +104,7 @@ export default function JumiaStorePage() {
   function chooseCategory(query: string) {
     setSearchTerm(query);
     setSearchQuery(query);
+    setResultFilter("all");
     setSelectedResult(null);
     window.setTimeout(() => document.getElementById("catalog-live-search")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
   }
@@ -127,11 +137,11 @@ export default function JumiaStorePage() {
   return <MarketplaceLayout>
     <div className="catalog-page">
       {submittedOrder ? <section className="catalog-confirmation" aria-live="polite"><div className="catalog-confirmation-icon"><CheckCircle2 size={25} /></div><div><p className="eyebrow">Order received</p><h1>{submittedOrder.order_number} is being prepared.</h1><p>Your order has been received. You can follow its progress from your account.</p></div><div className="catalog-confirmation-actions"><button className="primary-cta" type="button" onClick={() => setSubmittedOrder(null)}>Continue shopping <ArrowRight size={17} /></button><Link className="secondary-cta" href="/dashboard">View my orders</Link></div></section> : <form className="catalog-order-form" onSubmit={submit}>
-        <section className="catalog-top"><div className="catalog-top-copy"><p className="eyebrow">MtaaMarket Select · broader choice</p><h1>Shop more.<br /><em>Closer to home.</em></h1><p>Search the live selection, choose what you like, and keep collection or home delivery in one simple order.</p><div className="catalog-trust-row"><span><ShieldCheck size={15} /> Clear product details</span><span><Truck size={15} /> Collection or delivery</span></div></div><aside className="catalog-top-card"><div className="catalog-top-card-icon"><ShoppingBag size={22} /></div><p className="eyebrow">SHOPPING TODAY</p><strong>Find the right item, then make it yours.</strong><span><BadgeCheck size={14} /> Made for Siaya buyers</span></aside></section>
+        <section className="catalog-commerce-head"><div><p className="eyebrow">MtaaMarket Select / broader choice</p><h1>Find what you need.</h1><p>Real product choices, one local basket.</p></div><div className="catalog-commerce-tools"><span><ShieldCheck size={15} /> Live selection</span><Link href="#catalog-basket" className="catalog-basket-link"><ShoppingBag size={16} /> Basket <b>{items.length}</b></Link></div></section>
 
-        <section id="catalog-live-search" className="catalog-search-card"><div className="catalog-search-heading"><div><p className="eyebrow">Live selection</p><h2>What are you looking for?</h2></div><Search className="catalog-search-icon" /></div><div className="catalog-search-shell"><Search size={19} /><input value={searchTerm} onChange={event => { setSearchTerm(event.target.value); setSelectedResult(null); }} onKeyDown={event => { if (event.key === "Enter") { event.preventDefault(); runSearch(); } }} placeholder="Search phones, TVs, shoes…" autoComplete="off" aria-label="Search live products" /><button type="button" onClick={runSearch} disabled={searchTerm.trim().length < 3 || searchResults.isFetching}>{searchResults.isFetching ? "Searching…" : "Search"}<ArrowRight size={15} /></button></div>{googleSearchEnabled && <JumiaGoogleSearch query={searchQuery} onSelect={selectResult} />}{!googleSearchEnabled && <>{searchResults.isError && <p className="catalog-search-message error" role="alert">Search is temporarily unavailable. Please try again.</p>}{searchResults.data && <p className="catalog-search-message" role="status">{searchQuery.trim() ? searchResults.data.message : "Fresh live selection to start browsing."}</p>}{searchResults.data?.results.length ? <><p className="selection-count">Showing {searchResults.data.results.length} live choices</p><div className="selection-grid">{searchResults.data.results.map(result => <SearchResultCard result={result} onSelect={selectResult} key={result.id} />)}</div></> : null}</>}</section>
+        <section id="catalog-live-search" className="catalog-search-card"><div className="catalog-search-heading"><div><p className="eyebrow">Shop the live selection</p><h2>Browse products.</h2></div><Search className="catalog-search-icon" /></div><div className="catalog-search-shell"><Search size={19} /><input value={searchTerm} onChange={event => { setSearchTerm(event.target.value); setSelectedResult(null); }} onKeyDown={event => { if (event.key === "Enter") { event.preventDefault(); runSearch(); } }} placeholder="Search phones, TVs, shoes…" autoComplete="off" aria-label="Search live products" /><button type="button" onClick={runSearch} disabled={searchTerm.trim().length < 3 || searchResults.isFetching}>{searchResults.isFetching ? "Searching…" : "Search"}<ArrowRight size={15} /></button></div>{googleSearchEnabled && <JumiaGoogleSearch query={searchQuery} onSelect={selectResult} />}{!googleSearchEnabled && <>{searchResults.isError && <p className="catalog-search-message error" role="alert">Search is temporarily unavailable. Please try again.</p>}{searchResults.data && <p className="catalog-search-message" role="status">{searchQuery.trim() ? searchResults.data.message : "Fresh live selection to start browsing."}</p>}{searchResults.data?.results.length ? <><div className="catalog-results-toolbar"><p className="selection-count">{visibleResults.length} of {searchResults.data.results.length} choices</p><div className="catalog-filter-row" aria-label="Filter live results"><button type="button" className={resultFilter === "all" ? "active" : ""} onClick={() => setResultFilter("all")}>All choices</button><button type="button" className={resultFilter === "photos" ? "active" : ""} onClick={() => setResultFilter("photos")}>With photos</button><button type="button" className={resultFilter === "priced" ? "active" : ""} onClick={() => setResultFilter("priced")}>Price shown</button></div></div>{visibleResults.length ? <div className="selection-grid">{visibleResults.map(result => <SearchResultCard result={result} onSelect={selectResult} key={result.id} />)}</div> : <div className="catalog-filter-empty"><ImageOff size={18} /><span>No live choices match this filter. Show all choices to continue.</span><button type="button" onClick={() => setResultFilter("all")}>Show all</button></div>}</> : null}</>}</section>
 
-        <section id="catalog-categories" className="catalog-category-section"><div className="catalog-section-heading"><div><p className="eyebrow">Browse by need</p><h2>Shop popular categories</h2></div><span>Live search</span></div><div className="catalog-category-grid">{browseCategories.map(({ label, query, icon: Icon, tone }) => <button type="button" key={label} className={`catalog-category-card ${tone}`} onClick={() => chooseCategory(query)}><span className="catalog-category-icon"><Icon size={22} /></span><strong>{label}</strong><small>Browse choices</small><ChevronRight size={16} /></button>)}</div></section>
+        <section id="catalog-categories" className="catalog-category-section"><div className="catalog-section-heading"><div><p className="eyebrow">Browse departments</p><h2>Shop by category.</h2></div><span>Live search</span></div><div className="catalog-category-grid">{browseCategories.map(({ label, query, icon: Icon, tone }) => <button type="button" key={label} className={`catalog-category-card ${tone}`} onClick={() => chooseCategory(query)}><span className="catalog-category-icon"><Icon size={22} /></span><strong>{label}</strong><small>Open live results</small><ChevronRight size={16} /></button>)}</div></section>
 
         <section id="catalog-selection" className="catalog-selection-card"><div className="catalog-section-heading"><div><p className="eyebrow">Your choice</p><h2>Build your basket</h2></div><PackageCheck className="catalog-selection-icon" /></div>{selectedResult ? <div className="selected-item"><JumiaProductImage src={selectedResult.imageUrl} alt="" className="h-20 w-20 shrink-0" /><div className="min-w-0"><p className="selected-item-label">Selected item</p><p className="selected-item-title">{selectedResult.title}</p>{selectedResult.price ? <p className="selected-item-price">KES {selectedResult.price.toLocaleString("en-KE")}</p> : <p className="selected-item-price">Price on product page</p>}</div></div> : <div className="catalog-selection-empty"><Sparkles size={20} /><p>Select a real product result above to add it to your basket.</p></div>}<div className="catalog-selection-controls"><label>Variant <span>(optional)</span><input value={itemOption} onChange={event => setItemOption(event.target.value)} placeholder="Size, colour or model" maxLength={180} /></label><label>Quantity<input type="number" min="1" max="20" value={quantity} onChange={event => setQuantity(event.target.value)} /></label><button className="secondary-cta" type="button" onClick={addItem} disabled={!selectedResult}><Plus size={17} /> Add to basket</button></div></section>
 
