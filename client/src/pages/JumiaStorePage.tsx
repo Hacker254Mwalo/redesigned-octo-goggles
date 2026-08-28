@@ -11,6 +11,8 @@ type OrderItem = { title: string; details: string; quantity: number; sourceUrl?:
 type SelectedResult = { title: string; url: string; snippet: string; imageUrl: string | null; price: number | null; currency: string | null };
 type SearchResult = SelectedResult & { id: string; source: string };
 
+const DEFAULT_CATALOG_QUERY = "smartphone";
+
 const browseCategories = [
   { label: "Phones", query: "smartphone phone", icon: Smartphone, tone: "mint" },
   { label: "Solar & lighting", query: "solar lights", icon: Sun, tone: "gold" },
@@ -55,8 +57,9 @@ export default function JumiaStorePage() {
   const { session } = useSupabaseAuth();
   const [accountOpen, setAccountOpen] = useState(false);
   const [submittedOrder, setSubmittedOrder] = useState<{ order_number: string; status: string } | null>(null);
-  const [searchTerm, setSearchTerm] = useState(() => new URLSearchParams(window.location.search).get("item")?.slice(0, 180) || "");
-  const [searchQuery, setSearchQuery] = useState(() => new URLSearchParams(window.location.search).get("item")?.slice(0, 120) || "");
+  const initialCatalogQuery = new URLSearchParams(window.location.search).get("item")?.trim().slice(0, 120) || DEFAULT_CATALOG_QUERY;
+  const [searchTerm, setSearchTerm] = useState(initialCatalogQuery);
+  const [searchQuery, setSearchQuery] = useState(initialCatalogQuery);
   const [selectedResult, setSelectedResult] = useState<SelectedResult | null>(null);
   const [itemOption, setItemOption] = useState("");
   const [quantity, setQuantity] = useState("1");
@@ -75,7 +78,7 @@ export default function JumiaStorePage() {
     },
   });
   const buyerOrders = trpc.marketplace.v3BuyerJumiaOrders.useQuery(undefined, { enabled: Boolean(session), retry: false });
-  const browseQuery = searchQuery.trim() || "smartphone 2026";
+  const browseQuery = searchQuery.trim() || DEFAULT_CATALOG_QUERY;
   const searchResults = trpc.marketplace.jumiaSearch.useQuery({ query: browseQuery }, { enabled: browseQuery.length >= 3 && !googleSearchEnabled, retry: false });
   const paymentTiming = fulfilmentMethod === "home_delivery" ? "pay_on_delivery" : "pay_on_collection";
   const canSubmit = items.length > 0 && (fulfilmentMethod !== "home_delivery" || preferredLocation.trim().length > 0);
