@@ -37,7 +37,7 @@ function Router() {
         <Route path={"/cart"} component={CartPage} />
         <Route path={"/privacy"} component={PrivacyPage} />
         <Route path={"/stations"} component={PickupStations} />
-        <Route path={"/request"} component={JumiaStorePage} />
+        <Route path={"/request"} component={RequestDeskPage} />
         <Route path={"/jumia"} component={JumiaStorePage} />
         <Route path={"/auth/callback"} component={SupabaseAuthCallbackPage} />
         <Route path={"/auth/reset-password"} component={ResetPasswordPage} />

@@ -1,9 +1,30 @@
 import { MtaaAccountDialog } from "@/components/MtaaAccountDialog";
 import { MarketplaceLayout } from "@/components/MarketplaceLayout";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
-import { BadgeCheck, BarChart3, Boxes, BrainCircuit, Camera, CheckCircle2, ChevronRight, ClipboardList, MessageSquareText, ShieldCheck, Store } from "lucide-react";
+import { ArrowRight, BadgeCheck, Camera, CheckCircle2, ChevronRight, ShieldCheck, Store } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "wouter";
+
+const sellerSteps = [
+  {
+    number: "01",
+    title: "Create your seller profile",
+    copy: "Use one verified MtaaMarket account and tell us what you sell.",
+    icon: Store,
+  },
+  {
+    number: "02",
+    title: "Get approved once",
+    copy: "The MtaaMarket owner checks the seller account and records the agreement.",
+    icon: BadgeCheck,
+  },
+  {
+    number: "03",
+    title: "Publish with confidence",
+    copy: "Add clear listings, honest availability, and original product photos.",
+    icon: Camera,
+  },
+];
 
 export default function VendorPage() {
   const { session } = useSupabaseAuth();
@@ -11,9 +32,79 @@ export default function VendorPage() {
   const [accountOpen, setAccountOpen] = useState(false);
   const enterSellerStudio = () => session ? setLocation("/vendor/upload") : setAccountOpen(true);
 
-  return <MarketplaceLayout><div className="vendor-page"><section className="vendor-hero"><div><p className="eyebrow">Siaya Online MtaaMarket Seller Studio</p><h1>Sell to Siaya.<br />Stay in control.</h1><p>MtaaMarket supports agreement-backed seller applications, original listings, and platform-managed buyer communication. After verified email sign-in, apply once; when your vendor account is approved, you can publish products normally.</p><button className="primary-cta" onClick={enterSellerStudio}>{session ? "Open Seller Studio" : "Sign in to apply"} <ChevronRight size={17} /></button><p className="mt-4 text-sm text-white/80">Seller applications are reviewed by MtaaMarket. Approval is required for the account before it can publish products.</p></div><div className="vendor-illustration"><div><Store size={30} /><span>SELLER STUDIO</span><strong>Built to serve Siaya</strong></div><div className="vendor-stat"><BarChart3 size={19} /> Owner-reviewed growth</div><div className="vendor-stat lower"><Boxes size={19} /> Original listings</div></div></section><section className="seller-benefits"><article><BadgeCheck /><h2>Sell after approval</h2><p>After a verified seller application and owner approval, a vendor can publish physical-product listings normally. MtaaMarket still enforces required fields, image rules, prohibited-item rules, and owner hide or flag controls. Poultry and livestock require additional safeguards and manual handover checks.</p></article><article><ShieldCheck /><h2>Keep contact protected</h2><p>MtaaMarket keeps buyer information private and releases only the minimum fulfilment information needed after the owner confirms a hand-off.</p></article><article><CheckCircle2 /><h2>Serve Siaya reliably</h2><p>Vendors can be based in Siaya or elsewhere, provided they can reliably fulfil approved routes for Siaya buyers.</p></article></section><section className="vendor-callout"><p className="eyebrow">Listing quality matters</p><h2>Use original photos, clear details, and the right availability information.</h2><p>Seller Studio requires original product media, practical condition details, and truthful availability before publishing. The owner can hide or flag a listing later; Seller Studio does not expose private buyer details or create an automatic order.</p></section><section className="vendor-callout"><div className="flex items-center gap-2"><BrainCircuit size={18} /><p className="eyebrow">MtaaMarket AI Toolkit</p></div><h2>Useful AI help. Your decisions.</h2><p>Every tool starts from facts you provide and creates an editable draft. It never publishes a listing, chooses a price, approves a seller, checks supply, promises delivery, or sends a customer message by itself.</p><div className="mt-6 grid gap-3 sm:grid-cols-2"><div className="rounded-xl bg-white/60 p-4"><SparklesIcon /><strong className="mt-2 block">Listing Draft</strong><span className="mt-1 block text-sm">Turn your own product facts into clear English copy and a missing-details checklist.</span></div><div className="rounded-xl bg-white/60 p-4"><Camera size={18} /><strong className="mt-2 block">Photo Readiness</strong><span className="mt-1 block text-sm">Use original-photo, light, label, and angle guidance before you submit.</span></div><div className="rounded-xl bg-white/60 p-4"><ClipboardList size={18} /><strong className="mt-1 block">Category Guide</strong><span className="mt-1 block text-sm">Get prompts for sizes, quantity, condition, and safe livestock declarations.</span></div><div className="rounded-xl bg-white/60 p-4"><MessageSquareText size={18} /><strong className="mt-1 block">Owner-reviewed Support</strong><span className="mt-1 block text-sm">Future support and request drafts stay editable and require owner review.</span></div></div></section></div><MtaaAccountDialog open={accountOpen} onClose={() => setAccountOpen(false)} /></MarketplaceLayout>;
-}
+  return (
+    <MarketplaceLayout>
+      <div className="vendor-page">
+        <section className="vendor-hero">
+          <div>
+            <p className="eyebrow">Seller Studio</p>
+            <h1>Put your products<br /><em>in front of Siaya.</em></h1>
+            <p>List what you genuinely have, reach local buyers, and keep your product details in one simple workspace.</p>
+            <button className="primary-cta" type="button" onClick={enterSellerStudio}>
+              {session ? "Open Seller Studio" : "Start as a seller"} <ArrowRight size={17} />
+            </button>
+            <p className="vendor-hero-note">Seller access is approved once. After approval, you can publish listings normally.</p>
+          </div>
+          <div className="vendor-illustration" aria-label="Seller Studio overview">
+            <div>
+              <Store size={30} />
+              <span>SELLER STUDIO</span>
+              <strong>Simple tools for serious listings.</strong>
+              <div className="vendor-mini-line"><CheckCircle2 size={15} /> One seller account</div>
+              <div className="vendor-mini-line"><CheckCircle2 size={15} /> Clear product details</div>
+            </div>
+          </div>
+        </section>
 
-function SparklesIcon() {
-  return <BrainCircuit size={18} />;
+        <section className="seller-benefits" aria-label="Seller benefits">
+          <article>
+            <BadgeCheck />
+            <h2>Approved once</h2>
+            <p>Your seller account goes through one owner review. Product uploads do not wait in a separate approval queue.</p>
+          </article>
+          <article>
+            <ShieldCheck />
+            <h2>Built on trust</h2>
+            <p>Use accurate prices, availability, condition, and photos so buyers know what they are choosing.</p>
+          </article>
+          <article>
+            <CheckCircle2 />
+            <h2>Made for local reach</h2>
+            <p>Serve buyers in Siaya and nearby areas with the collection or delivery details you can actually support.</p>
+          </article>
+        </section>
+
+        <section className="seller-steps-section">
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">A clear start</p>
+              <h2>From account to first listing.</h2>
+            </div>
+            <p>Everything important is visible before you publish.</p>
+          </div>
+          <div className="seller-step-grid">
+            {sellerSteps.map(({ number, title, copy, icon: Icon }) => (
+              <article key={number}>
+                <div className="seller-step-top"><span>{number}</span><Icon size={19} /></div>
+                <h3>{title}</h3>
+                <p>{copy}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="vendor-callout">
+          <div>
+            <p className="eyebrow">Listing standard</p>
+            <h2>Clear photos. Useful details. Honest availability.</h2>
+            <p>Seller Studio guides you through the information buyers need. Some categories may ask for additional handover details before they can be listed.</p>
+          </div>
+          <button className="secondary-cta" type="button" onClick={enterSellerStudio}>
+            {session ? "Open your studio" : "See the seller form"} <ChevronRight size={17} />
+          </button>
+        </section>
+      </div>
+      <MtaaAccountDialog open={accountOpen} onClose={() => setAccountOpen(false)} />
+    </MarketplaceLayout>
+  );
 }

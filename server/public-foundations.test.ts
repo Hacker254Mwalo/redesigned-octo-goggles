@@ -102,8 +102,8 @@ describe("public performance and mobile foundations", () => {
   it("keeps the dashboard on the unified V3 founder workspace without invoking legacy operations panels", () => {
     const dashboard = readFileSync(resolve(projectRoot, "client/src/pages/DashboardPage.tsx"), "utf8");
 
-    expect(dashboard).toContain("Your MtaaMarket workspace");
-    expect(dashboard).toContain("Find something else");
+    expect(dashboard).toContain("Everything in one place.");
+    expect(dashboard).toContain("Request an item");
     expect(dashboard).toContain("Seller Studio");
     expect(dashboard).toContain("Owner console");
     expect(dashboard).toContain("trpc.marketplace.v3VendorAccess.useQuery");
@@ -146,7 +146,8 @@ describe("public performance and mobile foundations", () => {
     expect(requestDesk).not.toContain("draftItemRequest.useMutation");
     expect(requestDesk).not.toContain("Use AI to organise these facts");
     expect(requestDesk).toContain("Before you send:");
-    expect(requestDesk).toContain("founder will verify the exact Jumia item through JForce");
+    expect(requestDesk).toContain("Clear details help us return a useful answer.");
+    expect(requestDesk).not.toMatch(/(?:Jumia|JForce|founder)/i);
   });
 
   it("keeps Request Desk on the Supabase account dialog and V3 request path without collecting a phone or entering the legacy workspace", () => {
@@ -172,7 +173,7 @@ describe("public performance and mobile foundations", () => {
     expect(vendorPage).toContain("useSupabaseAuth");
     expect(vendorPage).toContain("MtaaAccountDialog");
     expect(vendorPage).toContain('setLocation("/vendor/upload")');
-    expect(vendorPage).toContain("Sign in to apply");
+    expect(vendorPage).toContain("Start as a seller");
     expect(vendorPage).not.toContain("@/_core/hooks/useAuth");
     expect(vendorPage).not.toContain("startLogin");
     expect(vendorPage).not.toContain('setLocation("/dashboard")');
@@ -187,7 +188,7 @@ describe("public performance and mobile foundations", () => {
     expect(home).toContain("wider selection");
     expect(home).toContain("Search local products");
     expect(home).toContain("Find more options");
-    expect(home).toContain("Start shopping");
+    expect(home).toContain("Browse local products");
     expect(home).toContain("Local categories");
     expect(home).toContain("Swipe to explore");
     expect(home).toContain('aria-label="Browse local product categories"');
@@ -224,13 +225,14 @@ describe("public performance and mobile foundations", () => {
   });
 
   it("keeps the public Request Desk separate from any future supplier-sourced collection", () => {
+    const app = readFileSync(resolve(projectRoot, "client/src/App.tsx"), "utf8");
     const requestDesk = readFileSync(resolve(projectRoot, "client/src/pages/RequestDeskPage.tsx"), "utf8");
 
-    expect(requestDesk).toContain("MtaaMarket checks a real route.");
-    expect(requestDesk).toContain("availability, the actual hand-off route, and payment timing");
-    expect(requestDesk).not.toContain("separate external route");
-    expect(requestDesk).not.toContain("source route, availability");
-    expect(requestDesk).not.toMatch(/(?:fetch\(|axios|invokeLLM|checkout\()/);
+    expect(app).toContain('path={"/request"} component={RequestDeskPage}');
+    expect(requestDesk).toContain("MtaaMarket checks the request");
+    expect(requestDesk).toContain("How requesting works");
+    expect(requestDesk).toContain("does not charge you");
+    expect(requestDesk).not.toMatch(/(?:Jumia|JForce|founder|fetch\(|axios|invokeLLM|checkout\()/i);
   });
 
   it("keeps the Siaya hub and payment choices as confirmation-gated basket preferences", () => {

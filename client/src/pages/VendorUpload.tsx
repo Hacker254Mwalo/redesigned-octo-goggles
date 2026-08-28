@@ -121,20 +121,25 @@ export default function VendorUpload() {
 
   return (
     <MarketplaceLayout>
-      <main className="mx-auto max-w-xl px-5 py-14">
-        <p className="eyebrow">{vendorAccess.data?.isOwner ? "Founder owner workspace" : "Approved vendor workspace"}</p>
-        <h1 className="mt-2 text-4xl font-semibold">Submit a product</h1>
-        <p className="mt-3 text-muted-foreground">Publish products normally with an original photo, accurate category, price, and available quantity. Your listing appears in the marketplace after the form checks pass; MtaaMarket may hide or flag content that breaks platform rules.</p>
-        {vendorAccess.data?.isOwner && <p className="mt-3 rounded-xl border border-[#d5e8de] bg-[#f1f8f4] p-4 text-sm text-[#275847]">Owner access is active. You can publish from this studio using the same listing flow as an approved seller.</p>}
+      <main className="seller-upload-page">
+        <header className="seller-upload-header">
+          <div>
+            <p className="eyebrow">Seller Studio</p>
+            <h1>Publish your next listing.</h1>
+            <p>Keep the details clear, use your own product photo, and publish only what you can fulfil.</p>
+          </div>
+          <aside className="seller-upload-status"><span>ACCESS</span><strong>{vendorAccess.data?.isOwner ? "Owner access" : "Approved seller"}</strong><small>One workspace for your listings and availability.</small></aside>
+        </header>
+        {vendorAccess.data?.isOwner && <p className="seller-owner-note">Owner access is active. You can publish from this studio using the same listing flow as an approved seller.</p>}
 
-        {!configured && <section className="mt-8 rounded-2xl border bg-white p-6"><h2 className="font-semibold">Vendor access is being prepared</h2><p className="mt-2 text-sm text-muted-foreground">Email account access is not available in this environment yet. Please return after it has been configured.</p></section>}
+        {!configured && <section className="seller-access-card"><h2 className="font-semibold">Vendor access is being prepared</h2><p className="mt-2 text-sm text-muted-foreground">Email account access is not available in this environment yet. Please return after it has been configured.</p></section>}
         {configured && loading && <section className="mt-8 rounded-2xl border bg-white p-6" aria-live="polite"><h2 className="font-semibold">Checking your email session</h2><p className="mt-2 text-sm text-muted-foreground">Your Vendor Studio will open once the secure session check is complete.</p></section>}
-        {configured && !loading && !session && <section className="mt-8 rounded-2xl border bg-white p-6"><h2 className="font-semibold">Sign in before submitting</h2><p className="mt-2 text-sm text-muted-foreground">Use the Account menu in the header to sign in with your verified MtaaMarket email. After the owner approves your vendor profile and records your agreement, return here to submit a listing.</p></section>}
+        {configured && !loading && !session && <section className="seller-access-card"><h2 className="font-semibold">Sign in before submitting</h2><p className="mt-2 text-sm text-muted-foreground">Use the Account menu in the header to sign in with your verified MtaaMarket email. After the owner approves your vendor profile and records your agreement, return here to submit a listing.</p></section>}
 
         {configured && !loading && session && vendorAccess.isLoading && <section className="mt-8 rounded-2xl border bg-white p-6" aria-live="polite"><h2 className="font-semibold">Checking your vendor access</h2><p className="mt-2 text-sm text-muted-foreground">We are confirming your agreement and owner approval before showing the secure submission form.</p></section>}
-        {configured && !loading && session && vendorAccess.isError && <section className="mt-8 rounded-2xl border bg-white p-6"><h2 className="font-semibold">Vendor access could not be checked</h2><p className="mt-2 text-sm text-muted-foreground">Refresh the page and try again. No listing has been created.</p></section>}
+        {configured && !loading && session && vendorAccess.isError && <section className="seller-access-card"><h2 className="font-semibold">Vendor access could not be checked</h2><p className="mt-2 text-sm text-muted-foreground">Refresh the page and try again. No listing has been created.</p></section>}
         {configured && !loading && session && vendorAccess.data && !vendorAccess.data.canSubmitListings && (
-          <section className="mt-8 rounded-2xl border bg-white p-6">
+          <section className="seller-access-card">
             <h2 className="font-semibold">{vendorAccess.data.isOwner ? "Founder Seller Studio access is active" : vendorAccess.data.isVendor ? "Vendor approval is pending" : "Request vendor approval"}</h2>
             <p className="mt-2 text-sm text-muted-foreground">{vendorAccess.data.isOwner ? "Your verified founder owner role can submit owner-managed listings directly for moderation." : vendorAccess.data.isVendor ? "Your agreement is recorded. The MtaaMarket owner must approve your vendor profile before you can submit a listing." : "Vendor access starts with an explicit agreement and an owner review. Your contact details remain platform-managed."}</p>
             {!vendorAccess.data.isVendor && <label className="mt-5 flex items-start gap-3 rounded-xl bg-muted p-4 text-sm"><input className="mt-0.5 size-4" type="checkbox" checked={agreementAccepted} onChange={event => setAgreementAccepted(event.target.checked)} /><span>I confirm I will provide original product information, use the platform-managed buyer communication process, and follow MtaaMarket’s physical-products rules for Siaya buyers.</span></label>}
@@ -143,8 +148,8 @@ export default function VendorUpload() {
         )}
 
         {configured && !loading && session && vendorAccess.data?.canSubmitListings && (
-          <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
-            <fieldset disabled={submit.isPending} className="space-y-5 disabled:cursor-not-allowed disabled:opacity-70">
+          <form className="seller-upload-form" onSubmit={handleSubmit}>
+            <fieldset disabled={submit.isPending} className="seller-upload-fieldset disabled:cursor-not-allowed disabled:opacity-70">
               <label className="block text-sm font-medium">Product photo
                 <input ref={fileInput} className="mt-2 block w-full rounded-lg border border-border bg-white p-2 text-sm" type="file" accept="image/jpeg,image/png,image/webp" required onChange={event => chooseImage(event.target.files?.[0])} />
                 <span className="mt-2 block text-xs font-normal text-muted-foreground">JPEG, PNG, or WebP only. Up to 5 MB; maximum 6,000 pixels per side.</span>
@@ -154,7 +159,7 @@ export default function VendorUpload() {
               <label className="block text-sm font-medium">Listing title
                 <input className="mt-2 w-full rounded-lg border border-border bg-white p-3 text-base" required minLength={3} maxLength={180} value={title} onChange={event => setTitle(event.target.value)} autoComplete="off" />
               </label>
-              <div className="rounded-xl border bg-white p-4">
+              <div className="seller-description-card">
                 <div className="flex flex-wrap items-center justify-between gap-3"><span className="text-sm font-medium">Listing description</span><div className="flex flex-wrap gap-3"><button className="text-sm font-medium text-primary underline-offset-4 hover:underline" type="button" onClick={() => setShowDescriptionGuidance(current => !current)}>{showDescriptionGuidance ? "Hide writing guide" : "Show writing guide"}</button><button className="listing-ai-button" type="button" disabled={draftCopy.isPending || title.trim().length < 4 || !categorySlug} onClick={() => { const categoryName = V3_LISTING_CATEGORIES.find(item => item.slug === categorySlug)?.name || "physical product"; draftCopy.mutate({ title, categoryName, itemCondition, facts: description || undefined }); }}>{draftCopy.isPending ? "Drafting…" : "Improve with assistant"}</button></div></div>
                 {showDescriptionGuidance && <div className="mt-3 space-y-2 rounded-lg bg-muted p-3 text-sm text-muted-foreground"><p><strong className="text-foreground">English:</strong> {getManualListingCopyGuidance().english}</p><p><strong className="text-foreground">Local wording:</strong> {getManualListingCopyGuidance().localTone}</p></div>}
                 <textarea className="mt-3 min-h-28 w-full rounded-lg border border-border bg-white p-3 text-base" maxLength={1600} value={description} onChange={event => { setDescription(event.target.value); setListingDraft(null); }} placeholder="Optional: add only accurate product facts for owner review." />
@@ -179,7 +184,7 @@ export default function VendorUpload() {
               {categorySlug === "poultry-livestock" ? <p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950"><strong>Manual handover only.</strong> This listing cannot offer pay on pickup or use the hub-order path. The owner confirms any permitted next step after review.</p> : <label className="flex items-start gap-3 rounded-xl border bg-white p-4 text-sm"><input className="mt-0.5 size-4" type="checkbox" checked={allowPayOnPickup} onChange={event => setAllowPayOnPickup(event.target.checked)} /><span><strong>Available for pay on pickup</strong><br /><span className="text-muted-foreground">MtaaMarket confirms the collection point and payment details before an order. Do not promise a specific hub or collection time in your listing.</span></span></label>}
               <p className="rounded-xl border border-[#d5e8de] bg-[#f1f8f4] p-4 text-sm text-[#275847]">Your vendor access and listing details are checked securely when you submit. Approved sellers publish after validation; the owner can hide or flag a listing later if a policy issue is found.</p>
               {formError && <p role="alert" className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">{formError}</p>}
-              <button className="primary-cta" type="submit" disabled={submit.isPending || !imageData || !imageType}>{submit.isPending ? "Submitting securely…" : "Publish listing"}</button>
+              <button className="primary-cta seller-publish-button" type="submit" disabled={submit.isPending || !imageData || !imageType}>{submit.isPending ? "Publishing securely…" : "Publish listing"}</button>
             </fieldset>
           </form>
         )}
