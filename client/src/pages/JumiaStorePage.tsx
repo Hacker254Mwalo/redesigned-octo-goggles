@@ -11,7 +11,7 @@ type OrderItem = { title: string; details: string; quantity: number; sourceUrl?:
 type SelectedResult = { title: string; url: string; snippet: string; imageUrl: string | null; price: number | null; currency: string | null };
 type SearchResult = SelectedResult & { id: string; source: string };
 
-const DEFAULT_CATALOG_QUERY = "smartphone";
+const DEFAULT_CATALOG_QUERY = "Android smartphone";
 
 const browseCategories = [
   { label: "Phones", query: "smartphone phone", icon: Smartphone, tone: "mint" },
