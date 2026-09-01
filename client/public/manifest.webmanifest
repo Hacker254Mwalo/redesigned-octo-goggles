@@ -1,7 +1,7 @@
 {
-  "name": "Siaya Online MtaaMarket",
-  "short_name": "MtaaMarket",
-  "description": "A Siaya-served physical-products marketplace with platform-managed support.",
+  "name": "Siaya Online Market",
+  "short_name": "Siaya Market",
+  "description": "Discover local products, wider live choices, and item requests through Siaya Online Market.",
   "lang": "en",
   "start_url": "/",
   "display": "standalone",

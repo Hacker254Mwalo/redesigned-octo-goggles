@@ -1,12 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://siayaonlinemarket.vercel.app/</loc>
+    <loc>https://www.siayaonlinemarket.online/</loc>
   </url>
   <url>
-    <loc>https://siayaonlinemarket.vercel.app/vendor</loc>
+    <loc>https://www.siayaonlinemarket.online/jumia</loc>
   </url>
   <url>
-    <loc>https://siayaonlinemarket.vercel.app/privacy</loc>
+    <loc>https://www.siayaonlinemarket.online/how-it-works</loc>
+  </url>
+  <url>
+    <loc>https://www.siayaonlinemarket.online/request</loc>
+  </url>
+  <url>
+    <loc>https://www.siayaonlinemarket.online/vendor</loc>
+  </url>
+  <url>
+    <loc>https://www.siayaonlinemarket.online/privacy</loc>
   </url>
 </urlset>

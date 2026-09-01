@@ -4,4 +4,4 @@ Disallow: /dashboard
 Disallow: /cart
 Disallow: /auth/callback
 Disallow: /auth/reset-password
-Sitemap: https://siayaonlinemarket.vercel.app/sitemap.xml
+Sitemap: https://www.siayaonlinemarket.online/sitemap.xml
