@@ -2,7 +2,7 @@ import { MarketplaceLayout } from "@/components/MarketplaceLayout";
 import { MtaaSharePrompt } from "@/components/MtaaSharePrompt";
 import { ProductCard } from "@/components/ProductCard";
 import { trpc } from "@/lib/trpc";
-import { ArrowRight, Baby, CheckCircle2, ChevronRight, Home as HomeIcon, ImageOff, Laptop, MapPin, Search, Shirt, ShoppingBag, Smartphone, Sun, Truck, Wrench } from "lucide-react";
+import { ArrowRight, Baby, CheckCircle2, ChevronRight, Home as HomeIcon, ImageOff, Laptop, MapPin, Search, ShieldCheck, Shirt, ShoppingBag, Smartphone, Sun, Truck, Wrench } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
 
@@ -52,6 +52,8 @@ export default function Home() {
         <section className="home-departments"><div className="section-heading"><div><p className="eyebrow">Browse the market</p><h2>Find your category.</h2></div><Link href="/jumia" className="text-cta">Open live catalogue <ArrowRight size={15} /></Link></div><div className="popular-search-grid">{departments.map(({ label, query, icon: Icon, tone }) => <Link key={label} href={`/jumia?item=${encodeURIComponent(query)}`} className={`popular-search-card ${tone}`}><span><Icon size={22} /></span><div><strong>{label}</strong><small>Open live results</small></div><ChevronRight size={17} /></Link>)}</div></section>
 
         <section className="home-live-selection" aria-label="Live product selection"><div className="home-live-selection-heading"><div><p className="eyebrow">MtaaMarket Select</p><h2>Start shopping now.</h2><p>Live choices to browse today, with verified details only.</p></div><Link href="/jumia" className="text-cta">See all live choices <ArrowRight size={15} /></Link></div>{liveSelection.isLoading ? <div className="home-live-grid">{[0,1,2,3].map(index => <div className="home-live-card-skeleton" key={index} />)}</div> : livePreview.length ? <div className="home-live-grid">{livePreview.map(result => <HomeLiveCard key={result.id} result={result} />)}</div> : <div className="home-live-empty"><ImageOff size={18} /><span>Live choices are temporarily unavailable.</span><Link href="/jumia">Open catalogue</Link></div>}</section>
+
+        <section className="home-trust-strip" aria-label="Shopping expectations"><div className="home-trust-heading"><ShieldCheck size={22} /><div><p className="eyebrow">Clear from the start</p><h2>Know what happens next.</h2></div></div><div className="home-trust-points"><article><strong>Real details</strong><span>We show available product information and label missing photos or prices instead of guessing.</span></article><article><strong>No surprise payment</strong><span>Browsing and selecting are for review first; payment is not taken from the view-only catalogue.</span></article><article><strong>Local hand-off</strong><span>Collection or delivery is discussed and confirmed for the actual item and location.</span></article></div></section>
 
         <section id="local-market" className="discover-section home-local-section">
           <div className="home-local-heading"><div><p className="eyebrow">Siaya sellers</p><h2>What’s available locally.</h2></div><div><span className="home-feed-status"><span className="home-live-dot" /> Live listing feed</span><p>Real products from MtaaMarket sellers; explore a wider selection through MtaaMarket when you need more choice.</p></div></div>
