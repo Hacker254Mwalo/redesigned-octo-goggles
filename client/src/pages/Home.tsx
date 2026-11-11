@@ -42,7 +42,7 @@ export default function Home() {
     <MarketplaceLayout>
       <main className="home-page">
         <section className="home-storefront-head">
-          <div className="home-storefront-title"><div className="home-live-kicker"><span className="home-live-dot" /> Siaya marketplace <span>/</span> shop local first</div><h1>Shop for what you need.</h1><p>Browse local sellers, then move to the wider live selection when you need more choice.</p></div>
+          <div className="home-storefront-title"><div className="home-live-kicker"><span className="home-live-dot" /> Siaya marketplace <span>/</span> shop local first</div><h1>A local market, made for Siaya.</h1><p>Find nearby sellers, browse current listings, or tell us what you need. We confirm real options and how each order will be handed over.</p></div>
           <form className="home-search" onSubmit={goToSearch}><Search size={19} /><input value={quickSearch} onChange={event => setQuickSearch(event.target.value)} placeholder="Search phones, TVs, shoes…" aria-label="Start a product search" autoComplete="off" /><button type="submit">Search <ArrowRight size={15} /></button></form>
           <div className="home-storefront-actions"><Link href="#local-market" className="primary-cta">Browse local products <ArrowRight size={16} /></Link><Link href="/jumia" className="secondary-cta">Browse more choices <ArrowRight size={16} /></Link><Link href="/request" className="home-text-link">Request an item <ChevronRight size={16} /></Link><Link href="/how-it-works" className="home-text-link">How shopping works <ChevronRight size={16} /></Link><span className="home-storefront-proof"><CheckCircle2 size={14} /> Local shopping</span></div>
         </section>
@@ -63,10 +63,11 @@ export default function Home() {
         </section>
 
         <section className="home-journey-grid" aria-label="How MtaaMarket helps">
-          <article><span><ShoppingBag size={18} /></span><div><p className="eyebrow">01 / Discover</p><h3>Start with what is real.</h3><p>Browse live local listings or search the wider selection without filling the market with made-up inventory.</p></div></article>
-          <article><span><MapPin size={18} /></span><div><p className="eyebrow">02 / Choose</p><h3>Pick your preferred hand-off.</h3><p>Collection or home delivery is discussed and confirmed for the actual item and location.</p></div></article>
-          <article><span><CheckCircle2 size={18} /></span><div><p className="eyebrow">03 / Keep track</p><h3>Stay in the same workspace.</h3><p>Your account keeps the relevant order and request updates together.</p></div></article>
+          <article><span><ShoppingBag size={18} /></span><div><p className="eyebrow">01 / Discover</p><h3>Find what is listed.</h3><p>Browse current products shared by local sellers.</p></div></article>
+          <article><span><MapPin size={18} /></span><div><p className="eyebrow">02 / Choose</p><h3>Tell us what you need.</h3><p>Send a request when you cannot find the item or service you are looking for.</p></div></article>
+          <article><span><CheckCircle2 size={18} /></span><div><p className="eyebrow">03 / Keep track</p><h3>Confirm before you go ahead.</h3><p>Check availability, the final details, and collection or delivery before deciding.</p></div></article>
         </section>
+        <section id="serving-siaya" className="home-local-words" aria-labelledby="siaya-local-market-heading"><p className="eyebrow">Rooted in Siaya</p><h2 id="siaya-local-market-heading">A market that grows with its neighbourhoods.</h2><p>MtaaMarket is growing around Siaya town, Bondo, Ugunja and Yala. Looking for tilapia, fresh vegetables, household goods, a phone or solar gear? Browse current listings or request what you need. You can also ask about a service or share a job request; we will check the details and confirm the next step before you decide.</p></section>
         <MtaaSharePrompt />
       </main>
     </MarketplaceLayout>

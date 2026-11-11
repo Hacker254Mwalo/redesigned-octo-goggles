@@ -21,7 +21,7 @@ describe("public performance and mobile foundations", () => {
     expect(head).toContain('rel="manifest" href="/manifest.webmanifest"');
     expect(head).toContain('name="theme-color" content="#0e2f27"');
     expect(manifest).toMatchObject({
-      name: "Siaya Online MtaaMarket",
+      name: "Siaya Mtaa Market",
       display: "standalone",
       start_url: "/",
     });
@@ -34,8 +34,14 @@ describe("public performance and mobile foundations", () => {
     expect(head).toContain("Siaya Online MtaaMarket");
     expect(head).toContain('name="description"');
     expect(head).toContain('name="robots" content="index,follow"');
-    expect(head).toContain('rel="canonical" href="https://siayaonlinemarket.vercel.app/"');
+    expect(head).toContain('rel="canonical" href="https://www.siayaonlinemarket.online/"');
     expect(head).toContain('property="og:type" content="website"');
+    expect(head).toContain('name="keywords"');
+    expect(head).toContain('property="og:site_name" content="Siaya Mtaa Market"');
+    expect(head).toContain("Siaya town, Bondo, Ugunja and Yala");
+    expect(head).toContain("tilapia, fresh vegetables, household goods");
+    expect(head).toContain("Find what is listed.");
+    expect(head).toContain("Confirm before you go ahead.");
     expect(head).not.toContain("maximum-scale=1");
   });
 
@@ -128,17 +134,32 @@ describe("public performance and mobile foundations", () => {
     const robots = readFileSync(resolve(projectRoot, "client/public/robots.txt"), "utf8");
     const sitemap = readFileSync(resolve(projectRoot, "client/public/sitemap.xml"), "utf8");
 
-    expect(robots).toContain("Sitemap: https://siayaonlinemarket.vercel.app/sitemap.xml");
+    expect(robots).toContain("Sitemap: https://www.siayaonlinemarket.online/sitemap.xml");
     expect(robots).toContain("Disallow: /dashboard");
     expect(robots).toContain("Disallow: /cart");
     expect(robots).toContain("Disallow: /auth/callback");
     expect(robots).toContain("Disallow: /auth/reset-password");
-    expect(sitemap).toContain("https://siayaonlinemarket.vercel.app/");
-    expect(sitemap).toContain("https://siayaonlinemarket.vercel.app/vendor");
-    expect(sitemap).toContain("https://siayaonlinemarket.vercel.app/privacy");
+    expect(sitemap).toContain("https://www.siayaonlinemarket.online/");
+    expect(sitemap).toContain("https://www.siayaonlinemarket.online/vendor");
+    expect(sitemap).toContain("https://www.siayaonlinemarket.online/privacy");
+    expect(sitemap).toContain("https://www.siayaonlinemarket.online/stations");
+    expect(sitemap).not.toContain("/jumia");
     expect(sitemap).not.toContain("/dashboard");
     expect(sitemap).not.toContain("/cart");
     expect(sitemap).not.toContain("/auth/");
+  });
+
+  it("keeps the temporary wider-choice catalogue out of search results without blocking crawlers", () => {
+    const app = readFileSync(resolve(projectRoot, "client/src/App.tsx"), "utf8");
+    const vercel = readFileSync(resolve(projectRoot, "vercel.json"), "utf8");
+    const robots = readFileSync(resolve(projectRoot, "client/public/robots.txt"), "utf8");
+
+    expect(app).toContain('"/jumia"');
+    expect(app).toContain("index: false");
+    expect(vercel).toContain('"source": "/jumia/:path*"');
+    expect(vercel).toContain('"key": "X-Robots-Tag"');
+    expect(vercel).toContain('"value": "noindex, follow"');
+    expect(robots).not.toContain("Disallow: /jumia");
   });
 
   it("does not expose a Request Desk AI action that relies on the pending protected account migration", () => {

@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
 import { lazy, Suspense, useEffect } from "react";
-import { Route, Switch } from "wouter";
+import { Route, Switch, useLocation } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { CartProvider } from "./contexts/CartContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -24,14 +24,14 @@ const VendorUpload = lazy(() => import("./pages/VendorUpload"));
 
 const routeSeo: Record<string, { title: string; description: string; index: boolean }> = {
   "/": {
-    title: "Siaya Online Market | Local products and live choices",
-    description: "Siaya Online Market helps buyers discover local products, compare live choices, and request items with clear collection or delivery confirmation.",
+    title: "Siaya Mtaa Market — Buy local in Siaya, Bondo & Ugunja",
+    description: "Shop with local sellers in Siaya town, Bondo, Ugunja and Yala. Browse listings or request an item; confirm availability and hand-off details first.",
     index: true,
   },
   "/jumia": {
-    title: "Browse wider product choices in Siaya | Siaya Online Market",
-    description: "Browse wider product choices through Siaya Online Market. View details first and confirm collection or delivery before deciding.",
-    index: true,
+    title: "MtaaMarket Select | Siaya Online Market",
+    description: "A temporary wider-choice catalogue for MtaaMarket customers.",
+    index: false,
   },
   "/how-it-works": {
     title: "How Siaya Online Market works",
@@ -60,12 +60,11 @@ const routeSeo: Record<string, { title: string; description: string; index: bool
   },
 };
 
-const privatePaths = new Set(["/admin", "/dashboard", "/cart", "/auth/callback", "/auth/reset-password", "/vendor/upload"]);
-
 function RouteSeo() {
+  const [location] = useLocation();
   useEffect(() => {
     const path = window.location.pathname.replace(/\/$/, "") || "/";
-    const seo = routeSeo[path] ?? { title: "Siaya Online Market", description: "Siaya Online Market for local product discovery and item requests.", index: !privatePaths.has(path) };
+    const seo = routeSeo[path] ?? { title: "Page not found | Siaya Mtaa Market", description: "This Siaya Mtaa Market page could not be found.", index: false };
     const canonical = `https://www.siayaonlinemarket.online${path === "/" ? "/" : path}`;
     document.title = seo.title;
     const setMeta = (selector: string, attribute: "name" | "property", attributeValue: string, value: string) => {
@@ -82,10 +81,14 @@ function RouteSeo() {
     setMeta('meta[property="og:title"]', "property", "og:title", seo.title);
     setMeta('meta[property="og:description"]', "property", "og:description", seo.description);
     setMeta('meta[property="og:url"]', "property", "og:url", canonical);
+    setMeta('meta[property="og:site_name"]', "property", "og:site_name", "Siaya Mtaa Market");
+    setMeta('meta[name="twitter:card"]', "name", "twitter:card", "summary");
+    setMeta('meta[name="twitter:title"]', "name", "twitter:title", seo.title);
+    setMeta('meta[name="twitter:description"]', "name", "twitter:description", seo.description);
     let link = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
     if (!link) { link = document.createElement("link"); link.rel = "canonical"; document.head.appendChild(link); }
     link.href = canonical;
-  }, []);
+  }, [location]);
 
   return null;
 }

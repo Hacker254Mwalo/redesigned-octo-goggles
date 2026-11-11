@@ -1,7 +1,7 @@
 {
-  "name": "Siaya Online Market",
-  "short_name": "Siaya Market",
-  "description": "Discover local products, wider live choices, and item requests through Siaya Online Market.",
+  "name": "Siaya Mtaa Market",
+  "short_name": "Siaya Mtaa",
+  "description": "Find local sellers in Siaya, browse current listings, and request items through Siaya Mtaa Market.",
   "lang": "en",
   "start_url": "/",
   "display": "standalone",

@@ -5,6 +5,15 @@
   "outputDirectory": "dist/public",
   "headers": [
     {
+      "source": "/jumia/:path*",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, follow"
+        }
+      ]
+    },
+    {
       "source": "/(.*)",
       "headers": [
         {

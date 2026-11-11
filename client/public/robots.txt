@@ -4,4 +4,6 @@ Disallow: /dashboard
 Disallow: /cart
 Disallow: /auth/callback
 Disallow: /auth/reset-password
+Disallow: /admin
+Disallow: /vendor/upload
 Sitemap: https://www.siayaonlinemarket.online/sitemap.xml
