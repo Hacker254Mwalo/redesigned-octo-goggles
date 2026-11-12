@@ -53,6 +53,16 @@ const routeSeo: Record<string, { title: string; description: string; index: bool
     description: "Read how Siaya Online Market handles account and marketplace data.",
     index: true,
   },
+  "/auth/callback": {
+    title: "Secure sign-in | Siaya Mtaa Market",
+    description: "Complete secure sign-in to Siaya Mtaa Market.",
+    index: false,
+  },
+  "/auth/reset-password": {
+    title: "Reset your password | Siaya Mtaa Market",
+    description: "Reset your Siaya Mtaa Market account password.",
+    index: false,
+  },
   "/stations": {
     title: "Collection points in Siaya | Siaya Online Market",
     description: "Explore collection-point information for Siaya Online Market fulfilment.",

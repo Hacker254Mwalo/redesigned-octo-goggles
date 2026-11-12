@@ -97,6 +97,10 @@ describe("public performance and mobile foundations", () => {
     const callback = readFileSync(resolve(projectRoot, "client/src/pages/SupabaseAuthCallbackPage.tsx"), "utf8");
 
     expect(app).toContain('path={"/privacy"}');
+    expect(app).toContain('"/auth/callback": {');
+    expect(app).toContain('title: "Secure sign-in | Siaya Mtaa Market"');
+    expect(app).toContain('"/auth/reset-password": {');
+    expect(app).toContain('title: "Reset your password | Siaya Mtaa Market"');
     expect(layout).toContain('href="/privacy"');
     expect(dialog).toContain("How account data is used");
     expect(privacy).toContain("Google sign-in");
