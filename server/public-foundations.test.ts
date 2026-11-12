@@ -297,8 +297,8 @@ describe("public performance and mobile foundations", () => {
   });
 
   it("links hub orders only to unique buyer profiles and removes browser role-write grants", () => {
-    const orderLink = readFileSync(resolve(projectRoot, "supabase/migrations/20261112070100_v3_order_buyer_link.sql"), "utf8");
-    const roleHardening = readFileSync(resolve(projectRoot, "supabase/migrations/20261112070200_harden_legacy_profile_roles.sql"), "utf8");
+    const orderLink = readFileSync(resolve(projectRoot, "supabase/migrations/20261112073645_v3_order_buyer_profile_link.sql"), "utf8");
+    const roleHardening = readFileSync(resolve(projectRoot, "supabase/migrations/20261112073656_harden_legacy_marketplace_profile_roles.sql"), "utf8");
 
     expect(orderLink).toContain("REFERENCES public.profiles(id) ON DELETE SET NULL");
     expect(orderLink).toContain("HAVING COUNT(*) = 1");

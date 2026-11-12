@@ -141,3 +141,4 @@ The vendor’s optional pay-on-pickup selection is a request, not a promise of a
 [6]: https://ai-sdk.dev/cookbook/node/generate-text-with-image-prompt "Vercel AI SDK — Generate text with image input"
 [7]: https://ai-sdk.dev/docs/ai-sdk-core/embeddings "Vercel AI SDK — Embeddings, usage, retries, and timeouts"
 [8]: https://ai-sdk.dev/docs/reference/ai-sdk-core/generate-text "Vercel AI SDK — generateText telemetry and tool controls"
+After an explicit confirmation to proceed with the irreversible operation, the active isolated project `mfgjpjtlmfdtsnkoluco` was re-identified and its schema was inventoried. The replacement migration `20260827054907_v3_core_replacement.sql` then ran successfully. At the time of the inventory, the affected `products`, `orders`, and directly dependent operational tables had no rows. `products` and `orders` were dropped with `CASCADE`, and the V3 `profiles`, `products`, and `orders` tables were created.
