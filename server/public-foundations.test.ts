@@ -89,7 +89,7 @@ describe("public performance and mobile foundations", () => {
     expect(layout).toContain("setOpen(false);");
   });
 
-  it("publishes a truthful privacy route before public Google sign-in is enabled", () => {
+  it("publishes a truthful privacy route and branded callback for public Google sign-in", () => {
     const app = readFileSync(resolve(projectRoot, "client/src/App.tsx"), "utf8");
     const layout = readFileSync(resolve(projectRoot, "client/src/components/MarketplaceLayout.tsx"), "utf8");
     const dialog = readFileSync(resolve(projectRoot, "client/src/components/MtaaAccountDialog.tsx"), "utf8");
@@ -102,7 +102,7 @@ describe("public performance and mobile foundations", () => {
     expect(privacy).toContain("Google sign-in");
     expect(privacy).toContain("does not request access to your Google Drive");
     expect(privacy).toContain("Seller access, owner roles, orders, payment, delivery");
-    expect(callback).toContain("MtaaMarket secure sign-in");
+    expect(callback).toContain("Siaya Mtaa Market secure sign-in");
     expect(callback).not.toContain("You are signed in with email.");
   });
 

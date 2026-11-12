@@ -1,8 +1,9 @@
 import { getSupabaseBrowserClient, isSupabaseBrowserConfigured, SUPABASE_ACCESS_TOKEN_KEY } from "@/lib/supabase-browser";
 import { buildMtaaAccountCodeResend, buildMtaaAccountCodeVerification } from "@/lib/auth-code-flow";
 import { trpc } from "@/lib/trpc";
+import { normalizeKenyanMobilePhone } from "@/lib/kenyan-phone";
 import type { Session } from "@supabase/supabase-js";
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 
 type PasswordSignUpResult = { requiresEmailVerification: boolean };
 
@@ -10,7 +11,8 @@ type SupabaseAuthState = {
   configured: boolean;
   loading: boolean;
   session: Session | null;
-  signUpWithPassword: (email: string, password: string) => Promise<PasswordSignUpResult>;
+  signUpWithPassword: (email: string, password: string, phone: string) => Promise<PasswordSignUpResult>;
+  signInWithGoogle: () => Promise<void>;
   resendSignupVerificationCode: (email: string) => Promise<void>;
   verifySignupCode: (email: string, token: string) => Promise<void>;
   signInWithPassword: (email: string, password: string) => Promise<void>;
@@ -35,6 +37,12 @@ function mirrorAccessToken(session: Session | null) {
 export function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(isSupabaseBrowserConfigured);
+  const utils = trpc.useUtils();
+  const pendingSignupPhone = useRef("");
+  const savePhone = async (phone: string) => {
+    await utils.client.marketplace.updateV3AccountProfile.mutate({ phone });
+    await Promise.all([utils.marketplace.v3AccountProfile.invalidate(), utils.marketplace.v3BuyerOrderAccess.invalidate()]);
+  };
 
   trpc.auth.supabaseSession.useQuery(undefined, {
     enabled: Boolean(session?.access_token),
@@ -66,10 +74,21 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
     configured: isSupabaseBrowserConfigured,
     loading,
     session,
-    async signUpWithPassword(email, password) {
+    async signUpWithPassword(email, password, phone) {
+      const normalizedPhone = normalizeKenyanMobilePhone(phone);
+      if (!normalizedPhone) throw new Error("Enter a valid Kenyan mobile number.");
+      pendingSignupPhone.current = normalizedPhone;
       const { data, error } = await getSupabaseBrowserClient().auth.signUp({ email, password });
-      if (error) throw error;
+      if (error) { pendingSignupPhone.current = ""; throw error; }
+      if (data.session) {
+        try { await savePhone(normalizedPhone); }
+        finally { pendingSignupPhone.current = ""; }
+      }
       return { requiresEmailVerification: !data.session };
+    },
+    async signInWithGoogle() {
+      const { error } = await getSupabaseBrowserClient().auth.signInWithOAuth({ provider: "google", options: { redirectTo: `${window.location.origin}/auth/callback`, queryParams: { prompt: "select_account" } } });
+      if (error) throw error;
     },
     async resendSignupVerificationCode(email) {
       const { error } = await getSupabaseBrowserClient().auth.resend(buildMtaaAccountCodeResend(email));
@@ -79,6 +98,9 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
       const { data, error } = await getSupabaseBrowserClient().auth.verifyOtp(buildMtaaAccountCodeVerification(email, token, "signup"));
       if (error) throw error;
       establishSession(data.session);
+      const phone = pendingSignupPhone.current;
+      try { if (phone) await savePhone(phone); }
+      finally { pendingSignupPhone.current = ""; }
     },
     async signInWithPassword(email, password) {
       const { data, error } = await getSupabaseBrowserClient().auth.signInWithPassword({ email, password });
@@ -107,7 +129,7 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
       mirrorAccessToken(null);
       setSession(null);
     },
-  }), [loading, session]);
+  }), [loading, session, utils]);
 
   return <SupabaseAuthContext.Provider value={value}>{children}</SupabaseAuthContext.Provider>;
 }

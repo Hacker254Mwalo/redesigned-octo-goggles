@@ -10,6 +10,10 @@ const accountDialogSource = readFileSync(
   new URL("../client/src/components/MtaaAccountDialog.tsx", import.meta.url),
   "utf8",
 );
+const authCallbackSource = readFileSync(
+  new URL("../client/src/pages/SupabaseAuthCallbackPage.tsx", import.meta.url),
+  "utf8",
+);
 
 describe("MtaaMarket email/password account safeguards", () => {
   it("requires an eight-character password with both letters and digits", () => {
@@ -62,11 +66,11 @@ describe("MtaaMarket email/password account safeguards", () => {
     expect(accountDialogSource).toContain("window.addEventListener(\"keydown\", handleEscape)");
     expect(accountDialogSource).toContain("returnFocusRef.current?.focus()");
     expect(accountDialogSource).toContain("ref={emailInputRef}");
-    expect(accountDialogSource).toContain("Use the email and password for your MtaaMarket account.");
+    expect(accountDialogSource).toContain("Use the email and password for your Siaya Mtaa Market account.");
     expect(accountDialogSource).toContain("Creating an account does not make you a seller.");
     expect(accountDialogSource).toContain("maxLength={8}");
     expect(accountDialogSource).not.toContain("six-digit code");
-    expect(accountDialogSource).not.toContain("signInWithGoogle");
+    expect(accountDialogSource).toContain("Continue with Google");
   });
 
   it("keeps reset-page recovery guidance aligned with the hosted code formats", () => {
@@ -75,9 +79,15 @@ describe("MtaaMarket email/password account safeguards", () => {
     expect(resetPageSource).toContain("accountActionErrorMessage(error)");
   });
 
-  it("keeps unconfigured Google OAuth and passwordless sign-in out of the production client account bridge", () => {
-    expect(supabaseAuthContextSource).not.toContain('provider: "google"');
-    expect(supabaseAuthContextSource).not.toContain("signInWithGoogle");
+  it("offers Google OAuth and requires a private Kenyan contact for new accounts", () => {
+    expect(supabaseAuthContextSource).toContain('signInWithOAuth({ provider: "google"');
+    expect(supabaseAuthContextSource).toContain('redirectTo: `${window.location.origin}/auth/callback`');
+    expect(supabaseAuthContextSource).toContain('prompt: "select_account"');
+    expect(accountDialogSource).toContain("const googleEnabled = configured;");
+    expect(accountDialogSource).toContain("Continue with Google");
+    expect(accountDialogSource).toContain("Kenyan mobile number");
+    expect(authCallbackSource).toContain("Save contact number");
+    expect(authCallbackSource).toContain("Private contact detail for account and order needs");
     expect(supabaseAuthContextSource).not.toContain("signInWithOtp");
     expect(supabaseAuthContextSource).not.toContain("requestEmailCode");
     expect(accountDialogSource).not.toContain("Email code");
