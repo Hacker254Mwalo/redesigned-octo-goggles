@@ -12,8 +12,8 @@ import {
 import { emailCodeDeliveryNotice } from "@/lib/auth-delivery";
 import { normalizeKenyanMobilePhone } from "@/lib/kenyan-phone";
 import { isMtaaMarketAccountCode } from "@/lib/auth-code-flow";
-import { SignUpModal } from "./SignUpModal";
-import { CheckCircle2, KeyRound, Loader2, LogOut, MailCheck, ShieldCheck, Store, UserRound, X } from "lucide-react";
+import { GoogleLogo, SignUpModal } from "./SignUpModal";
+import { CheckCircle2, Eye, EyeOff, KeyRound, Loader2, LogOut, MailCheck, ShieldCheck, Store, UserRound, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 
@@ -45,6 +45,7 @@ export function MtaaAccountDialog({ open, onClose }: { open: boolean; onClose: (
   const onCloseRef = useRef(onClose);
   const [mode, setMode] = useState<AccountMode>("password");
   const [challenge, setChallenge] = useState<CodeChallenge>(null);
+  const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [googleSubmitting, setGoogleSubmitting] = useState(false);
@@ -236,5 +237,65 @@ export function MtaaAccountDialog({ open, onClose }: { open: boolean; onClose: (
     );
   }
 
-  return <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-labelledby="mtaamarket-account-title"><form onSubmit={submit} className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"><div className="flex items-start justify-between gap-4"><div>{challenge === "signup" ? null : <p className="eyebrow">MtaaMarket account</p>}<h2 id="mtaamarket-account-title" className="mt-2 text-2xl font-semibold">{challenge ? challengeTitle : copy.title}</h2></div><button type="button" className="icon-action" onClick={onClose} aria-label="Close account dialog"><X size={18} /></button></div><p className="mt-3 text-sm text-muted-foreground">{challenge ? "Enter the code only here. Never share it with a vendor, support contact, or anyone else." : copy.description}</p><label className="mt-5 block text-sm font-medium">Email address<input ref={emailInputRef} className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2" required type="email" autoComplete="email" value={email} disabled={Boolean(challenge)} onChange={event => setEmail(event.target.value)} placeholder="you@example.com" /></label>{challenge && <><label className="mt-4 block text-sm font-medium">Verification code<input className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2 tracking-[0.3em]" required inputMode="numeric" autoComplete="one-time-code" maxLength={8} value={emailCode} onChange={event => setEmailCode(event.target.value.replace(/\D/g, ""))} placeholder="12345678" /></label><div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm"><button type="button" className="underline" disabled={submitting || cooldownRemaining > 0} onClick={() => void resendCode()}>{cooldownRemaining > 0 ? `Resend available in ${cooldownRemaining}s` : "Send another code"}</button><button type="button" className="underline" disabled={submitting} onClick={() => { resetChallenge(); setCooldownUntil(null); }}>Use a different email</button></div></>}{!challenge && mode === "password" && <label className="mt-4 block text-sm font-medium">Password<input className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2" required type="password" minLength={ACCOUNT_MIN_PASSWORD_LENGTH} autoComplete="current-password" value={password} onChange={event => setPassword(event.target.value)} placeholder="Your password" /></label>}{notice && <p className="mt-4 rounded-lg bg-muted p-3 text-sm" role="status">{notice}</p>}<button className="primary-cta mt-5 w-full justify-center" disabled={submitting || (!challenge && cooldownRemaining > 0)}>{submitting ? <Loader2 className="animate-spin" size={17} /> : challenge ? <MailCheck size={17} /> : mode === "password" ? <KeyRound size={17} /> : <ShieldCheck size={17} />}{actionLabel}</button>{!challenge && googleEnabled && mode !== "recovery" && <button type="button" className="secondary-cta mt-4 w-full justify-center" disabled={googleSubmitting} onClick={async () => { setGoogleSubmitting(true); setNotice(""); try { await signInWithGoogle(); } catch { setNotice("Google sign-in could not start. Please try again."); } finally { setGoogleSubmitting(false); } }}><span aria-hidden="true">G</span>{googleSubmitting ? "Connecting to Google…" : "Continue with Google"}</button>}{!challenge && mode === "password" && <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm"><button className="underline" type="button" onClick={() => chooseMode("signup")}>Create an account</button><button className="underline" type="button" onClick={() => chooseMode("recovery")}>Forgot password?</button></div>}{!challenge && mode === "recovery" && <button className="mt-4 text-sm underline" type="button" onClick={() => chooseMode("password")}>Return to sign in</button>}</form></div>;
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-labelledby="mtaamarket-account-title">
+      <form onSubmit={submit} className="max-h-[90vh] w-full max-w-md overflow-y-auto overscroll-contain rounded-[24px] bg-white p-6 shadow-2xl">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h2 id="mtaamarket-account-title" className="text-2xl font-semibold text-gray-900">{challenge ? challengeTitle : copy.title}</h2>
+            <p className="mt-2 text-sm text-gray-600">{challenge ? "Enter the code only here. Never share it with a vendor, support contact, or anyone else." : copy.description}</p>
+          </div>
+          <button type="button" className="icon-action shrink-0" onClick={onClose} aria-label="Close account dialog"><X size={18} /></button>
+        </div>
+
+        <label className="mt-5 block text-sm font-medium text-gray-800" htmlFor="account-email">Email address
+          <input ref={emailInputRef} id="account-email" className="mt-2 w-full rounded-xl border border-border bg-white px-3 py-2" required type="email" autoComplete="email" value={email} disabled={Boolean(challenge)} onChange={event => setEmail(event.target.value)} placeholder="Enter your email" />
+        </label>
+
+        {challenge && <>
+          <label className="mt-4 block text-sm font-medium text-gray-800" htmlFor="account-code">Verification code
+            <input id="account-code" className="mt-2 w-full rounded-xl border border-border bg-white px-3 py-2 tracking-[0.3em]" required inputMode="numeric" autoComplete="one-time-code" maxLength={8} value={emailCode} onChange={event => setEmailCode(event.target.value.replace(/\D/g, ""))} placeholder="12345678" />
+          </label>
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm">
+            <button type="button" className="underline" disabled={submitting || cooldownRemaining > 0} onClick={() => void resendCode()}>{cooldownRemaining > 0 ? `Resend available in ${cooldownRemaining}s` : "Send another code"}</button>
+            <button type="button" className="underline" disabled={submitting} onClick={() => { resetChallenge(); setCooldownUntil(null); }}>Use a different email</button>
+          </div>
+        </>}
+
+        {!challenge && mode === "password" && <label className="mt-4 block text-sm font-medium text-gray-800" htmlFor="account-password">Password
+          <span className="relative mt-2 block">
+            <input id="account-password" className="w-full rounded-xl border border-border bg-white px-3 py-2 pr-12" required type={showPassword ? "text" : "password"} minLength={ACCOUNT_MIN_PASSWORD_LENGTH} autoComplete="current-password" value={password} onChange={event => setPassword(event.target.value)} placeholder="Enter your password" />
+            <button type="button" className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 hover:text-gray-700" aria-label={showPassword ? "Hide password" : "Show password"} aria-pressed={showPassword} onClick={() => setShowPassword(value => !value)}>
+              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
+          </span>
+        </label>}
+
+        {notice && <p className="mt-4 rounded-lg bg-muted p-3 text-sm" role="status">{notice}</p>}
+
+        <button className="primary-cta mt-5 w-full justify-center" disabled={submitting || (!challenge && cooldownRemaining > 0)}>
+          {submitting ? <Loader2 className="animate-spin" size={17} aria-hidden="true" /> : challenge ? <MailCheck size={17} /> : mode === "password" ? <KeyRound size={17} /> : <ShieldCheck size={17} />}
+          {actionLabel}
+        </button>
+
+        {!challenge && googleEnabled && mode !== "recovery" && <>
+          <div className="my-4 flex items-center gap-3" aria-hidden="true">
+            <span className="h-px flex-1 bg-gray-200" />
+            <span className="text-xs text-gray-500">or</span>
+            <span className="h-px flex-1 bg-gray-200" />
+          </div>
+          <button type="button" className="secondary-cta w-full justify-center" disabled={googleSubmitting} onClick={async () => { setGoogleSubmitting(true); setNotice(""); try { await signInWithGoogle(); } catch { setNotice("Google sign-in could not start. Please try again."); } finally { setGoogleSubmitting(false); } }}>
+            <GoogleLogo />
+            {googleSubmitting ? "Connecting to Google…" : "Continue with Google"}
+          </button>
+        </>}
+
+        {!challenge && mode === "password" && <div className="mt-5 flex flex-wrap justify-center gap-x-5 gap-y-2 text-sm text-gray-600">
+          <button className="font-medium underline underline-offset-2" type="button" onClick={() => chooseMode("signup")}>Create an account</button>
+          <button className="font-medium underline underline-offset-2" type="button" onClick={() => chooseMode("recovery")}>Forgot password?</button>
+        </div>}
+        {!challenge && mode === "recovery" && <button className="mt-4 text-sm underline" type="button" onClick={() => chooseMode("password")}>Return to sign in</button>}
+      </form>
+    </div>
+  );
 }

@@ -25,7 +25,7 @@ type SignUpModalProps = {
   onGoogleSignIn: () => void;
 };
 
-function GoogleLogo() {
+export function GoogleLogo() {
   return (
     <svg aria-hidden="true" className="h-5 w-5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
       <path fill="#4285F4" d="M23.49 12.27c0-.78-.07-1.53-.2-2.27H12v4.26h6.46a5.55 5.55 0 0 1-2.39 3.63v2.77h3.87c2.26-2.08 3.55-5.15 3.55-8.39Z" />

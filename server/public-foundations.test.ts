@@ -93,6 +93,19 @@ describe("public performance and mobile foundations", () => {
     expect(vendorProductForm).toContain("Listing is now live on Siaya Mtaa Market.");
   });
 
+  it("uses the same real Google logo and accessible sign-in controls in both account flows", () => {
+    const signup = readFileSync(resolve(projectRoot, "client/src/components/SignUpModal.tsx"), "utf8");
+    const accountDialog = readFileSync(resolve(projectRoot, "client/src/components/MtaaAccountDialog.tsx"), "utf8");
+
+    expect(signup).toContain("export function GoogleLogo()");
+    expect(signup).toContain('fill="#4285F4"');
+    expect(accountDialog).toContain('import { GoogleLogo, SignUpModal } from "./SignUpModal";');
+    expect(accountDialog).toContain("<GoogleLogo />");
+    expect(accountDialog).toContain('aria-label={showPassword ? "Hide password" : "Show password"}');
+    expect(accountDialog).toContain('type="button" className="secondary-cta w-full justify-center" disabled={googleSubmitting}');
+    expect(accountDialog).not.toContain('<span aria-hidden="true">G</span>');
+  });
+
   it("does not load an unresolved analytics provider placeholder in the public document", () => {
     const head = readFileSync(resolve(projectRoot, "client/index.html"), "utf8");
 
