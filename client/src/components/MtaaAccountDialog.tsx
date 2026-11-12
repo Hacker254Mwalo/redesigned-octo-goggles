@@ -12,6 +12,7 @@ import {
 import { emailCodeDeliveryNotice } from "@/lib/auth-delivery";
 import { normalizeKenyanMobilePhone } from "@/lib/kenyan-phone";
 import { isMtaaMarketAccountCode } from "@/lib/auth-code-flow";
+import { SignUpModal } from "./SignUpModal";
 import { CheckCircle2, KeyRound, Loader2, LogOut, MailCheck, ShieldCheck, Store, UserRound, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
@@ -21,7 +22,7 @@ type CodeChallenge = "signup" | "recovery" | null;
 
 const modeCopy: Record<AccountMode, { title: string; description: string }> = {
   password: { title: "Sign in to Siaya Mtaa Market", description: "Use the email and password for your Siaya Mtaa Market account." },
-  signup: { title: "Create your account", description: "Create your Siaya Mtaa Market account with your email, a secure password, and a Kenyan contact number. We will send a verification code only for this new account." },
+  signup: { title: "Create your account", description: "Join Siaya Mtaa Market to buy, sell, and request services in Siaya." },
   recovery: { title: "Reset your password", description: "We will send a verification code to confirm it is you before you choose a new password." },
 };
 
@@ -195,8 +196,45 @@ export function MtaaAccountDialog({ open, onClose }: { open: boolean; onClose: (
   }
 
   const googleEnabled = configured;
-  const actionLabel = submitting ? "Please wait…" : challenge ? "Verify code & continue" : cooldownRemaining > 0 ? `Wait ${cooldownRemaining}s before another email` : mode === "password" ? "Sign in" : mode === "signup" ? "Create account & send code" : "Send recovery code";
+  const actionLabel = submitting ? "Please wait…" : challenge ? "Verify code & continue" : cooldownRemaining > 0 ? `Wait ${cooldownRemaining}s before another email` : mode === "password" ? "Sign in" : mode === "signup" ? "Create account" : "Send recovery code";
   const challengeTitle = challenge === "signup" ? "Verify your new account" : "Verify your recovery code";
 
-  return <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-labelledby="mtaamarket-account-title"><form onSubmit={submit} className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"><div className="flex items-start justify-between gap-4"><div><p className="eyebrow">MtaaMarket account</p><h2 id="mtaamarket-account-title" className="mt-2 text-2xl font-semibold">{challenge ? challengeTitle : copy.title}</h2></div><button type="button" className="icon-action" onClick={onClose} aria-label="Close account dialog"><X size={18} /></button></div><p className="mt-3 text-sm text-muted-foreground">{challenge ? "Enter the code only here. Never share it with a vendor, support contact, or anyone else." : copy.description}</p><label className="mt-5 block text-sm font-medium">Email address<input ref={emailInputRef} className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2" required type="email" autoComplete="email" value={email} disabled={Boolean(challenge)} onChange={event => setEmail(event.target.value)} placeholder="you@example.com" /></label>{challenge && <><label className="mt-4 block text-sm font-medium">Verification code<input className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2 tracking-[0.3em]" required inputMode="numeric" autoComplete="one-time-code" maxLength={8} value={emailCode} onChange={event => setEmailCode(event.target.value.replace(/\D/g, ""))} placeholder="12345678" /></label><div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm"><button type="button" className="underline" disabled={submitting || cooldownRemaining > 0} onClick={() => void resendCode()}>{cooldownRemaining > 0 ? `Resend available in ${cooldownRemaining}s` : "Send another code"}</button><button type="button" className="underline" disabled={submitting} onClick={() => { resetChallenge(); setCooldownUntil(null); }}>Use a different email</button></div></>}{!challenge && (mode === "password" || mode === "signup") && <label className="mt-4 block text-sm font-medium">Password<input className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2" required type="password" minLength={ACCOUNT_MIN_PASSWORD_LENGTH} autoComplete={mode === "signup" ? "new-password" : "current-password"} value={password} onChange={event => setPassword(event.target.value)} placeholder={mode === "signup" ? "At least 8 characters, letters and numbers" : "Your password"} /></label>}{!challenge && mode === "signup" && <label className="mt-4 block text-sm font-medium">Kenyan mobile number<input className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2" required type="tel" inputMode="tel" autoComplete="tel" value={phone} onChange={event => setPhone(event.target.value)} placeholder="0712345678 or +254712345678" aria-describedby="signup-phone-help" /></label>}{!challenge && mode === "signup" && <p id="signup-phone-help" className="mt-2 text-xs text-muted-foreground">Private contact detail for account and order needs; it is not an SMS verification or login credential.</p>}{!challenge && mode === "signup" && <label className="mt-4 block text-sm font-medium">Confirm password<input className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2" required type="password" minLength={ACCOUNT_MIN_PASSWORD_LENGTH} autoComplete="new-password" value={confirmation} onChange={event => setConfirmation(event.target.value)} placeholder="Type the password again" /></label>}{notice && <p className="mt-4 rounded-lg bg-muted p-3 text-sm" role="status">{notice}</p>}<button className="primary-cta mt-5 w-full justify-center" disabled={submitting || (!challenge && cooldownRemaining > 0)}>{submitting ? <Loader2 className="animate-spin" size={17} /> : challenge ? <MailCheck size={17} /> : mode === "password" ? <KeyRound size={17} /> : <ShieldCheck size={17} />}{actionLabel}</button>{!challenge && googleEnabled && mode !== "recovery" && <button type="button" className="secondary-cta mt-4 w-full justify-center" disabled={googleSubmitting} onClick={async () => { setGoogleSubmitting(true); setNotice(""); try { await signInWithGoogle(); } catch { setNotice("Google sign-in could not start. Please try again."); } finally { setGoogleSubmitting(false); } }}><span aria-hidden="true">G</span>{googleSubmitting ? "Connecting to Google…" : "Continue with Google"}</button>}{!challenge && mode === "password" && <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm"><button className="underline" type="button" onClick={() => chooseMode("signup")}>Create an account</button><button className="underline" type="button" onClick={() => chooseMode("recovery")}>Forgot password?</button></div>}{!challenge && mode === "signup" && <><button className="mt-4 text-sm underline" type="button" onClick={() => chooseMode("password")}>Already have an account? Sign in</button><p className="mt-3 text-xs text-muted-foreground">Use your own email for one MtaaMarket account. A Kenyan contact number is required to complete setup and is stored privately. It is not verified by SMS.</p></>}{!challenge && mode === "recovery" && <button className="mt-4 text-sm underline" type="button" onClick={() => chooseMode("password")}>Return to sign in</button>}{(challenge || mode !== "password") && <p className="mt-4 text-xs text-muted-foreground">Check Spam or Junk if the code is not visible after a few minutes. Creating an account does not make you a seller. <Link className="font-medium underline underline-offset-2" href="/privacy">How account data is used</Link></p>}</form></div>;
+  if (mode === "signup" && !challenge) {
+    return (
+      <SignUpModal
+        title={copy.title}
+        subtitle={copy.description}
+        emailInputRef={emailInputRef}
+        email={email}
+        onEmailChange={setEmail}
+        password={password}
+        onPasswordChange={setPassword}
+        phone={phone}
+        onPhoneChange={setPhone}
+        confirmation={confirmation}
+        onConfirmationChange={setConfirmation}
+        notice={notice}
+        submitting={submitting}
+        disabledByCooldown={cooldownRemaining > 0}
+        googleEnabled={googleEnabled}
+        googleSubmitting={googleSubmitting}
+        onSubmit={submit}
+        onClose={onClose}
+        onSwitchToSignIn={() => chooseMode("password")}
+        onGoogleSignIn={async () => {
+          setGoogleSubmitting(true);
+          setNotice("");
+          try {
+            await signInWithGoogle();
+          } catch {
+            setNotice("Google sign-in could not start. Please try again.");
+          } finally {
+            setGoogleSubmitting(false);
+          }
+        }}
+      />
+    );
+  }
+
+  return <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-labelledby="mtaamarket-account-title"><form onSubmit={submit} className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"><div className="flex items-start justify-between gap-4"><div>{challenge === "signup" ? null : <p className="eyebrow">MtaaMarket account</p>}<h2 id="mtaamarket-account-title" className="mt-2 text-2xl font-semibold">{challenge ? challengeTitle : copy.title}</h2></div><button type="button" className="icon-action" onClick={onClose} aria-label="Close account dialog"><X size={18} /></button></div><p className="mt-3 text-sm text-muted-foreground">{challenge ? "Enter the code only here. Never share it with a vendor, support contact, or anyone else." : copy.description}</p><label className="mt-5 block text-sm font-medium">Email address<input ref={emailInputRef} className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2" required type="email" autoComplete="email" value={email} disabled={Boolean(challenge)} onChange={event => setEmail(event.target.value)} placeholder="you@example.com" /></label>{challenge && <><label className="mt-4 block text-sm font-medium">Verification code<input className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2 tracking-[0.3em]" required inputMode="numeric" autoComplete="one-time-code" maxLength={8} value={emailCode} onChange={event => setEmailCode(event.target.value.replace(/\D/g, ""))} placeholder="12345678" /></label><div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm"><button type="button" className="underline" disabled={submitting || cooldownRemaining > 0} onClick={() => void resendCode()}>{cooldownRemaining > 0 ? `Resend available in ${cooldownRemaining}s` : "Send another code"}</button><button type="button" className="underline" disabled={submitting} onClick={() => { resetChallenge(); setCooldownUntil(null); }}>Use a different email</button></div></>}{!challenge && mode === "password" && <label className="mt-4 block text-sm font-medium">Password<input className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2" required type="password" minLength={ACCOUNT_MIN_PASSWORD_LENGTH} autoComplete="current-password" value={password} onChange={event => setPassword(event.target.value)} placeholder="Your password" /></label>}{notice && <p className="mt-4 rounded-lg bg-muted p-3 text-sm" role="status">{notice}</p>}<button className="primary-cta mt-5 w-full justify-center" disabled={submitting || (!challenge && cooldownRemaining > 0)}>{submitting ? <Loader2 className="animate-spin" size={17} /> : challenge ? <MailCheck size={17} /> : mode === "password" ? <KeyRound size={17} /> : <ShieldCheck size={17} />}{actionLabel}</button>{!challenge && googleEnabled && mode !== "recovery" && <button type="button" className="secondary-cta mt-4 w-full justify-center" disabled={googleSubmitting} onClick={async () => { setGoogleSubmitting(true); setNotice(""); try { await signInWithGoogle(); } catch { setNotice("Google sign-in could not start. Please try again."); } finally { setGoogleSubmitting(false); } }}><span aria-hidden="true">G</span>{googleSubmitting ? "Connecting to Google…" : "Continue with Google"}</button>}{!challenge && mode === "password" && <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm"><button className="underline" type="button" onClick={() => chooseMode("signup")}>Create an account</button><button className="underline" type="button" onClick={() => chooseMode("recovery")}>Forgot password?</button></div>}{!challenge && mode === "recovery" && <button className="mt-4 text-sm underline" type="button" onClick={() => chooseMode("password")}>Return to sign in</button>}</form></div>;
 }

@@ -62,12 +62,15 @@ describe("MtaaMarket email/password account safeguards", () => {
   });
 
   it("keeps the public account dialog keyboard-accessible without adding verification friction to returning users", () => {
+    const signUpModalSource = readFileSync(new URL("../client/src/components/SignUpModal.tsx", import.meta.url), "utf8");
+
     expect(accountDialogSource).toContain('event.key === "Escape"');
     expect(accountDialogSource).toContain("window.addEventListener(\"keydown\", handleEscape)");
     expect(accountDialogSource).toContain("returnFocusRef.current?.focus()");
     expect(accountDialogSource).toContain("ref={emailInputRef}");
     expect(accountDialogSource).toContain("Use the email and password for your Siaya Mtaa Market account.");
-    expect(accountDialogSource).toContain("Creating an account does not make you a seller.");
+    expect(signUpModalSource).toContain("We use this to contact you about orders.");
+    expect(signUpModalSource).not.toContain("Creating an account does not make you a seller.");
     expect(accountDialogSource).toContain("maxLength={8}");
     expect(accountDialogSource).not.toContain("six-digit code");
     expect(accountDialogSource).toContain("Continue with Google");

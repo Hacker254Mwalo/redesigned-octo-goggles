@@ -34,9 +34,11 @@ describe("MtaaMarket account verification contracts", () => {
   it("keeps returning-user sign-in password-based and reserves codes for signup and recovery", () => {
     const dialog = readFileSync(resolve(process.cwd(), "client/src/components/MtaaAccountDialog.tsx"), "utf8");
     const context = readFileSync(resolve(process.cwd(), "client/src/contexts/SupabaseAuthContext.tsx"), "utf8");
+    const signUpModal = readFileSync(resolve(process.cwd(), "client/src/components/SignUpModal.tsx"), "utf8");
 
     expect(dialog).toContain('type AccountMode = "password" | "signup" | "recovery"');
-    expect(dialog).toContain("Create account & send code");
+    expect(signUpModal).toContain(': "Create account"');
+    expect(signUpModal).toContain('placeholder="Enter your email"');
     expect(dialog).toContain("Send recovery code");
     expect(dialog).toContain("maxLength={8}");
     expect(dialog).toContain("isMtaaMarketAccountCode(emailCode)");
