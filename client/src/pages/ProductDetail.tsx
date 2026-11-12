@@ -5,7 +5,7 @@ import { useCart } from "@/contexts/CartContext";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import { trpc } from "@/lib/trpc";
 import { ArrowLeft, Box, Check, MapPin, Minus, Plus, ShieldCheck, ShoppingBag, Star } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useRoute } from "wouter";
 import { toast } from "sonner";
 
@@ -20,6 +20,54 @@ export default function ProductDetail() {
   const confirmV3Order = trpc.marketplace.createV3HubOrder.useMutation({ onSuccess: order => setConfirmedPin(order.pickup_pin), onError: error => toast.error(error.message) });
   const saveBuyerOrderProfile = trpc.marketplace.saveV3BuyerOrderProfile.useMutation({ onSuccess: () => { setBuyerName(""); setBuyerPhone(""); buyerOrderAccess.refetch(); toast.success("Your protected pickup details are saved."); }, onError: error => toast.error(error.message) });
   const reviewQuery = trpc.marketplace.reviewsByProduct.useQuery({ productId: entry?.product.id || 1 }, { enabled: Boolean(entry?.product.id) });
+  useEffect(() => {
+    if (!entry) {
+      if (!result.isLoading) {
+        document.title = "Product not available | Siaya Mtaa Market";
+        const robotsMeta = document.head.querySelector<HTMLMetaElement>('meta[name="robots"]');
+        if (robotsMeta) robotsMeta.content = "noindex,nofollow";
+      }
+      return;
+    }
+    const { product } = entry;
+    const title = `${product.title} | Siaya Mtaa Market`;
+    const baseDescription = product.description?.trim() || `Browse ${product.title} from local sellers in Siaya.`;
+    const fullDescription = `${baseDescription} Confirm availability and hand-off details with Siaya Mtaa Market.`.replace(/\s+/g, " ");
+    const description = fullDescription.length > 158 ? `${fullDescription.slice(0, 157).trimEnd()}…` : fullDescription;
+    const canonical = `https://www.siayaonlinemarket.online/products/${encodeURIComponent(product.slug)}`;
+    const setMeta = (selector: string, attribute: "name" | "property", attributeValue: string, value: string) => {
+      let element = document.head.querySelector<HTMLMetaElement>(selector);
+      if (!element) {
+        element = document.createElement("meta");
+        element.setAttribute(attribute, attributeValue);
+        document.head.appendChild(element);
+      }
+      element.content = value;
+    };
+    document.title = title;
+    setMeta('meta[name="description"]', "name", "description", description);
+    setMeta('meta[name="robots"]', "name", "robots", "index,follow");
+    setMeta('meta[property="og:type"]', "property", "og:type", "product");
+    setMeta('meta[property="og:title"]', "property", "og:title", title);
+    setMeta('meta[property="og:description"]', "property", "og:description", description);
+    setMeta('meta[property="og:url"]', "property", "og:url", canonical);
+    setMeta('meta[property="og:site_name"]', "property", "og:site_name", "Siaya Mtaa Market");
+    setMeta('meta[name="twitter:card"]', "name", "twitter:card", "summary_large_image");
+    setMeta('meta[name="twitter:title"]', "name", "twitter:title", title);
+    setMeta('meta[name="twitter:description"]', "name", "twitter:description", description);
+    const imageUrl = product.imageUrl ? new URL(product.imageUrl, window.location.origin).toString() : "";
+    if (imageUrl) {
+      setMeta('meta[property="og:image"]', "property", "og:image", imageUrl);
+      setMeta('meta[name="twitter:image"]', "name", "twitter:image", imageUrl);
+    }
+    let canonicalLink = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+    if (!canonicalLink) {
+      canonicalLink = document.createElement("link");
+      canonicalLink.rel = "canonical";
+      document.head.appendChild(canonicalLink);
+    }
+    canonicalLink.href = canonical;
+  }, [entry, result.isLoading]);
   if (result.isLoading) return <MarketplaceLayout><div className="page-loading">Loading product…</div></MarketplaceLayout>;
   if (!entry) return <MarketplaceLayout><div className="not-found-market"><Box /><h1>That product is not available.</h1><Link href="/">Return to discovery</Link></div></MarketplaceLayout>;
   const { product, category } = entry;

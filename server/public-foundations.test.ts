@@ -30,8 +30,12 @@ describe("public performance and mobile foundations", () => {
 
   it("uses truthful Siaya-focused public metadata without disabling browser zoom", () => {
     const head = readFileSync(resolve(projectRoot, "client/index.html"), "utf8");
+    const app = readFileSync(resolve(projectRoot, "client/src/App.tsx"), "utf8");
+    const productDetail = readFileSync(resolve(projectRoot, "client/src/pages/ProductDetail.tsx"), "utf8");
 
-    expect(head).toContain("Siaya Online MtaaMarket");
+    expect(head).toContain('"alternateName":"MtaaMarket"');
+    expect(head).toContain("Siaya Mtaa Market — Buy local in Siaya, Bondo &amp; Ugunja");
+    expect(head).toContain('property="og:description"');
     expect(head).toContain('name="description"');
     expect(head).toContain('name="robots" content="index,follow"');
     expect(head).toContain('rel="canonical" href="https://www.siayaonlinemarket.online/"');
@@ -43,6 +47,11 @@ describe("public performance and mobile foundations", () => {
     expect(head).toContain("Find what is listed.");
     expect(head).toContain("Confirm before you go ahead.");
     expect(head).not.toContain("maximum-scale=1");
+    expect(app).not.toContain("Siaya Online Market");
+    expect(app).toContain("Local products in Siaya | Siaya Mtaa Market");
+    expect(productDetail).toContain("${product.title} | Siaya Mtaa Market");
+    expect(productDetail).toContain('meta[property="og:url"]');
+    expect(productDetail).toContain('meta[property="og:image"]');
   });
 
   it("does not load an unresolved analytics provider placeholder in the public document", () => {
@@ -313,16 +322,21 @@ describe("public performance and mobile foundations", () => {
     expect(detail).not.toMatch(/\.from\("orders"\)|insert\(.*orders/i);
   });
 
-  it("keeps V3 product moderation behind a server-side owner role check", () => {
+  it("keeps Admin behind server-verified owner access and removes product moderation UI", () => {
     const app = readFileSync(resolve(projectRoot, "client/src/App.tsx"), "utf8");
     const admin = readFileSync(resolve(projectRoot, "client/src/pages/Admin.tsx"), "utf8");
     const moderation = readFileSync(resolve(projectRoot, "server/v3-moderation.ts"), "utf8");
     const profiles = readFileSync(resolve(projectRoot, "server/v3-profiles.ts"), "utf8");
 
     expect(app).toContain('path={"/admin"}');
-    expect(admin).toContain("v3ModerationProducts.useQuery");
-    expect(admin).toContain("Approve");
-    expect(admin).toContain("Reject");
+    expect(admin).toContain("v3OwnerAccounts.useQuery");
+    expect(admin).toContain("v3OwnerItemRequests.useQuery");
+    expect(admin).toContain("Approve vendor");
+    expect(admin).not.toContain("v3ModerationProducts.useQuery");
+    expect(admin).not.toContain("moderateV3Product");
+    expect(admin).not.toContain("deleteV3Product");
+    expect(admin).not.toContain("Founder inventory intake");
+    expect(admin).not.toContain("Moderation queue");
     expect(moderation).toContain('import { requireV3Owner } from "./v3-profiles"');
     expect(profiles).toContain('data?.role !== "admin"');
     expect(moderation).toContain('in("status", ["PENDING", "ACTIVE", "FLAGGED"])');
@@ -331,15 +345,13 @@ describe("public performance and mobile foundations", () => {
     expect(admin).not.toMatch(/\.from\("products"\)|\.update\(/);
   });
 
-  it("keeps poultry and livestock listings owner-reviewed and outside the automated hub-order path", () => {
+  it("keeps poultry and livestock listings on a manual handover path outside automated hub orders", () => {
     const vendorUpload = readFileSync(resolve(projectRoot, "client/src/pages/VendorUpload.tsx"), "utf8");
-    const admin = readFileSync(resolve(projectRoot, "client/src/pages/Admin.tsx"), "utf8");
     const vendor = readFileSync(resolve(projectRoot, "server/v3-vendor.ts"), "utf8");
     const orders = readFileSync(resolve(projectRoot, "server/v3-orders.ts"), "utf8");
 
     expect(vendorUpload).toContain("livestockWelfareAttested");
     expect(vendorUpload).toContain("livestockMovementAcknowledged");
-    expect(admin).toContain("Manual handover only.");
     expect(vendor).toContain('categorySlug === "poultry-livestock"');
     expect(vendor).toContain("Poultry and livestock listings must use manual MtaaMarket handover confirmation");
     expect(orders).toContain("Poultry and livestock handovers require MtaaMarket confirmation");

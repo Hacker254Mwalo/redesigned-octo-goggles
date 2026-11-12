@@ -25,32 +25,32 @@ const VendorUpload = lazy(() => import("./pages/VendorUpload"));
 const routeSeo: Record<string, { title: string; description: string; index: boolean }> = {
   "/": {
     title: "Siaya Mtaa Market — Buy local in Siaya, Bondo & Ugunja",
-    description: "Shop with local sellers in Siaya town, Bondo, Ugunja and Yala. Browse listings or request an item; confirm availability and hand-off details first.",
+    description: "Shop local in Siaya town, Bondo, Ugunja and Yala. Browse sellers or request an item or service. Confirm availability and hand-off details before you decide.",
     index: true,
   },
   "/jumia": {
-    title: "MtaaMarket Select | Siaya Online Market",
+    title: "MtaaMarket Select | Siaya Mtaa Market",
     description: "A temporary wider-choice catalogue for MtaaMarket customers.",
     index: false,
   },
   "/how-it-works": {
-    title: "How Siaya Online Market works",
-    description: "Learn how Siaya Online Market handles product discovery, item requests, and collection or delivery confirmation.",
+    title: "How Siaya Mtaa Market works",
+    description: "See how to browse local listings, request an item or service, and confirm availability and hand-off details with Siaya Mtaa Market.",
     index: true,
   },
   "/request": {
-    title: "Request an item in Siaya | Siaya Online Market",
-    description: "Request an item through Siaya Online Market and receive clear details before choosing whether to continue.",
+    title: "Request an item or service in Siaya | Siaya Mtaa Market",
+    description: "Request an item or service from local sellers in Siaya, Bondo, Ugunja or Yala. We check availability and hand-off details before you decide.",
     index: true,
   },
   "/vendor": {
-    title: "Sell local products in Siaya | Siaya Online Market",
-    description: "Learn about seller access and owner-reviewed product listings on Siaya Online Market.",
+    title: "Sell on Siaya Mtaa Market | Local sellers",
+    description: "Join local sellers in Siaya, Bondo, Ugunja and Yala. Approved vendors can publish and manage their listings directly.",
     index: true,
   },
   "/privacy": {
-    title: "Privacy and account data | Siaya Online Market",
-    description: "Read how Siaya Online Market handles account and marketplace data.",
+    title: "Privacy and account data | Siaya Mtaa Market",
+    description: "Read how Siaya Mtaa Market protects account information and handles data used for marketplace requests and orders.",
     index: true,
   },
   "/auth/callback": {
@@ -64,8 +64,8 @@ const routeSeo: Record<string, { title: string; description: string; index: bool
     index: false,
   },
   "/stations": {
-    title: "Collection points in Siaya | Siaya Online Market",
-    description: "Explore collection-point information for Siaya Online Market fulfilment.",
+    title: "Collection points in Siaya | Siaya Mtaa Market",
+    description: "See collection-point information for Siaya Mtaa Market and confirm the exact hand-off arrangement before placing an order.",
     index: true,
   },
 };
@@ -74,7 +74,10 @@ function RouteSeo() {
   const [location] = useLocation();
   useEffect(() => {
     const path = window.location.pathname.replace(/\/$/, "") || "/";
-    const seo = routeSeo[path] ?? { title: "Page not found | Siaya Mtaa Market", description: "This Siaya Mtaa Market page could not be found.", index: false };
+    const isProductRoute = /^\/products\/[^/]+$/.test(path);
+    const seo = routeSeo[path] ?? (isProductRoute
+      ? { title: "Local products in Siaya | Siaya Mtaa Market", description: "Browse current products from local sellers in Siaya, Bondo, Ugunja and Yala.", index: true }
+      : { title: "Page not found | Siaya Mtaa Market", description: "This Siaya Mtaa Market page could not be found.", index: false });
     const canonical = `https://www.siayaonlinemarket.online${path === "/" ? "/" : path}`;
     document.title = seo.title;
     const setMeta = (selector: string, attribute: "name" | "property", attributeValue: string, value: string) => {
@@ -88,10 +91,13 @@ function RouteSeo() {
     };
     setMeta('meta[name="description"]', "name", "description", seo.description);
     setMeta('meta[name="robots"]', "name", "robots", seo.index ? "index,follow" : "noindex,nofollow");
+    setMeta('meta[property="og:type"]', "property", "og:type", "website");
     setMeta('meta[property="og:title"]', "property", "og:title", seo.title);
     setMeta('meta[property="og:description"]', "property", "og:description", seo.description);
     setMeta('meta[property="og:url"]', "property", "og:url", canonical);
     setMeta('meta[property="og:site_name"]', "property", "og:site_name", "Siaya Mtaa Market");
+    document.head.querySelector('meta[property="og:image"]')?.remove();
+    document.head.querySelector('meta[name="twitter:image"]')?.remove();
     setMeta('meta[name="twitter:card"]', "name", "twitter:card", "summary");
     setMeta('meta[name="twitter:title"]', "name", "twitter:title", seo.title);
     setMeta('meta[name="twitter:description"]', "name", "twitter:description", seo.description);
