@@ -170,11 +170,46 @@ export async function applyForV3Vendor(identity: SupabaseIdentity | null, agreem
   if (existing.error) throw new Error("MtaaMarket could not check the vendor profile.");
 
   const agreementAcceptedAt = new Date().toISOString();
+  const remainsApproved = Boolean(existing.data?.is_vendor_approved && existing.data?.vendor_agreement_accepted_at);
   const result = existing.data
-    ? await client.from("profiles").update({ is_vendor: true, is_vendor_approved: false, vendor_agreement_accepted_at: agreementAcceptedAt }).eq("id", identity.subject).select("id,is_vendor,is_vendor_approved,role,vendor_agreement_accepted_at").maybeSingle()
+    ? await client.from("profiles").update({ is_vendor: true, is_vendor_approved: remainsApproved, vendor_agreement_accepted_at: agreementAcceptedAt }).eq("id", identity.subject).select("id,is_vendor,is_vendor_approved,role,vendor_agreement_accepted_at").maybeSingle()
     : await client.from("profiles").insert({ id: identity.subject, is_vendor: true, is_vendor_approved: false, role: "buyer", vendor_agreement_accepted_at: agreementAcceptedAt }).select("id,is_vendor,is_vendor_approved,role,vendor_agreement_accepted_at").maybeSingle();
   if (result.error || !result.data) throw new Error("MtaaMarket could not record your vendor request.");
   return mapVendorAccess(result.data as Pick<V3ProfileRow, "is_vendor" | "is_vendor_approved" | "vendor_agreement_accepted_at" | "role">);
+}
+
+/** Lists one bounded page of Auth accounts with only their public V3 profile fields. */
+export async function listV3Accounts(identity: SupabaseIdentity | null, input: { page?: number; perPage?: number } = {}) {
+  await requireV3Owner(identity);
+  const page = Number.isInteger(input.page) && (input.page ?? 0) > 0 ? Math.min(input.page!, 10_000) : 1;
+  const perPage = Number.isInteger(input.perPage) && (input.perPage ?? 0) > 0 ? Math.min(input.perPage!, 100) : 25;
+  const client = getSupabaseServiceClient();
+  const { data: authResult, error: authError } = await client.auth.admin.listUsers({ page, perPage });
+  if (authError || !authResult) throw new Error("MtaaMarket could not load the account directory.");
+  const users = authResult.users;
+  const ids = users.map(user => user.id);
+  const { data: profiles, error } = ids.length
+    ? await client.from("profiles").select("id,full_name,role,is_vendor,is_vendor_approved").in("id", ids)
+    : { data: [], error: null };
+  if (error) throw new Error("MtaaMarket could not load the account directory.");
+  const byId = new Map((profiles ?? []).map((profile: { id: string; full_name?: string | null; role?: "buyer" | "vendor" | "admin" | null; is_vendor?: boolean | null; is_vendor_approved?: boolean | null }) => [profile.id, profile]));
+  return {
+    page,
+    perPage,
+    total: authResult.total ?? null,
+    accounts: users.map(user => {
+      const profile = byId.get(user.id);
+      return {
+        id: user.id,
+        email: user.email ?? null,
+        displayName: profile?.full_name ?? null,
+        role: profile?.role ?? "buyer",
+        is_vendor: Boolean(profile?.is_vendor),
+        is_vendor_approved: Boolean(profile?.is_vendor_approved),
+        created_at: user.created_at,
+      };
+    }),
+  };
 }
 
 export async function listV3VendorApplications(identity: SupabaseIdentity | null) {

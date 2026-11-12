@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("./supabase", () => ({ getSupabaseServiceClient: vi.fn() }));
 
 import { getSupabaseServiceClient } from "./supabase";
-import { applyForV3Vendor, bootstrapV3Owner, getV3AccountProfile, getV3VendorAccess, saveV3BuyerOrderProfile, updateV3AccountProfile } from "./v3-profiles";
+import { applyForV3Vendor, bootstrapV3Owner, getV3AccountProfile, getV3VendorAccess, listV3Accounts, saveV3BuyerOrderProfile, updateV3AccountProfile } from "./v3-profiles";
 
 const founder = { subject: "11111111-1111-4111-8111-111111111111", email: "founder@example.test", issuedAt: 0 };
 const vendor = { subject: "22222222-2222-4222-8222-222222222222", email: "vendor@example.test", issuedAt: 0 };
@@ -76,6 +76,43 @@ describe("V3 vendor activation", () => {
     const { updateV3VendorApproval } = await import("./v3-profiles");
     await expect(updateV3VendorApproval(founder, vendor.subject, true)).resolves.toEqual({ id: vendor.subject, isApproved: true });
     expect(approval.update).toHaveBeenCalledWith({ is_vendor_approved: true });
+  });
+  it.each([[true, true], [false, false]])("preserves vendor approval state (approved=%s)", async (approved, expected) => {
+    const existing = readQuery({ id: vendor.subject, is_vendor: true, is_vendor_approved: approved, vendor_agreement_accepted_at: "2026-08-27T00:00:00.000Z" });
+    const update = { update: vi.fn(), eq: vi.fn(), select: vi.fn(), maybeSingle: vi.fn() };
+    update.update.mockReturnValue(update);
+    update.eq.mockReturnValue(update);
+    update.select.mockReturnValue(update);
+    update.maybeSingle.mockResolvedValue({ data: { id: vendor.subject, is_vendor: true, is_vendor_approved: expected, role: "buyer", vendor_agreement_accepted_at: "2026-11-12T00:00:00.000Z" }, error: null });
+    const client = { from: vi.fn().mockImplementation(() => client.from.mock.calls.length === 1 ? existing : update) };
+    vi.mocked(getSupabaseServiceClient).mockReturnValue(client as never);
+    await expect(applyForV3Vendor(vendor, true)).resolves.toMatchObject({ isVendorApproved: expected, canSubmitListings: expected });
+    expect(update.update).toHaveBeenCalledWith(expect.objectContaining({ is_vendor_approved: expected }));
+  });
+});
+
+describe("V3 account directory", () => {
+  it("requires owner before Auth listing and returns only allowlisted fields on a bounded page", async () => {
+    const owner = readQuery({ id: founder.subject, role: "admin" });
+    const profileQuery = { select: vi.fn(), in: vi.fn() };
+    profileQuery.select.mockReturnValue(profileQuery);
+    profileQuery.in.mockResolvedValue({ data: [{ id: vendor.subject, full_name: "Vendor Name", role: "vendor", is_vendor: true, is_vendor_approved: true, phone_number: "254700000000" }], error: null });
+    const listUsers = vi.fn().mockResolvedValue({ data: { users: [{ id: vendor.subject, email: "vendor@example.test", created_at: "2026-01-01T00:00:00.000Z", user_metadata: { private: "secret" }, phone: "+254700000000" }], total: 1 }, error: null });
+    const client = { auth: { admin: { listUsers } }, from: vi.fn().mockImplementation(() => client.from.mock.calls.length === 1 ? owner : profileQuery) };
+    vi.mocked(getSupabaseServiceClient).mockReturnValue(client as never);
+    const result = await listV3Accounts(founder, { page: 2, perPage: 500 });
+    expect(listUsers).toHaveBeenCalledWith({ page: 2, perPage: 100 });
+    expect(result).toEqual({ page: 2, perPage: 100, total: 1, accounts: [{ id: vendor.subject, email: "vendor@example.test", displayName: "Vendor Name", role: "vendor", is_vendor: true, is_vendor_approved: true, created_at: "2026-01-01T00:00:00.000Z" }] });
+    expect(JSON.stringify(result)).not.toContain("254700000000");
+    expect(JSON.stringify(result)).not.toContain("secret");
+  });
+  it("does not call Auth listing for a non-owner", async () => {
+    const nonOwner = readQuery({ id: vendor.subject, role: "buyer" });
+    const listUsers = vi.fn();
+    const client = { auth: { admin: { listUsers } }, from: vi.fn().mockReturnValue(nonOwner) };
+    vi.mocked(getSupabaseServiceClient).mockReturnValue(client as never);
+    await expect(listV3Accounts(vendor)).rejects.toThrow("Owner access is required");
+    expect(listUsers).not.toHaveBeenCalled();
   });
 });
 

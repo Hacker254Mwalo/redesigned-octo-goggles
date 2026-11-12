@@ -49,10 +49,10 @@ import { createItemRequestDraft, createListingDraft } from "./marketplace-ai";
 import { getProductionReadiness } from "./production-readiness";
 import { V3_LISTING_CATEGORY_SLUGS } from "@shared/v3-listing";
 import { ensureSupabaseMarketplaceProfile } from "./supabase-profiles";
-import { createV3HubOrder } from "./v3-orders";
+import { createV3HubOrder, listV3BuyerOrders, listV3OwnerOrders, listV3VendorOrders, updateV3OrderStatus } from "./v3-orders";
 import { deleteV3Product, listV3ModerationProducts, moderateV3Product } from "./v3-moderation";
-import { submitV3OwnerProduct, submitV3VendorProduct } from "./v3-vendor";
-import { applyForV3Vendor, bootstrapV3Owner, getV3AccountProfile, getV3BuyerOrderAccess, getV3VendorAccess, listV3VendorApplications, saveV3BuyerOrderProfile, updateV3AccountProfile, updateV3VendorApproval } from "./v3-profiles";
+import { listV3VendorProducts, submitV3OwnerProduct, submitV3VendorProduct, updateV3VendorProduct } from "./v3-vendor";
+import { applyForV3Vendor, bootstrapV3Owner, getV3AccountProfile, getV3BuyerOrderAccess, getV3VendorAccess, listV3Accounts, listV3VendorApplications, saveV3BuyerOrderProfile, updateV3AccountProfile, updateV3VendorApproval } from "./v3-profiles";
 import { createV3AssistedOrderFromRequest, createV3ItemRequest, listV3OwnerAssistedOrders, listV3OwnerItemRequests, updateV3AssistedOrder, updateV3ItemRequest } from "./v3-requests";
 import { createV3JumiaOrder, listV3BuyerJumiaOrders, listV3OwnerJumiaOrders, updateV3OwnerJumiaOrder } from "./v3-jumia-orders";
 import { searchJumiaPublicProducts } from "./jumia-search";
@@ -61,6 +61,7 @@ const safeSearch = z.string().trim().max(100);
 const phone = z.string().trim().regex(/^\+?254[17]\d{8}$/, "Use a Kenyan number beginning with 254.").optional();
 const orderItemSchema = z.object({ productId: z.number().int().positive(), quantity: z.number().int().min(1).max(20) });
 const v3ListingSubmission = z.object({ title: z.string().trim().min(3).max(180), description: z.string().trim().max(1_600).optional(), categorySlug: z.enum(V3_LISTING_CATEGORY_SLUGS), price: z.number().positive().max(10_000_000), stockQuantity: z.number().int().min(1).max(100_000), allowPayOnPickup: z.boolean(), livestockType: z.string().trim().min(2).max(80).optional(), livestockDetails: z.string().trim().min(10).max(500).optional(), livestockWelfareAttested: z.boolean().optional(), livestockMovementAcknowledged: z.boolean().optional(), imageData: z.string().max(7_000_000), imageType: z.enum(["image/jpeg", "image/png", "image/webp"]) });
+const v3VendorListingUpdate = z.object({ productId: z.string().uuid(), title: z.string().trim().min(3).max(180), description: z.string().trim().max(1_600).optional(), categorySlug: z.enum(V3_LISTING_CATEGORY_SLUGS), price: z.number().positive().max(10_000_000), stockQuantity: z.number().int().min(1).max(100_000), allowPayOnPickup: z.boolean(), livestockType: z.string().trim().min(2).max(80).optional(), livestockDetails: z.string().trim().min(10).max(500).optional(), livestockWelfareAttested: z.boolean().optional(), livestockMovementAcknowledged: z.boolean().optional(), imageData: z.string().max(7_000_000).optional(), imageType: z.enum(["image/jpeg", "image/png", "image/webp"]).optional() }).refine(input => (input.imageData === undefined) === (input.imageType === undefined), "Provide both image data and image type when replacing the image.");
 const jumiaOrderItem = z.object({ title: z.string().trim().min(4).max(180), details: z.string().trim().min(10).max(3_000), quantity: z.number().int().min(1).max(20), sourceUrl: z.string().url().max(2_000).optional(), imageUrl: z.string().url().max(1_000).nullable().optional(), price: z.number().nonnegative().max(10_000_000).nullable().optional(), currency: z.string().trim().max(8).nullable().optional() });
 const jumiaOrderInput = z.object({ items: z.array(jumiaOrderItem).min(1).max(20), fulfilmentMethod: z.enum(["siaya_pickup", "home_delivery", "collection_point"]), paymentTiming: z.enum(["pay_on_collection", "pay_on_delivery"]), preferredLocation: z.string().trim().max(180).optional(), deliverySchedule: z.string().trim().max(120).optional(), orderNote: z.string().trim().max(1_200).optional(), fullName: z.string().trim().min(2).max(90).optional(), phone: z.string().trim().regex(/^\+?254[17]\d{8}$/, "Use a Kenyan number beginning with 254.").optional() });
 
@@ -95,6 +96,10 @@ export const appRouter = router({
     reviewsByProduct: publicProcedure.input(z.object({ productId: z.union([z.number().int().positive(), z.string().uuid()]) })).query(({ input }) => listVerifiedReviewsForProduct(input.productId)),
     mpesaStatus: publicProcedure.query(() => ({ configured: isMpesaConfigured(), environment: "sandbox" as const })),
     createV3HubOrder: publicProcedure.input(z.object({ productId: z.string().uuid() })).mutation(({ ctx, input }) => createV3HubOrder(ctx.supabaseIdentity, input)),
+    v3BuyerHubOrders: publicProcedure.query(({ ctx }) => listV3BuyerOrders(ctx.supabaseIdentity)),
+    v3VendorHubOrders: publicProcedure.query(({ ctx }) => listV3VendorOrders(ctx.supabaseIdentity)),
+    v3OwnerHubOrders: publicProcedure.query(({ ctx }) => listV3OwnerOrders(ctx.supabaseIdentity)),
+    updateV3OwnerHubOrder: publicProcedure.input(z.object({ orderId: z.string().uuid(), status: z.enum(["PENDING_DROPOFF", "RECEIVED_AT_HUB", "COMPLETED", "CANCELLED"]) })).mutation(({ ctx, input }) => updateV3OrderStatus(ctx.supabaseIdentity, input.orderId, input.status)),
     v3BuyerOrderAccess: publicProcedure.query(({ ctx }) => getV3BuyerOrderAccess(ctx.supabaseIdentity)),
     v3AccountProfile: publicProcedure.query(({ ctx }) => getV3AccountProfile(ctx.supabaseIdentity)),
     updateV3AccountProfile: publicProcedure.input(z.object({ fullName: z.string().trim().min(2).max(90).nullable().optional(), phone: z.string().trim().regex(/^\+?254[17]\d{8}$/, "Use a Kenyan number beginning with 254.").nullable().optional() }).refine(input => input.fullName !== undefined || input.phone !== undefined, "Add a name or Kenyan contact number.")).mutation(({ ctx, input }) => updateV3AccountProfile(ctx.supabaseIdentity, input)),
@@ -103,11 +108,17 @@ export const appRouter = router({
     moderateV3Product: publicProcedure.input(z.object({ productId: z.string().uuid(), status: z.enum(["ACTIVE", "REJECTED", "FLAGGED"]) })).mutation(({ ctx, input }) => moderateV3Product(ctx.supabaseIdentity, input.productId, input.status)),
     deleteV3Product: publicProcedure.input(z.object({ productId: z.string().uuid() })).mutation(({ ctx, input }) => deleteV3Product(ctx.supabaseIdentity, input.productId)),
     submitV3VendorProduct: publicProcedure.input(v3ListingSubmission).mutation(({ ctx, input }) => submitV3VendorProduct(ctx.supabaseIdentity, input)),
+    v3VendorProducts: publicProcedure.query(({ ctx }) => listV3VendorProducts(ctx.supabaseIdentity)),
+    updateV3VendorProduct: publicProcedure.input(v3VendorListingUpdate).mutation(({ ctx, input }) => {
+      const { productId, ...listing } = input;
+      return updateV3VendorProduct(ctx.supabaseIdentity, productId, listing);
+    }),
     submitV3OwnerProduct: publicProcedure.input(v3ListingSubmission).mutation(({ ctx, input }) => submitV3OwnerProduct(ctx.supabaseIdentity, input)),
     bootstrapV3Owner: publicProcedure.mutation(({ ctx }) => bootstrapV3Owner(ctx.supabaseIdentity)),
     v3VendorAccess: publicProcedure.query(({ ctx }) => getV3VendorAccess(ctx.supabaseIdentity)),
     applyForV3Vendor: publicProcedure.input(z.object({ agreementAccepted: z.literal(true) })).mutation(({ ctx, input }) => applyForV3Vendor(ctx.supabaseIdentity, input.agreementAccepted)),
     v3VendorApplications: publicProcedure.query(({ ctx }) => listV3VendorApplications(ctx.supabaseIdentity)),
+    v3OwnerAccounts: publicProcedure.input(z.object({ page: z.number().int().min(1).max(10_000).default(1), perPage: z.number().int().min(1).max(100).default(25) })).query(({ ctx, input }) => listV3Accounts(ctx.supabaseIdentity, input)),
     updateV3VendorApproval: publicProcedure.input(z.object({ profileId: z.string().uuid(), approved: z.boolean() })).mutation(({ ctx, input }) => updateV3VendorApproval(ctx.supabaseIdentity, input.profileId, input.approved)),
     createV3ItemRequest: publicProcedure.input(z.object({ title: z.string().trim().min(4).max(180), details: z.string().trim().min(10).max(3_000), budgetHint: z.number().positive().max(10_000_000).optional(), preferredFulfilment: z.enum(["siaya_pickup", "home_delivery", "collection_point", "special_order"]), preferredLocation: z.string().trim().max(180).optional() })).mutation(({ ctx, input }) => createV3ItemRequest(ctx.supabaseIdentity, input)),
     v3OwnerItemRequests: publicProcedure.query(({ ctx }) => listV3OwnerItemRequests(ctx.supabaseIdentity)),

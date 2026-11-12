@@ -276,6 +276,18 @@ describe("public performance and mobile foundations", () => {
     expect(cart).not.toMatch(/\.from\("orders"\)|insert\(.*orders/i);
   });
 
+  it("links hub orders only to unique buyer profiles and removes browser role-write grants", () => {
+    const orderLink = readFileSync(resolve(projectRoot, "supabase/migrations/20261112070100_v3_order_buyer_link.sql"), "utf8");
+    const roleHardening = readFileSync(resolve(projectRoot, "supabase/migrations/20261112070200_harden_legacy_profile_roles.sql"), "utf8");
+
+    expect(orderLink).toContain("REFERENCES public.profiles(id) ON DELETE SET NULL");
+    expect(orderLink).toContain("HAVING COUNT(*) = 1");
+    expect(roleHardening).toContain("REVOKE ALL PRIVILEGES ON TABLE public.marketplace_profiles FROM PUBLIC, anon, authenticated;");
+    expect(roleHardening).toContain("GRANT SELECT ON TABLE public.marketplace_profiles TO authenticated;");
+    expect(roleHardening).toContain('DROP POLICY IF EXISTS "profiles update self or admin"');
+    expect(roleHardening).not.toMatch(/GRANT\s+(?:INSERT|UPDATE|DELETE).*marketplace_profiles/i);
+  });
+
   it("uses the server-authorized V3 hub-order contract rather than a direct client database write", () => {
     const router = readFileSync(resolve(projectRoot, "server/routers.ts"), "utf8");
     const orders = readFileSync(resolve(projectRoot, "server/v3-orders.ts"), "utf8");
@@ -288,7 +300,8 @@ describe("public performance and mobile foundations", () => {
     expect(router).toContain("ctx.supabaseIdentity");
     expect(orders).toContain('payment_status: "PENDING"');
     expect(orders).toContain("randomInt(0, 10_000)");
-    expect(orders).toContain('eq("buyer_phone", buyer.phone_number)');
+    expect(orders).toContain('eq("buyer_profile_id", identity.subject)');
+    expect(orders).toContain("buyer_profile_id: identity.subject");
     expect(orders).toContain('in("order_status", ["PENDING_DROPOFF", "RECEIVED_AT_HUB"])');
     expect(profiles).toContain("normalizedKenyanPhone");
     expect(profiles).toContain("normalizedBuyerName");

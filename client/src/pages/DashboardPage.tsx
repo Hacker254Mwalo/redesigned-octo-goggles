@@ -3,6 +3,7 @@ import { MarketplaceLayout } from "@/components/MarketplaceLayout";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import { trpc } from "@/lib/trpc";
 import { ArrowRight, ClipboardList, LockKeyhole, PackageCheck, ShieldCheck, ShoppingBag, Store, UserRound } from "lucide-react";
+import BuyerHubOrdersPanel from "@/components/BuyerHubOrdersPanel";
 import { Link } from "wouter";
 
 const statusCopy: Record<string, string> = {
@@ -108,7 +109,7 @@ export default function DashboardPage() {
               <Link href="/vendor/upload" className="workspace-action-card">
                 <Store size={20} />
                 <h3>Seller Studio</h3>
-                <p>Publish listings after your seller account is approved.</p>
+                <p>Publish automatically after your seller account is approved, then manage listings and track orders.</p>
                 <span>Open Seller Studio <ArrowRight size={15} /></span>
               </Link>
               {vendorAccess.data?.isOwner && <Link href="/admin" className="workspace-action-card workspace-action-owner">
@@ -119,6 +120,8 @@ export default function DashboardPage() {
               </Link>}
             </div>
           </section>
+
+          <BuyerHubOrdersPanel />
 
           {buyerOrders.data && buyerOrders.data.length > 0 && (
             <section className="workspace-orders">

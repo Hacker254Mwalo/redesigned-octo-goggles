@@ -146,3 +146,47 @@ export async function submitV3OwnerProduct(identity: SupabaseIdentity | null, in
   if (!identity) throw new Error("Sign in with a verified owner email session.");
   return createV3Listing(input, { vendorId: null, isAdminConcierge: true, storagePrefix: "owner-listings", storageOwnerId: identity.subject, initialStatus: "PENDING" });
 }
+
+async function requireApprovedVendor(identity: SupabaseIdentity | null) {
+  if (!identity) throw new Error("Sign in with your verified vendor email session.");
+  const client = getSupabaseServiceClient();
+  const { data: profile } = await client.from("profiles").select("id,role,is_vendor,is_vendor_approved,vendor_agreement_accepted_at").eq("id", identity.subject).maybeSingle();
+  if (profile?.role === "admin" || !profile?.is_vendor || !profile.is_vendor_approved) throw new Error("An approved vendor profile is required.");
+  if (!profile.vendor_agreement_accepted_at) throw new Error("Accept the vendor agreement before managing listings.");
+  return client;
+}
+
+const vendorProductFields = "id,title,description,category_slug,image_url,base_price,final_price,stock_quantity,allow_pay_on_pickup,livestock_type,livestock_details,livestock_welfare_attested,livestock_movement_acknowledged,status";
+
+/** Return only the signed-in approved vendor's own listings, with a bounded Seller Studio view. */
+export async function listV3VendorProducts(identity: SupabaseIdentity | null) {
+  const client = await requireApprovedVendor(identity);
+  const { data, error } = await client.from("products").select(vendorProductFields).eq("vendor_id", identity!.subject).order("created_at", { ascending: false }).limit(100);
+  if (error) throw new Error("MtaaMarket could not load your listings.");
+  return data ?? [];
+}
+
+export type V3VendorListingUpdate = Omit<V3ListingSubmission, "imageData" | "imageType"> & { imageData?: string; imageType?: string };
+
+/** Update editable fields on exactly one owned product; status is deliberately never writable here. */
+export async function updateV3VendorProduct(identity: SupabaseIdentity | null, productId: string, input: V3VendorListingUpdate) {
+  const client = await requireApprovedVendor(identity);
+  if (!productId) throw new Error("Choose a valid listing to update.");
+  const normalized = normalizeListingSubmission({ ...input, imageData: input.imageData ?? "", imageType: input.imageType ?? "" });
+  const values: Record<string, unknown> = {
+    title: normalized.title, description: normalized.description, category_slug: input.categorySlug,
+    base_price: input.price, final_price: input.price, stock_quantity: input.stockQuantity,
+    allow_pay_on_pickup: input.allowPayOnPickup, livestock_type: normalized.livestockType,
+    livestock_details: normalized.livestockDetails, livestock_welfare_attested: normalized.livestockWelfareAttested,
+    livestock_movement_acknowledged: normalized.livestockMovementAcknowledged,
+  };
+  if (input.imageData !== undefined || input.imageType !== undefined) {
+    if (!input.imageData || !input.imageType) throw new Error("Provide both image data and image type when replacing the image.");
+    const { image, extension } = decodeVendorImage(input.imageData, input.imageType);
+    const { url } = await storagePut(`vendor-listings/${identity!.subject}/${randomUUID()}.${extension}`, image, input.imageType);
+    values.image_url = url;
+  }
+  const { data, error } = await client.from("products").update(values).eq("id", productId).eq("vendor_id", identity!.subject).select("id,status").maybeSingle();
+  if (error || !data) throw new Error("MtaaMarket could not update this vendor-owned listing.");
+  return data;
+}

@@ -12,6 +12,8 @@ import {
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import { trpc } from "@/lib/trpc";
 import { getV3ListingCategory, V3_LISTING_CATEGORIES, type V3ListingCategorySlug } from "@shared/v3-listing";
+import OwnerAccountDirectory from "@/components/OwnerAccountDirectory";
+import OwnerHubOrdersPanel from "@/components/OwnerHubOrdersPanel";
 import { ArrowRight, CalendarClock, ClipboardList, MapPin, PackageCheck, ShieldCheck, ShoppingCart } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { toast } from "sonner";
@@ -403,11 +405,13 @@ function JumiaOrderCard({ order, onRefresh }: { order: V3JumiaOrder; onRefresh: 
 
 export default function Admin() {
   const { configured, loading: sessionLoading, session } = useSupabaseAuth();
+  const utils = trpc.useUtils();
   const moderationQueue = trpc.marketplace.v3ModerationProducts.useQuery();
   const vendorApplications = trpc.marketplace.v3VendorApplications.useQuery(undefined, { enabled: Boolean(session), retry: false });
   const requestQueue = trpc.marketplace.v3OwnerItemRequests.useQuery(undefined, { enabled: Boolean(session), retry: false });
   const assistedOrderQueue = trpc.marketplace.v3OwnerAssistedOrders.useQuery(undefined, { enabled: Boolean(session), retry: false });
   const jumiaOrderQueue = trpc.marketplace.v3OwnerJumiaOrders.useQuery(undefined, { enabled: Boolean(session), retry: false });
+  const hubOrderQueue = trpc.marketplace.v3OwnerHubOrders.useQuery(undefined, { enabled: Boolean(session), retry: false });
   const [productToDelete, setProductToDelete] = useState<ModerationProduct | null>(null);
   const bootstrapOwner = trpc.marketplace.bootstrapV3Owner.useMutation({
     onSuccess: () => {
@@ -417,33 +421,34 @@ export default function Admin() {
       requestQueue.refetch();
       assistedOrderQueue.refetch();
       jumiaOrderQueue.refetch();
+      hubOrderQueue.refetch();
     },
     onError: error => toast.error(error.message),
   });
   const updateVendorApproval = trpc.marketplace.updateV3VendorApproval.useMutation({
-    onSuccess: result => {
-      toast.success(result.isApproved ? "Vendor approved for listings." : "Vendor listing access suspended.");
-      vendorApplications.refetch();
+    onSuccess: async result => {
+      toast.success(result.isApproved ? "Vendor approved for automatic listing publication." : "Vendor listing access suspended.");
+      await Promise.all([vendorApplications.refetch(), utils.marketplace.v3OwnerAccounts.invalidate()]);
     },
     onError: error => toast.error(error.message),
   });
   const moderate = trpc.marketplace.moderateV3Product.useMutation({
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success("Product moderation recorded.");
-      moderationQueue.refetch();
+      await Promise.all([moderationQueue.refetch(), utils.marketplace.products.invalidate()]);
     },
     onError: error => toast.error(error.message),
   });
   const remove = trpc.marketplace.deleteV3Product.useMutation({
-    onSuccess: () => {
+    onSuccess: async () => {
       setProductToDelete(null);
       toast.success("Product permanently removed.");
-      moderationQueue.refetch();
+      await Promise.all([moderationQueue.refetch(), utils.marketplace.products.invalidate()]);
     },
     onError: error => toast.error(error.message),
   });
   const actionPending = moderate.isPending || remove.isPending;
-  const refreshOwnerQueues = () => { requestQueue.refetch(); assistedOrderQueue.refetch(); jumiaOrderQueue.refetch(); };
+  const refreshOwnerQueues = () => { requestQueue.refetch(); assistedOrderQueue.refetch(); jumiaOrderQueue.refetch(); hubOrderQueue.refetch(); };
 
   function updateProduct(productId: string, status: "ACTIVE" | "REJECTED" | "FLAGGED") {
     moderate.mutate({ productId, status });
@@ -456,7 +461,7 @@ export default function Admin() {
           <div>
             <p className="eyebrow">Owner operations</p>
             <h1>Run the market with clarity.</h1>
-            <p>Review listings, seller access, requests, and customer fulfilment from one protected workspace. Every queue below is connected to live marketplace records.</p>
+            <p>Manage buyer and vendor accounts, seller access, listings, requests, and customer fulfilment from one protected workspace. Approved vendors publish listings automatically; you can monitor and moderate them here.</p>
           </div>
           <aside className="owner-console-badge"><ShieldCheck size={20} /><span>OWNER ONLY</span><strong>Founder control centre</strong><small>Changes are recorded against your verified owner session.</small></aside>
         </header>
@@ -464,13 +469,14 @@ export default function Admin() {
           <div><span>LISTINGS</span><strong>{moderationQueue.data ? moderationQueue.data.length : "—"}</strong><small>In moderation view</small></div>
           <div><span>SELLERS</span><strong>{vendorApplications.data ? vendorApplications.data.filter(item => !item.isApproved).length : "—"}</strong><small>Need an owner decision</small></div>
           <div><span>REQUESTS</span><strong>{requestQueue.data ? requestQueue.data.length : "—"}</strong><small>Private item requests</small></div>
-          <div><span>ORDERS</span><strong>{jumiaOrderQueue.data ? jumiaOrderQueue.data.filter(order => !["completed", "cancelled"].includes(order.status)).length : "—"}</strong><small>Open fulfilment records</small></div>
+          <div><span>OPEN ORDERS</span><strong>{jumiaOrderQueue.data && assistedOrderQueue.data && hubOrderQueue.data ? jumiaOrderQueue.data.filter(order => !["completed", "cancelled"].includes(order.status)).length + assistedOrderQueue.data.filter(order => !["completed", "cancelled"].includes(order.status)).length + hubOrderQueue.data.filter(order => !["COMPLETED", "CANCELLED"].includes(order.order_status)).length : "—"}</strong><small>Across the live fulfilment queues</small></div>
         </section>
 
+        {!moderationQueue.isError && !moderationQueue.isLoading && <OwnerAccountDirectory />}
         {moderationQueue.isError && <section className="owner-access-card"><ShieldCheck className="mb-3" aria-hidden="true" /><h2 className="font-semibold">Owner access required</h2><p className="mt-2 text-sm text-muted-foreground">Sign in with the verified founder email session to review listings. No product data is shown until the server confirms the owner role.</p>{configured && !sessionLoading && !session && <p className="mt-4 text-sm font-medium">Use the Account menu in the header to sign in first.</p>}{configured && !sessionLoading && session && <button className="primary-cta mt-5" disabled={bootstrapOwner.isPending} onClick={() => bootstrapOwner.mutate()}>{bootstrapOwner.isPending ? "Activating…" : "Founder: activate owner access"}</button>}</section>}
         {moderationQueue.isLoading && <section className="owner-loading-card" aria-live="polite"><h2 className="font-semibold">Loading the moderation queue</h2><p className="mt-2 text-sm text-muted-foreground">Checking your owner access and current listing states.</p></section>}
         {!moderationQueue.isError && !moderationQueue.isLoading && moderationQueue.data && <OwnerListingIntake onSubmitted={() => moderationQueue.refetch()} />}
-        {!moderationQueue.isError && !moderationQueue.isLoading && moderationQueue.data?.length === 0 && <section className="mt-8 rounded-2xl border bg-white p-6"><h2 className="font-semibold">No listings need review</h2><p className="mt-2 text-sm text-muted-foreground">New approved-vendor submissions will appear here as awaiting review.</p></section>}
+        {!moderationQueue.isError && !moderationQueue.isLoading && moderationQueue.data?.length === 0 && <section className="mt-8 rounded-2xl border bg-white p-6"><h2 className="font-semibold">No catalogue listings yet</h2><p className="mt-2 text-sm text-muted-foreground">Approved vendors can publish listings automatically. Listings appear here for owner monitoring and moderation.</p></section>}
 
         {!moderationQueue.isError && moderationQueue.data && moderationQueue.data.length > 0 && (
           <div className="mt-8 grid gap-5 sm:grid-cols-2">
@@ -498,6 +504,7 @@ export default function Admin() {
 
         {!moderationQueue.isError && !moderationQueue.isLoading && <section className="owner-console-section"><p className="eyebrow">Seller governance</p><h2 className="mt-2 text-2xl font-semibold">Agreement-backed vendor applications</h2><p className="mt-2 max-w-2xl text-sm text-muted-foreground">Approve vendors only after confirming their identity and agreement outside the public marketplace. Suspending access stops new listing submissions; it does not delete their past listing records.</p>{vendorApplications.isLoading && <p className="mt-5 text-sm text-muted-foreground" aria-live="polite">Loading vendor applications…</p>}{vendorApplications.data?.length === 0 && <p className="mt-5 rounded-xl border bg-white p-4 text-sm text-muted-foreground">No vendor applications have been submitted yet.</p>}{vendorApplications.data && vendorApplications.data.length > 0 && <div className="mt-5 grid gap-4 sm:grid-cols-2">{vendorApplications.data.map(application => <article className="rounded-2xl border bg-white p-5" key={application.id}><h3 className="font-semibold">{application.fullName || "Vendor application"}</h3><p className="mt-2 text-sm text-muted-foreground">Agreement: {application.agreementAcceptedAt ? "Recorded" : "Missing"}</p><p className="mt-1 text-sm text-muted-foreground">Status: {application.isApproved ? "Approved" : "Pending or suspended"}</p><button className="primary-cta mt-5" disabled={updateVendorApproval.isPending || !application.agreementAcceptedAt} onClick={() => updateVendorApproval.mutate({ profileId: application.id, approved: !application.isApproved })}>{application.isApproved ? "Suspend listing access" : "Approve vendor"}</button></article>)}</div>}</section>}
         {!moderationQueue.isError && !moderationQueue.isLoading && <>
+          <OwnerHubOrdersPanel />
           <section className="owner-console-section owner-fulfilment-section">
             <div className="owner-section-heading"><ShoppingCart className="mt-1 text-[#1b6a55]" aria-hidden="true" /><div><p className="eyebrow">Wider-selection order</p><h2 className="mt-2 text-2xl font-semibold">Normal customer orders</h2><p className="mt-2 max-w-2xl text-sm text-muted-foreground">These customer orders do not go through product approval. Confirm the current item and amount manually, accept or cancel before purchase, arrange collection or home delivery, and record payment only at hand-off.</p></div></div>
             {jumiaOrderQueue.isError && <p className="mt-5 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive" role="alert">MtaaMarket could not load the Jumia fulfilment queue. No order action was taken.</p>}

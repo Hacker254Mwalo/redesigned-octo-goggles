@@ -7,7 +7,7 @@ import { getSupabaseServiceClient } from "./supabase";
 import { storagePut } from "./storage";
 import { deleteV3Product, listV3ModerationProducts, moderateV3Product } from "./v3-moderation";
 import { createV3HubOrder } from "./v3-orders";
-import { submitV3OwnerProduct, submitV3VendorProduct } from "./v3-vendor";
+import { listV3VendorProducts, submitV3OwnerProduct, submitV3VendorProduct, updateV3VendorProduct } from "./v3-vendor";
 
 const vendorIdentity = { subject: "11111111-1111-4111-8111-111111111111", email: "vendor@example.test", issuedAt: 0 };
 const ownerIdentity = { subject: "22222222-2222-4222-8222-222222222222", email: "owner@example.test", issuedAt: 0 };
@@ -128,6 +128,46 @@ describe("V3 owner product intake", () => {
 
     await expect(submitV3OwnerProduct(vendorIdentity, validVendorListing)).rejects.toThrow("Owner access is required");
     expect(storagePut).not.toHaveBeenCalled();
+  });
+});
+
+describe("V3 vendor-owned listings", () => {
+  const approvedVendor = () => profileQuery({ id: vendorIdentity.subject, is_vendor: true, is_vendor_approved: true, vendor_agreement_accepted_at: "2026-08-27T00:00:00.000Z" });
+
+  it("returns bounded Seller Studio fields scoped to the signed-in vendor", async () => {
+    const profile = approvedVendor();
+    const products = { select: vi.fn(), eq: vi.fn(), order: vi.fn(), limit: vi.fn() };
+    products.select.mockReturnValue(products); products.eq.mockReturnValue(products); products.order.mockReturnValue(products);
+    products.limit.mockResolvedValue({ data: [{ id: "listing-1", status: "ACTIVE" }], error: null });
+    vi.mocked(getSupabaseServiceClient).mockReturnValue({ from: vi.fn().mockImplementation((table: string) => table === "profiles" ? profile : products) } as never);
+    await expect(listV3VendorProducts(vendorIdentity)).resolves.toEqual([{ id: "listing-1", status: "ACTIVE" }]);
+    expect(products.eq).toHaveBeenCalledWith("vendor_id", vendorIdentity.subject);
+    expect(products.limit).toHaveBeenCalledWith(100);
+    expect(products.select).toHaveBeenCalledWith(expect.stringContaining("livestock_type"));
+  });
+
+  it("updates only the vendor-owned listing and omits status, preserving ACTIVE or FLAGGED moderation state", async () => {
+    for (const status of ["ACTIVE", "FLAGGED"]) {
+      const profile = approvedVendor();
+      const products = { update: vi.fn(), eq: vi.fn(), select: vi.fn(), maybeSingle: vi.fn() };
+      products.update.mockReturnValue(products); products.eq.mockReturnValue(products); products.select.mockReturnValue(products);
+      products.maybeSingle.mockResolvedValue({ data: { id: "listing-1", status }, error: null });
+      vi.mocked(getSupabaseServiceClient).mockReturnValue({ from: vi.fn().mockImplementation((table: string) => table === "profiles" ? profile : products) } as never);
+      await expect(updateV3VendorProduct(vendorIdentity, "listing-1", { title: "Updated cooking pot", categorySlug: "home-kitchen", price: 1700, stockQuantity: 4, allowPayOnPickup: true })).resolves.toEqual({ id: "listing-1", status });
+      expect(products.eq).toHaveBeenNthCalledWith(1, "id", "listing-1");
+      expect(products.eq).toHaveBeenNthCalledWith(2, "vendor_id", vendorIdentity.subject);
+      expect(products.update.mock.calls[0][0]).not.toHaveProperty("status");
+    }
+  });
+
+  it("rejects another vendor's listing when the ownership-scoped update returns no row", async () => {
+    const profile = approvedVendor();
+    const products = { update: vi.fn(), eq: vi.fn(), select: vi.fn(), maybeSingle: vi.fn() };
+    products.update.mockReturnValue(products); products.eq.mockReturnValue(products); products.select.mockReturnValue(products);
+    products.maybeSingle.mockResolvedValue({ data: null, error: null });
+    vi.mocked(getSupabaseServiceClient).mockReturnValue({ from: vi.fn().mockImplementation((table: string) => table === "profiles" ? profile : products) } as never);
+    await expect(updateV3VendorProduct(vendorIdentity, "other-vendor-listing", { title: "Updated cooking pot", categorySlug: "home-kitchen", price: 1700, stockQuantity: 4, allowPayOnPickup: true })).rejects.toThrow("vendor-owned listing");
+    expect(products.eq).toHaveBeenCalledWith("vendor_id", vendorIdentity.subject);
   });
 });
 
