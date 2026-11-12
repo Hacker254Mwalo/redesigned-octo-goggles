@@ -8,13 +8,13 @@ export default function PrivacyPage() {
         <header className="rounded-3xl bg-[#0e2f27] px-6 py-9 text-white shadow-sm sm:px-10">
           <p className="eyebrow text-[#d7a95b]">Privacy and account data</p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">A clear, limited use of your account details.</h1>
-          <p className="mt-4 max-w-2xl text-sm leading-6 text-white/80">Siaya Online MtaaMarket uses account information only to provide sign-in, protect the marketplace, and support buyer-only account preparation while protected marketplace operations remain unavailable.</p>
+          <p className="mt-4 max-w-2xl text-sm leading-6 text-white/80">Siaya Mtaa Market uses account details to secure sign-in, support role-scoped marketplace tools, and coordinate requests and orders.</p>
         </header>
 
         <div className="mt-8 space-y-6 text-sm leading-7 text-[#29443a]">
           <section className="rounded-2xl border border-[#dce5dc] bg-white p-6 shadow-sm">
             <h2 className="text-xl font-semibold text-[#0e2f27]">What MtaaMarket collects</h2>
-            <p className="mt-3">When you choose an account method, MtaaMarket processes the identity details returned by the selected provider, such as an email address and basic account identifier. Passwords are sent only to the configured authentication provider and are not displayed or stored by MtaaMarket’s browser interface.</p>
+            <p className="mt-3">When you create or use an account, MtaaMarket processes your sign-in details, such as email and the provider account identifier, plus the Kenyan mobile number you add for marketplace and order contact. We use that number for relevant follow-up; this flow does not verify it by SMS. Passwords are handled by the authentication provider and are not displayed in the marketplace interface.</p>
           </section>
 
           <section className="rounded-2xl border border-[#dce5dc] bg-white p-6 shadow-sm">
@@ -24,7 +24,7 @@ export default function PrivacyPage() {
 
           <section className="rounded-2xl border border-[#dce5dc] bg-white p-6 shadow-sm">
             <h2 className="text-xl font-semibold text-[#0e2f27]">How MtaaMarket uses and protects it</h2>
-            <p className="mt-3">We use account details to authenticate you, prevent misuse, and prepare a buyer profile. We do not sell account information or use it for advertising surveillance. Seller access, owner roles, orders, payment, delivery, and private buyer-to-vendor information sharing require separate protected workflows and are not enabled by signing in.</p>
+            <p className="mt-3">We use account details to authenticate you, prevent misuse, and support role-scoped buyer and seller tools. We do not sell account information or use it for advertising surveillance. Signing in alone does not place an order or take payment; marketplace actions use separate protected workflows and clear user confirmation.</p>
           </section>
 
           <section className="rounded-2xl border border-[#dce5dc] bg-white p-6 shadow-sm">

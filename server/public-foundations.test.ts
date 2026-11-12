@@ -32,6 +32,10 @@ describe("public performance and mobile foundations", () => {
     const head = readFileSync(resolve(projectRoot, "client/index.html"), "utf8");
     const app = readFileSync(resolve(projectRoot, "client/src/App.tsx"), "utf8");
     const productDetail = readFileSync(resolve(projectRoot, "client/src/pages/ProductDetail.tsx"), "utf8");
+    const layout = readFileSync(resolve(projectRoot, "client/src/components/MarketplaceLayout.tsx"), "utf8");
+    const sharePrompt = readFileSync(resolve(projectRoot, "client/src/components/MtaaSharePrompt.tsx"), "utf8");
+    const privacy = readFileSync(resolve(projectRoot, "client/src/pages/PrivacyPage.tsx"), "utf8");
+    const vendorProductForm = readFileSync(resolve(projectRoot, "client/src/components/VendorProductForm.tsx"), "utf8");
 
     expect(head).toContain('"alternateName":"MtaaMarket"');
     expect(head).toContain("Siaya Mtaa Market — Buy local in Siaya, Bondo &amp; Ugunja");
@@ -52,6 +56,12 @@ describe("public performance and mobile foundations", () => {
     expect(productDetail).toContain("${product.title} | Siaya Mtaa Market");
     expect(productDetail).toContain('meta[property="og:url"]');
     expect(productDetail).toContain('meta[property="og:image"]');
+    expect(layout).toContain('aria-label="Siaya Mtaa Market home"');
+    expect(layout).not.toContain("Siaya Online");
+    expect(sharePrompt).toContain('const shareTitle = "Siaya Mtaa Market"');
+    expect(privacy).toContain("Kenyan mobile number you add");
+    expect(privacy).not.toContain("buyer-only account preparation");
+    expect(vendorProductForm).toContain("Listing is now live on Siaya Mtaa Market.");
   });
 
   it("does not load an unresolved analytics provider placeholder in the public document", () => {
@@ -114,7 +124,8 @@ describe("public performance and mobile foundations", () => {
     expect(dialog).toContain("How account data is used");
     expect(privacy).toContain("Google sign-in");
     expect(privacy).toContain("does not request access to your Google Drive");
-    expect(privacy).toContain("Seller access, owner roles, orders, payment, delivery");
+    expect(privacy).toContain("role-scoped buyer and seller tools");
+    expect(privacy).toContain("Signing in alone does not place an order or take payment");
     expect(callback).toContain("Siaya Mtaa Market secure sign-in");
     expect(callback).not.toContain("You are signed in with email.");
   });

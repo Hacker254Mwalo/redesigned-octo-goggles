@@ -1,7 +1,7 @@
 import { Check, Copy, Share2 } from "lucide-react";
 import { useState } from "react";
 
-const shareTitle = "Siaya Online MtaaMarket";
+const shareTitle = "Siaya Mtaa Market";
 const shareText = "A local market for physical products and owner-managed item requests serving Siaya buyers.";
 
 export function MtaaSharePrompt() {
