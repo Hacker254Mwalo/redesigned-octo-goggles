@@ -37,7 +37,36 @@ describe("public performance and mobile foundations", () => {
     const privacy = readFileSync(resolve(projectRoot, "client/src/pages/PrivacyPage.tsx"), "utf8");
     const vendorProductForm = readFileSync(resolve(projectRoot, "client/src/components/VendorProductForm.tsx"), "utf8");
 
-    expect(head).toContain('"alternateName":"MtaaMarket"');
+    const jsonLdMatch = head.match(/<script type="application\/ld\+json">\s*([\s\S]*?)\s*<\/script>/);
+    expect(jsonLdMatch).not.toBeNull();
+    const jsonLd = JSON.parse(jsonLdMatch?.[1] ?? "{}") as {
+      "@graph": Array<{ "@type": string; [key: string]: unknown }>;
+    };
+    const organization = jsonLd["@graph"].find(entity => entity["@type"] === "Organization");
+    const website = jsonLd["@graph"].find(entity => entity["@type"] === "WebSite");
+
+    expect(organization).toMatchObject({
+      name: "Siaya Mtaa Market",
+      alternateName: "MtaaMarket",
+      url: "https://www.siayaonlinemarket.online/",
+      areaServed: [
+        "Siaya town, Siaya County, Kenya",
+        "Bondo, Siaya County, Kenya",
+        "Ugunja, Siaya County, Kenya",
+        "Yala, Siaya County, Kenya",
+      ],
+      contactPoint: {
+        "@type": "ContactPoint",
+        contactType: "Orders via WhatsApp",
+        url: "https://wa.me/254707976424",
+      },
+    });
+    expect(organization).not.toHaveProperty("sameAs");
+    expect(website).toMatchObject({
+      name: "Siaya Mtaa Market",
+      alternateName: "MtaaMarket",
+      publisher: { "@id": "https://www.siayaonlinemarket.online/#organization" },
+    });
     expect(head).toContain("Siaya Mtaa Market — Buy local in Siaya, Bondo &amp; Ugunja");
     expect(head).toContain('property="og:description"');
     expect(head).toContain('name="description"');
