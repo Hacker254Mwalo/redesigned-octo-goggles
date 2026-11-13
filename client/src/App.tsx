@@ -21,6 +21,7 @@ const SupabaseAuthCallbackPage = lazy(() => import("./pages/SupabaseAuthCallback
 const VendorPage = lazy(() => import("./pages/VendorPage"));
 const Admin = lazy(() => import("./pages/Admin"));
 const VendorUpload = lazy(() => import("./pages/VendorUpload"));
+const TermsPage = lazy(() => import("./pages/TermsPage"));
 
 const routeSeo: Record<string, { title: string; description: string; index: boolean }> = {
   "/": {
@@ -51,6 +52,11 @@ const routeSeo: Record<string, { title: string; description: string; index: bool
   "/privacy": {
     title: "Privacy and account data | Siaya Mtaa Market",
     description: "Read how Siaya Mtaa Market protects account information and handles data used for marketplace requests and orders.",
+    index: true,
+  },
+  "/terms": {
+    title: "Terms of use | Siaya Mtaa Market",
+    description: "Read how local orders, sourced-item requests, availability checks, payment and hand-off work on Siaya Mtaa Market.",
     index: true,
   },
   "/auth/callback": {
@@ -123,6 +129,7 @@ function Router() {
         <Route path={"/products/:slug"} component={ProductDetail} />
         <Route path={"/cart"} component={CartPage} />
         <Route path={"/privacy"} component={PrivacyPage} />
+        <Route path={"/terms"} component={TermsPage} />
         <Route path={"/stations"} component={PickupStations} />
         <Route path={"/request"} component={RequestDeskPage} />
         <Route path={"/jumia"} component={JumiaStorePage} />

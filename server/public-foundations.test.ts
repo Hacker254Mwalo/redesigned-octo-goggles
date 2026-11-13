@@ -163,6 +163,7 @@ describe("public performance and mobile foundations", () => {
     expect(app).toContain('"/auth/reset-password": {');
     expect(app).toContain('title: "Reset your password | Siaya Mtaa Market"');
     expect(layout).toContain('href="/privacy"');
+    expect(layout).toContain('href="/terms"');
     expect(dialog).toContain("How account data is used");
     expect(privacy).toContain("Google sign-in");
     expect(privacy).toContain("does not request access to your Google Drive");
@@ -170,6 +171,22 @@ describe("public performance and mobile foundations", () => {
     expect(privacy).toContain("Signing in alone does not place an order or take payment");
     expect(callback).toContain("Siaya Mtaa Market secure sign-in");
     expect(callback).not.toContain("You are signed in with email.");
+  });
+
+  it("publishes clear order and sourcing terms and links them from signup", () => {
+    const app = readFileSync(resolve(projectRoot, "client/src/App.tsx"), "utf8");
+    const terms = readFileSync(resolve(projectRoot, "client/src/pages/TermsPage.tsx"), "utf8");
+    const signup = readFileSync(resolve(projectRoot, "client/src/components/SignUpModal.tsx"), "utf8");
+    const sitemap = readFileSync(resolve(projectRoot, "client/public/sitemap.xml"), "utf8");
+
+    expect(app).toContain('path={"/terms"} component={TermsPage}');
+    expect(app).toContain('"/terms": {');
+    expect(signup).toContain('href="/terms">Terms</Link>');
+    expect(sitemap).toContain("https://www.siayaonlinemarket.online/terms");
+    expect(terms).toContain("does not mean availability or a collection point has been confirmed");
+    expect(terms).toContain("clearly disclosed sourcing or handling margin");
+    expect(terms).toContain("Nothing in these terms excludes responsibility that cannot lawfully be excluded");
+    expect(terms).toContain("We are not affiliated with Jumia");
   });
 
   it("keeps the dashboard on the unified V3 founder workspace without invoking legacy operations panels", () => {
@@ -219,6 +236,7 @@ describe("public performance and mobile foundations", () => {
     const app = readFileSync(resolve(projectRoot, "client/src/App.tsx"), "utf8");
     const vercel = readFileSync(resolve(projectRoot, "vercel.json"), "utf8");
     const robots = readFileSync(resolve(projectRoot, "client/public/robots.txt"), "utf8");
+    const catalog = readFileSync(resolve(projectRoot, "client/src/pages/JumiaStorePage.tsx"), "utf8");
 
     expect(app).toContain('"/jumia"');
     expect(app).toContain("index: false");
@@ -226,6 +244,16 @@ describe("public performance and mobile foundations", () => {
     expect(vercel).toContain('"key": "X-Robots-Tag"');
     expect(vercel).toContain('"value": "noindex, follow"');
     expect(robots).not.toContain("Disallow: /jumia");
+    expect(catalog).toContain('label: "Mattresses"');
+    expect(catalog).toContain('label: "Fridges"');
+    expect(catalog).toContain('label: "Freezers"');
+    expect(catalog).toContain('label: "Gas cookers"');
+    expect(catalog).toContain('label: "Power banks"');
+    expect(catalog).toContain('label: "Solar panels & kits"');
+    expect(catalog).toContain('label: "Furniture"');
+    expect(catalog).toContain("Retailer price seen");
+    expect(catalog).toContain("final total with you before any payment");
+    expect(catalog).toContain("We will update you with the confirmed item");
   });
 
   it("does not expose a Request Desk AI action that relies on the pending protected account migration", () => {

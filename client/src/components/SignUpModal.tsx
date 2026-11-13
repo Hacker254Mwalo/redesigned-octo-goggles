@@ -177,7 +177,7 @@ export function SignUpModal({
           <button type="button" className="font-medium underline underline-offset-2" onClick={onSwitchToSignIn}>Sign in</button>
         </p>
         <p className="mt-4 text-center text-xs text-gray-500">
-          By continuing, you agree to our Terms and <Link className="underline underline-offset-2" href="/privacy">Privacy Policy</Link>.
+          By continuing, you agree to our <Link className="underline underline-offset-2" href="/terms">Terms</Link> and <Link className="underline underline-offset-2" href="/privacy">Privacy Policy</Link>.
         </p>
       </form>
     </div>
