@@ -8,13 +8,15 @@ type BuyerHubOrder = {
   amount: number | string;
   payment_method: string;
   payment_status: string;
+  quantity: number;
+  stock_review_status: "pending" | "confirmed" | "unavailable";
   order_status: "PENDING_DROPOFF" | "RECEIVED_AT_HUB" | "COMPLETED" | "CANCELLED";
   pickup_pin: string | null;
   pickup_station: string;
   products: { title?: string | null; image_url?: string | null } | { title?: string | null; image_url?: string | null }[] | null;
 };
 
-const statusCopy: Record<BuyerHubOrder["order_status"], string> = {
+const fulfillmentStatusCopy: Record<BuyerHubOrder["order_status"], string> = {
   PENDING_DROPOFF: "Waiting for item at hub",
   RECEIVED_AT_HUB: "Ready at collection point",
   COMPLETED: "Collected",
@@ -49,23 +51,28 @@ export default function BuyerHubOrdersPanel() {
       {!query.isLoading && !query.isError && orders.length === 0 && <p className="workspace-order-message">No Siaya Mtaa Market hub pickup orders are linked to your account yet.</p>}
       {!query.isLoading && !query.isError && orders.length > 0 && (
         <div className="buyer-hub-order-grid">
-          {orders.map(order => {
+      {orders.map(order => {
             const product = productFor(order);
             const isOpen = order.order_status === "PENDING_DROPOFF" || order.order_status === "RECEIVED_AT_HUB";
+            const status = order.stock_review_status === "pending" ? "Order placed" : order.stock_review_status === "unavailable" ? "Unavailable" : order.order_status === "PENDING_DROPOFF" ? "Order confirmed" : fulfillmentStatusCopy[order.order_status] || order.order_status;
             return (
               <article className="buyer-hub-order-card" key={order.id}>
                 <div className="buyer-hub-order-head">
                   {product?.image_url ? <img src={product.image_url} alt="" /> : <span className="buyer-hub-order-placeholder"><PackageCheck size={19} aria-hidden="true" /></span>}
                   <div><small>Order #{order.id.slice(0, 8)}</small><h3>{product?.title || (order.product_id ? "Marketplace item" : "Removed marketplace item")}</h3></div>
                 </div>
-                <span className={`buyer-hub-order-status status-${order.order_status.toLowerCase()}`}>{statusCopy[order.order_status] || order.order_status}</span>
+                <span className={`buyer-hub-order-status status-${order.stock_review_status === "pending" ? "pending-review" : order.order_status.toLowerCase()}`}>{status}</span>
+                {order.stock_review_status === "pending" && <p className="buyer-hub-order-note">Your order is received. Check your account for updates.</p>}
+                {order.stock_review_status === "unavailable" && <p className="buyer-hub-order-note">This item could not be supplied. No payment was collected.</p>}
                 <dl className="buyer-hub-order-facts">
+                  <div><dt>Quantity</dt><dd>{order.quantity}</dd></div>
                   <div><dt>Amount</dt><dd>KES {Number(order.amount).toLocaleString("en-KE")}</dd></div>
-                  <div><dt>Collection point</dt><dd><MapPin size={13} aria-hidden="true" />{order.pickup_station || "To be confirmed by MtaaMarket"}</dd></div>
+                  <div><dt>Preferred collection area</dt><dd><MapPin size={13} aria-hidden="true" />{order.pickup_station || "To be confirmed by MtaaMarket"}</dd></div>
+                  {order.stock_review_status === "confirmed" && <div><dt>Collection point</dt><dd><MapPin size={13} aria-hidden="true" />Confirmed by MtaaMarket</dd></div>}
                   <div><dt>Placed</dt><dd><CalendarDays size={13} aria-hidden="true" />{dateLabel(order.created_at)}</dd></div>
                   <div><dt>Payment</dt><dd>{order.payment_status === "PENDING" ? "Due at confirmed hand-off" : order.payment_status}</dd></div>
                 </dl>
-                {isOpen && order.pickup_pin && <div className="buyer-hub-order-pin"><KeyRound size={16} aria-hidden="true" /><span><small>Your pickup PIN</small><strong>{order.pickup_pin}</strong></span></div>}
+                {order.stock_review_status === "confirmed" && isOpen && order.pickup_pin && <div className="buyer-hub-order-pin"><KeyRound size={16} aria-hidden="true" /><span><small>Your pickup PIN</small><strong>{order.pickup_pin}</strong></span></div>}
               </article>
             );
           })}

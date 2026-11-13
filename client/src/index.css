@@ -217,3 +217,10 @@ body{font-family:"DM Sans",sans-serif;color:var(--ink);background:var(--cream)}
 @media (max-width:980px){.buyer-hub-order-grid,.owner-hub-order-list{grid-template-columns:1fr}.seller-listing-grid{grid-template-columns:1fr}}
 @media (max-width:760px){.seller-listings-panel{padding:18px}.seller-panel-heading h2{font-size:22px}.seller-listing-card{grid-template-columns:88px minmax(0,1fr)}.seller-listing-card>img{width:88px;min-height:142px}.seller-edit-form{padding:13px}.seller-edit-helper-row{align-items:flex-start;flex-direction:column}.seller-order-row{grid-template-columns:1fr auto;gap:8px}.seller-order-row>.seller-order-status{grid-column:1/3}.seller-order-row>strong{grid-column:1/3;white-space:normal}.seller-order-row>small{grid-column:1/3}.buyer-hub-order-facts{grid-template-columns:1fr 1fr}.buyer-hub-order-card{padding:13px}.owner-hub-order-list{grid-template-columns:1fr}}
 @media (max-width:420px){.seller-upload-image-preview,.seller-edit-photo-preview{align-items:flex-start;flex-direction:column}.seller-upload-image-preview img,.seller-edit-photo-preview img{width:100%;height:150px}.seller-panel-heading{align-items:flex-start;flex-direction:column}.seller-listing-card{grid-template-columns:74px minmax(0,1fr)}.seller-listing-card>img{width:74px;min-height:154px}.buyer-hub-order-facts{grid-template-columns:1fr}.buyer-hub-order-head>img,.buyer-hub-order-placeholder{width:44px;height:44px}}
+
+/* Buyer order acknowledgement: placed, not yet confirmed against stock. */
+.buyer-hub-order-status.status-pending-review,
+.owner-hub-order-status.status-pending-review {
+  background: #fff3d7;
+  color: #8e6b28;
+}

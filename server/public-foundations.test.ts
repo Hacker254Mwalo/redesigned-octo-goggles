@@ -323,14 +323,15 @@ describe("public performance and mobile foundations", () => {
     expect(requestDesk).not.toMatch(/(?:Jumia|JForce|founder|fetch\(|axios|invokeLLM|checkout\()/i);
   });
 
-  it("keeps the Siaya hub and payment choices as confirmation-gated basket preferences", () => {
+  it("keeps the Siaya pickup area as an order preference and takes no online payment", () => {
     const cart = readFileSync(resolve(projectRoot, "client/src/pages/CartPage.tsx"), "utf8");
     const detail = readFileSync(resolve(projectRoot, "client/src/pages/ProductDetail.tsx"), "utf8");
 
     expect(cart).toContain("Confirmed by MtaaMarket");
     expect(cart).toContain("Pay on collection after confirmation");
     expect(cart).not.toMatch(/G4S|Jumia Hub/);
-    expect(detail).toContain("Collection route: confirmed by MtaaMarket");
+    expect(detail).toContain("Preferred Siaya pickup area");
+    expect(detail).toContain("No payment is collected here.");
     expect(detail).not.toMatch(/G4S|Jumia Hub/);
     expect(cart).toContain("Pay via M-Pesa");
     expect(cart).toContain("Pay on collection after confirmation");
@@ -355,6 +356,7 @@ describe("public performance and mobile foundations", () => {
     const orders = readFileSync(resolve(projectRoot, "server/v3-orders.ts"), "utf8");
     const detail = readFileSync(resolve(projectRoot, "client/src/pages/ProductDetail.tsx"), "utf8");
     const profiles = readFileSync(resolve(projectRoot, "server/v3-profiles.ts"), "utf8");
+    const orderReviewMigration = readFileSync(resolve(projectRoot, "supabase/migrations/20261113221200_v3_order_stock_review.sql"), "utf8");
 
     expect(router).toContain("createV3HubOrder");
     expect(router).toContain("v3BuyerOrderAccess");
@@ -368,10 +370,15 @@ describe("public performance and mobile foundations", () => {
     expect(profiles).toContain("normalizedKenyanPhone");
     expect(profiles).toContain("normalizedBuyerName");
     expect(orders).toContain("buyer?.full_name");
-    expect(detail).toContain("Confirm collection request");
+    expect(detail).toContain("Place order ·");
     expect(detail).toContain("Save collection details & continue");
-    expect(detail).toContain("Your MtaaMarket pickup PIN is:");
-    expect(detail).not.toContain("confirmV3Order.mutate({ productId: product.id, buyerPhone");
+    expect(detail).toContain("confirmV3Order.mutate({ productId: product.id, quantity, pickupPreference })");
+    expect(orders).toContain('stock_review_status: "pending"');
+    expect(orders).toContain('order.stock_review_status === "confirmed" ? order.pickup_pin : null');
+    expect(orders).not.toContain("buyerPhone");
+    expect(orderReviewMigration).toContain("FOR UPDATE");
+    expect(orderReviewMigration).toContain("GRANT EXECUTE ON FUNCTION public.review_v3_order_stock(uuid, text, boolean) TO service_role");
+    expect(orderReviewMigration).toContain("ADD COLUMN IF NOT EXISTS stock_review_status text NOT NULL DEFAULT 'confirmed'");
     expect(detail).not.toMatch(/\.from\("orders"\)|insert\(.*orders/i);
   });
 
@@ -407,7 +414,7 @@ describe("public performance and mobile foundations", () => {
     expect(vendorUpload).toContain("livestockMovementAcknowledged");
     expect(vendor).toContain('categorySlug === "poultry-livestock"');
     expect(vendor).toContain("Poultry and livestock listings must use manual MtaaMarket handover confirmation");
-    expect(orders).toContain("Poultry and livestock handovers require MtaaMarket confirmation");
+    expect(orders).toContain("Poultry and livestock handovers require manual MtaaMarket confirmation");
   });
 
   it("keeps a conservative vendor-chunk strategy for public performance", () => {

@@ -14,7 +14,7 @@ The production `marketplace_profiles` table currently grants browser roles broad
 
 ### Vendor workspace and listing lifecycle
 
-The owner approves or suspends the vendor account once. After approval, new seller listings publish automatically as `ACTIVE`; do not require a separate owner approval for every listing. Retain server-side checks that only a signed-in, agreement-backed, approved vendor can create or edit their own products. Add a seller-facing listing manager in `/vendor/upload` so vendors can review their listings and edit the listing fields and replace the image. Keep ordinary active listings active after edits; if the owner has flagged, rejected, or removed a listing, vendor edits must not silently undo that moderation action. Preserve owner controls to monitor and pause/restore/remove listings.
+The owner approves or suspends the vendor account once. After approval, new seller listings publish automatically as `ACTIVE`; do not require a separate owner approval for every listing. Retain server-side checks that only a signed-in, agreement-backed, approved vendor can create or edit their own products. Add a seller-facing listing manager in `/vendor/upload` so vendors can review their listings and edit the listing fields and replace the image. Keep ordinary active listings active after edits; if a product is flagged, rejected, or removed by a separately authorized process, vendor edits must not silently undo that state. Do not reintroduce the removed per-product moderation queue in Admin.
 
 Upgrade the upload experience using the existing local image-preparation and AI copy-drafting helpers: make supported formats and size/dimension rules easy to understand, show a preview, offer a clear replace-image flow, and provide accurate guidance while composing or editing a listing. Do not add an external paid service or upload an image the seller did not select.
 
@@ -22,13 +22,13 @@ Make repeat vendor onboarding idempotent: a previously approved seller who revis
 
 ### Buyer, vendor, and admin order tracking
 
-Add a stable `buyer_profile_id` relationship to the V3 hub-pickup `orders` table and backfill existing orders only where the saved buyer phone uniquely matches a V3 profile. This lets a buyer see their own hub-pickup status in `/dashboard` even if their contact number changes later. Preserve the existing order status set: `PENDING_DROPOFF`, `RECEIVED_AT_HUB`, `COMPLETED`, and `CANCELLED`; do not add payment or checkout behavior.
+Keep the stable `buyer_profile_id` relationship on V3 hub-pickup orders. Add a real server-recorded order submission from an active listing, with quantity and a customer-entered preferred Siaya pickup area. Require the signed-in buyer's saved name and Kenyan phone. A newly placed order begins in a separate `stock_review_status=pending` state; payment is not collected. The buyer sees “Order placed” while pending, “Order confirmed” only after the owner verifies stock, or “Unavailable” if the owner cannot fulfil it. Never show a pickup PIN before owner confirmation. Preserve fulfillment states `PENDING_DROPOFF`, `RECEIVED_AT_HUB`, `COMPLETED`, and `CANCELLED` and keep payment status pending until hand-off.
 
-Show a buyer's own hub-pickup orders alongside existing Jumia order updates in `/dashboard`, including item, amount, current status, collection point, and the buyer's pickup PIN. Add an admin-only hub-order queue in `/admin` that can advance only valid fulfillment transitions; payment status remains untouched. Give an approved vendor a read-only view of order activity for that vendor's own products without revealing another buyer's phone number or pickup PIN. Keep all three views inside the existing site and existing role-aware workspaces.
+Show a buyer's own V3 orders alongside existing order updates in `/dashboard`, including item, quantity, amount, clear order state, preferred/confirmed pickup point, and a pickup PIN only after owner confirmation. Add an admin-only order-review queue in `/admin`: show buyer contact only to the owner; allow the owner to confirm availability (atomically reserve the verified quantity), mark unavailable (optionally set listing stock to zero), and advance valid fulfillment transitions. Preserve the order record for audit rather than deleting it. Payment status remains pending until hand-off. Give approved vendors a read-only view of their own product orders without buyer phone or pickup PIN. No online payment is added.
 
 ### Responsive owner workspace
 
-Add an “Accounts” section to the existing `/admin` owner control centre with role/vendor-state filters, search within the loaded page, and next/previous pagination. Preserve existing vendor approval, listing moderation, request, assisted-order and wider-selection fulfillment sections, and add the V3 hub-order tracking queue. Make the directory, order cards, and action controls wrap cleanly at phone widths. Keep the current protected console treatment, typography, navy surface, muted neutral backgrounds, and amber approval cues; avoid unrelated public-page redesign or decorative imagery.
+Add an “Accounts” section to the existing `/admin` owner control centre with role/vendor-state filters, search within the loaded page, and next/previous pagination. Preserve vendor approval/governance, requests, assisted-order and wider-selection fulfillment tools, and the V3 hub-order review queue; do not restore per-product moderation. Make the directory, order cards, and action controls wrap cleanly at phone widths. Keep the current protected console treatment, typography, navy surface, muted neutral backgrounds, and amber approval cues; avoid unrelated public-page redesign or decorative imagery.
 
 ## Project structure
 
@@ -37,8 +37,10 @@ Add an “Accounts” section to the existing `/admin` owner control centre with
 - `client/src/pages/VendorUpload.tsx` contains guided listing creation, image preview/replacement, and the seller’s own listing manager.
 - `client/src/pages/DashboardPage.tsx` presents account details and the buyer’s own hub/Jumia order activity.
 - `server/v3-profiles.ts` owns owner-checked account listing and stable role/vendor checks; `server/v3-vendor.ts` owns automatic listing creation, owner-checked listing edits, and vendor-owned listing/order views; `server/v3-moderation.ts` remains the owner moderation boundary.
-- `server/v3-orders.ts` owns identity-scoped buyer/vendor order lists and owner-checked fulfillment updates; `server/routers.ts` exposes narrow validated inputs.
-- `supabase/migrations/` contains additive role-write hardening and buyer/order-linking migrations.
+- `server/v3-orders.ts` owns identity-scoped buyer/vendor order lists, buyer order creation, owner-only stock review, and fulfillment updates; `server/routers.ts` exposes narrow validated inputs.
+- `client/src/pages/ProductDetail.tsx` collects order quantity and preferred pickup area, then submits a real order without collecting payment.
+- `client/src/components/OwnerHubOrdersPanel.tsx` separates pending stock checks from confirmed fulfillment and shows buyer contact only within the protected owner console.
+- `supabase/migrations/` contains additive role-write hardening, buyer/order linking, and atomic stock-review/inventory reservation migration.
 - `client/src/index.css` contains the account-directory, listing-manager and narrow-screen layout rules; existing V3 profile, commerce and moderation tests are extended for the new behavior.
 
 ## Design

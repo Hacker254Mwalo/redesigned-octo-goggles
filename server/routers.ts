@@ -49,7 +49,7 @@ import { createItemRequestDraft, createListingDraft } from "./marketplace-ai";
 import { getProductionReadiness } from "./production-readiness";
 import { V3_LISTING_CATEGORY_SLUGS } from "@shared/v3-listing";
 import { ensureSupabaseMarketplaceProfile } from "./supabase-profiles";
-import { createV3HubOrder, listV3BuyerOrders, listV3OwnerOrders, listV3VendorOrders, updateV3OrderStatus } from "./v3-orders";
+import { createV3HubOrder, listV3BuyerOrders, listV3OwnerOrders, listV3VendorOrders, reviewV3OrderStock, updateV3OrderStatus } from "./v3-orders";
 import { deleteV3Product, listV3ModerationProducts, moderateV3Product } from "./v3-moderation";
 import { listV3VendorProducts, submitV3OwnerProduct, submitV3VendorProduct, updateV3VendorProduct } from "./v3-vendor";
 import { applyForV3Vendor, bootstrapV3Owner, getV3AccountProfile, getV3BuyerOrderAccess, getV3VendorAccess, listV3Accounts, listV3VendorApplications, saveV3BuyerOrderProfile, updateV3AccountProfile, updateV3VendorApproval } from "./v3-profiles";
@@ -95,11 +95,12 @@ export const appRouter = router({
     approvedVendors: publicProcedure.query(() => listApprovedVendors()),
     reviewsByProduct: publicProcedure.input(z.object({ productId: z.union([z.number().int().positive(), z.string().uuid()]) })).query(({ input }) => listVerifiedReviewsForProduct(input.productId)),
     mpesaStatus: publicProcedure.query(() => ({ configured: isMpesaConfigured(), environment: "sandbox" as const })),
-    createV3HubOrder: publicProcedure.input(z.object({ productId: z.string().uuid() })).mutation(({ ctx, input }) => createV3HubOrder(ctx.supabaseIdentity, input)),
+    createV3HubOrder: publicProcedure.input(z.object({ productId: z.string().uuid(), quantity: z.number().int().min(1).max(999), pickupPreference: z.string().trim().min(2).max(180) })).mutation(({ ctx, input }) => createV3HubOrder(ctx.supabaseIdentity, input)),
     v3BuyerHubOrders: publicProcedure.query(({ ctx }) => listV3BuyerOrders(ctx.supabaseIdentity)),
     v3VendorHubOrders: publicProcedure.query(({ ctx }) => listV3VendorOrders(ctx.supabaseIdentity)),
     v3OwnerHubOrders: publicProcedure.query(({ ctx }) => listV3OwnerOrders(ctx.supabaseIdentity)),
     updateV3OwnerHubOrder: publicProcedure.input(z.object({ orderId: z.string().uuid(), status: z.enum(["PENDING_DROPOFF", "RECEIVED_AT_HUB", "COMPLETED", "CANCELLED"]) })).mutation(({ ctx, input }) => updateV3OrderStatus(ctx.supabaseIdentity, input.orderId, input.status)),
+    reviewV3OwnerHubOrderStock: publicProcedure.input(z.object({ orderId: z.string().uuid(), decision: z.enum(["confirmed", "unavailable"]), markListingOutOfStock: z.boolean().optional() })).mutation(({ ctx, input }) => reviewV3OrderStock(ctx.supabaseIdentity, input)),
     v3BuyerOrderAccess: publicProcedure.query(({ ctx }) => getV3BuyerOrderAccess(ctx.supabaseIdentity)),
     v3AccountProfile: publicProcedure.query(({ ctx }) => getV3AccountProfile(ctx.supabaseIdentity)),
     updateV3AccountProfile: publicProcedure.input(z.object({ fullName: z.string().trim().min(2).max(90).nullable().optional(), phone: z.string().trim().regex(/^\+?254[17]\d{8}$/, "Use a Kenyan number beginning with 254.").nullable().optional() }).refine(input => input.fullName !== undefined || input.phone !== undefined, "Add a name or Kenyan contact number.")).mutation(({ ctx, input }) => updateV3AccountProfile(ctx.supabaseIdentity, input)),
