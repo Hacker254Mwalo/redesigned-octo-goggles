@@ -267,3 +267,4 @@ body{background:#f4f6f3;color:var(--ink);font-family:"DM Sans",Arial,sans-serif}
 .home-category-art{width:34px;height:34px;flex:0 0 34px;border-radius:8px;object-fit:cover;background:#edf4ee}.catalog-category-art{grid-row:1/-1;width:44px;height:44px;border-radius:10px;object-fit:cover;background:#edf4ee}
 @media(max-width:760px){.home-category-art{width:36px;height:36px;flex-basis:36px}.catalog-category-art{width:40px;height:40px}}
 .selection-card-image.catalog-image-fallback{flex-direction:column;gap:8px;background:linear-gradient(145deg,#f2f5f1,#f9faf8);color:#84958a}.selection-card-image.catalog-image-fallback span{font:600 10px "DM Sans",sans-serif;letter-spacing:.01em;color:#718078}
+.selection-card-image.catalog-image-fallback{height:84px!important;min-height:84px;gap:5px}

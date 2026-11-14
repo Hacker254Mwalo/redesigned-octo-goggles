@@ -382,8 +382,6 @@ export default function JumiaStorePage() {
 
               {searchResults.isError && <p className="catalog-search-message error" role="alert">Search is temporarily unavailable. Please try again.</p>}
               {searchResults.data?.cacheStatus === "stale" && <p className="catalog-search-message" role="status">Saved matches. We confirm current price and availability before payment.</p>}
-              {searchResults.data?.cacheStatus === "cached" && <p className="catalog-search-message" role="status">Recently viewed products.</p>}
-
               {searchResults.isLoading && <div className="selection-grid" aria-label="Loading products">{Array.from({ length: 8 }, (_, index) => <div className="selection-card-skeleton" key={index} />)}</div>}
               {allResults.length > 0 && (
                 <>
