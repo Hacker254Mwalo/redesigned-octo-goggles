@@ -254,6 +254,20 @@ describe("Jumia public discovery", () => {
     expect(result.results[0]?.title).toContain("Samsung 50U8000");
   });
 
+  it("removes generic refrigerator price pages while keeping modelled fridge products", async () => {
+    process.env.TAVILY_API_KEY = "test-key";
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ results: [
+      { title: "Refrigerators in Kenya | Prices & Deals", url: "https://www.jumia.co.ke/refrigerators-in-kenya-prices-deals-123456.html", content: "Browse refrigerators in Kenya. Prices and deals." },
+      { title: "Car Coolers & Refrigerators in Kenya | Prices & Deals", url: "https://www.jumia.co.ke/car-coolers-refrigerators-kenya-prices-deals-123457.html", content: "Refrigerators, deals & prices in Kenya." },
+      { title: "Ecomax 138L Double Doors Fridge and Freezer BCD-230", url: "https://www.jumia.co.ke/ecomax-138l-double-door-fridge-123458.html", content: "Ecomax 138L double door fridge from KES 40,000" },
+    ] }), { status: 200 }));
+
+    const result = await searchJumiaPublicProducts("fridge refrigerator");
+
+    expect(result.results).toHaveLength(1);
+    expect(result.results[0]?.title).toContain("Ecomax 138L");
+  });
+
   it("uses Brave Web Search when configured and keeps only HTTPS Jumia Kenya results", async () => {
     process.env.BRAVE_SEARCH_API_KEY = "test-key";
     vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ web: { results: [

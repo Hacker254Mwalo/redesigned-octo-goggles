@@ -58,17 +58,17 @@ const MAX_ITEM_QUANTITY = 20;
 const JUMIA_HOSTS = new Set(["jumia.co.ke", "www.jumia.co.ke"]);
 
 const browseCategories = [
-  { label: "Phones", query: "smartphone phone", icon: Smartphone, tone: "mint" },
-  { label: "Power banks", query: "power bank 20000mAh", icon: Smartphone, tone: "sky" },
-  { label: "Solar panels & kits", query: "solar panel kit home solar system", icon: Sun, tone: "gold" },
-  { label: "Mattresses", query: "mattress 6x6", icon: HomeIcon, tone: "sand" },
-  { label: "Fridges", query: "refrigerator fridge", icon: HomeIcon, tone: "mint" },
-  { label: "Freezers", query: "chest freezer deep freezer", icon: HomeIcon, tone: "sky" },
+  { label: "Phones", query: "smartphone phone", icon: Smartphone, image: "/images/market-categories/phones-electronics.webp", tone: "mint" },
+  { label: "Power banks", query: "power bank 20000mAh", icon: Smartphone, image: "/images/market-categories/phones-electronics.webp", tone: "sky" },
+  { label: "Solar panels & kits", query: "solar panel kit home solar system", icon: Sun, image: "/images/market-categories/solar.webp", tone: "gold" },
+  { label: "Mattresses", query: "mattress 6x6", icon: HomeIcon, image: "/images/market-categories/mattresses.webp", tone: "sand" },
+  { label: "Fridges", query: "refrigerator fridge", icon: HomeIcon, image: "/images/market-categories/fridges.webp", tone: "mint" },
+  { label: "Freezers", query: "chest freezer deep freezer", icon: HomeIcon, image: "/images/market-categories/fridges.webp", tone: "sky" },
   { label: "Gas cookers", query: "gas cooker 4 burner", icon: HomeIcon, tone: "coral" },
   { label: "Appliances", query: "home kitchen appliances", icon: HomeIcon, tone: "plum" },
   { label: "Furniture", query: "bed frame wardrobe sofa", icon: HomeIcon, tone: "sand" },
-  { label: "Laptops", query: "laptop", icon: Laptop, tone: "sky" },
-  { label: "TVs", query: "smart TV", icon: Tv, tone: "leaf" },
+  { label: "Laptops", query: "laptop", icon: Laptop, image: "/images/market-categories/phones-electronics.webp", tone: "sky" },
+  { label: "TVs", query: "smart TV", icon: Tv, image: "/images/market-categories/phones-electronics.webp", tone: "leaf" },
 ];
 
 const statusCopy: Record<string, string> = {
@@ -135,6 +135,7 @@ function CatalogProductImage({ src, alt, className = "h-36 w-full" }: { src?: st
     return (
       <div className={`${className} catalog-image-fallback`} role="img" aria-label={`${alt || "Product"} photo unavailable`}>
         <PackageOpen size={27} strokeWidth={1.5} />
+        <span aria-hidden="true">Photo unavailable</span>
       </div>
     );
   }
@@ -350,9 +351,9 @@ export default function JumiaStorePage() {
             <section id="catalog-categories" className="catalog-category-section">
               <div className="catalog-section-heading"><div><p className="eyebrow">Popular searches</p><h2>Shop by category</h2></div></div>
               <div className="catalog-category-grid">
-                {browseCategories.map(({ label, query, icon: Icon, tone }) => (
+                {browseCategories.map(({ label, query, icon: Icon, image, tone }) => (
                   <button type="button" key={label} className={`catalog-category-card ${tone}`} onClick={() => chooseCategory(query)}>
-                    <span className="catalog-category-icon"><Icon size={22} /></span><strong>{label}</strong><ChevronRight size={16} />
+                    {image ? <img className="catalog-category-art" src={image} alt="" loading="lazy" decoding="async" /> : <span className="catalog-category-icon"><Icon size={22} /></span>}<strong>{label}</strong><ChevronRight size={16} />
                   </button>
                 ))}
               </div>

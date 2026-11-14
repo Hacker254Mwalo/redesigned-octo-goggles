@@ -65,7 +65,7 @@ Use a clean canonical `/marketplace` route for the browse/search catalogue. All 
 
 **Layout paradigm:** keep content left-aligned and use a compact shop header, a horizontal category rail, followed by the local inventory and product-result shelves. Put the checkout and collection controls after the selected items. Let category rails scroll horizontally on phones and let product grids reflow rather than shrinking cards.
 
-**Signature elements:** the existing M mark with a small orange market-dot; a swipeable row of lightly tinted department shortcuts; crisp product cards with one strong KSh/action row.
+**Signature elements:** the existing M mark with a small orange market-dot; a swipeable row of lightly tinted department shortcuts, using original unbranded category artwork for phones/electronics, solar, mattresses and fridges; crisp product cards with one strong KSh/action row. Category illustrations are not SKU photography: only a verified item's own photo may appear in its product card.
 
 **Interaction philosophy:** search routes directly into the results view; category shortcuts seed a useful product query; one tap adds an item without yanking the shopper away; quantity edits remain in the basket; current price and availability confirmation is clear but mentioned once.
 

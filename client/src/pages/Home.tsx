@@ -19,11 +19,11 @@ import { useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
 
 const departments = [
-  { label: "Phones", query: "smartphone Android phone", icon: Smartphone, tone: "mint" },
-  { label: "TVs & audio", query: "smart TV television", icon: Tv, tone: "gold" },
-  { label: "Solar & power", query: "solar panel home kit power bank", icon: Sun, tone: "sun" },
-  { label: "Fridges", query: "refrigerator fridge Kenya", icon: HomeIcon, tone: "blue" },
-  { label: "Mattresses", query: "mattress 6x6", icon: HomeIcon, tone: "plum" },
+  { label: "Phones", query: "smartphone Android phone", icon: Smartphone, image: "/images/market-categories/phones-electronics.webp", tone: "mint" },
+  { label: "TVs & audio", query: "smart TV television", icon: Tv, image: "/images/market-categories/phones-electronics.webp", tone: "gold" },
+  { label: "Solar & power", query: "solar panel home kit power bank", icon: Sun, image: "/images/market-categories/solar.webp", tone: "sun" },
+  { label: "Fridges", query: "refrigerator fridge Kenya", icon: HomeIcon, image: "/images/market-categories/fridges.webp", tone: "blue" },
+  { label: "Mattresses", query: "mattress 6x6", icon: HomeIcon, image: "/images/market-categories/mattresses.webp", tone: "plum" },
   { label: "Cookers", query: "gas cooker 4 burner", icon: HomeIcon, tone: "coral" },
   { label: "Computers", query: "laptop computer", icon: Laptop, tone: "sky" },
   { label: "Fashion", query: "shoes clothes Kenya", icon: Shirt, tone: "rose" },
@@ -74,9 +74,9 @@ export default function Home() {
             <Link href="/marketplace">All products <ArrowRight size={15} /></Link>
           </div>
           <div className="home-category-rail">
-            {departments.map(({ label, query, icon: Icon, tone }) => (
+            {departments.map(({ label, query, icon: Icon, image, tone }) => (
               <Link key={label} href={`/marketplace?item=${encodeURIComponent(query)}`} className={`home-category-tile ${tone}`}>
-                <span><Icon size={21} strokeWidth={1.9} /></span>
+                {image ? <img className="home-category-art" src={image} alt="" loading="lazy" decoding="async" /> : <span><Icon size={21} strokeWidth={1.9} /></span>}
                 <strong>{label}</strong>
                 <ChevronRight size={14} />
               </Link>

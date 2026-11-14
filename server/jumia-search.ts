@@ -232,7 +232,7 @@ function isSearchLandingUrl(url: string) {
 
 function isGenericCatalogLandingResult(result: JumiaSearchResult) {
   const title = result.title.trim();
-  const hasCategoryLanguage = /\b(?:smartphones?|mobile phones?|phones?|smart tvs?|tvs?|televisions?|laptops?|shoes?)\b/i.test(title);
+  const hasCategoryLanguage = /\b(?:smartphones?|mobile phones?|phones?|smart tvs?|tvs?|televisions?|laptops?|shoes?|fridges?|refrigerators?|freezers?|mattresses?|solar panels?|solar kits?|gas cookers?|appliances?|furniture|power banks?)\b/i.test(title);
   const hasLandingLanguage = /\b(?:online|store|latest|best\s+(?:price|prices)|buy|shop|range|collection|available|deals?|prices?|browse|affordable|offers?)\b/i.test(title);
   const hasConcreteModelSignal = /\d{2,}/.test(title);
   const exactCategoryTitle = /^(?:smartphones?|mobile phones?|feature phones?|phones?|smart tvs?|tvs?|televisions?|laptops?|shoes?)$/i.test(title);
