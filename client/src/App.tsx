@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
 import { lazy, Suspense, useEffect } from "react";
-import { Route, Switch, useLocation } from "wouter";
+import { Redirect, Route, Switch, useLocation } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { CartProvider } from "./contexts/CartContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -29,9 +29,9 @@ const routeSeo: Record<string, { title: string; description: string; index: bool
     description: "Shop local in Siaya town, Bondo, Ugunja and Yala. Browse sellers or request an item or service. Confirm availability and hand-off details before you decide.",
     index: true,
   },
-  "/jumia": {
-    title: "MtaaMarket Select | Siaya Mtaa Market",
-    description: "A temporary wider-choice catalogue for MtaaMarket customers.",
+  "/marketplace": {
+    title: "Shop products in Siaya | Siaya Mtaa Market",
+    description: "Browse products from local Siaya sellers and find more choices across phones, appliances, solar and home essentials.",
     index: false,
   },
   "/how-it-works": {
@@ -119,6 +119,10 @@ function RouteLoadingState() {
   return <div className="min-h-screen bg-[#f9f7f2] px-6 py-24 text-center text-sm text-[#35584a]" role="status">Loading MtaaMarket…</div>;
 }
 
+function LegacyCatalogueRedirect() {
+  return <Redirect to={`/marketplace${window.location.search}${window.location.hash}`} replace />;
+}
+
 function Router() {
   // make sure to consider if you need authentication for certain routes
   return (
@@ -132,7 +136,8 @@ function Router() {
         <Route path={"/terms"} component={TermsPage} />
         <Route path={"/stations"} component={PickupStations} />
         <Route path={"/request"} component={RequestDeskPage} />
-        <Route path={"/jumia"} component={JumiaStorePage} />
+        <Route path={"/marketplace"} component={JumiaStorePage} />
+        <Route path={"/jumia"} component={LegacyCatalogueRedirect} />
         <Route path={"/auth/callback"} component={SupabaseAuthCallbackPage} />
         <Route path={"/auth/reset-password"} component={ResetPasswordPage} />
         <Route path={"/vendor"} component={VendorPage} />

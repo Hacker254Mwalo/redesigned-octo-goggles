@@ -208,7 +208,7 @@ describe("public performance and mobile foundations", () => {
     expect(home).toContain("<MtaaSharePrompt />");
     expect(sharePrompt).toContain("navigator.share");
     expect(sharePrompt).toContain("navigator.clipboard?.writeText");
-    expect(sharePrompt).toContain("We do not add tracking or send a message on your behalf.");
+    expect(sharePrompt).toContain("Only the public market link is shared.");
     expect(sharePrompt).toContain('role="status"');
     expect(sharePrompt).not.toMatch(/(?:fetch|axios|analytics|pixel|advertis)/i);
   });
@@ -232,15 +232,21 @@ describe("public performance and mobile foundations", () => {
     expect(sitemap).not.toContain("/auth/");
   });
 
-  it("keeps the temporary wider-choice catalogue out of search results without blocking crawlers", () => {
+  it("keeps the retailer-neutral marketplace route out of search results without blocking crawlers", () => {
     const app = readFileSync(resolve(projectRoot, "client/src/App.tsx"), "utf8");
     const vercel = readFileSync(resolve(projectRoot, "vercel.json"), "utf8");
+    const vercelConfig = JSON.parse(vercel);
     const robots = readFileSync(resolve(projectRoot, "client/public/robots.txt"), "utf8");
     const catalog = readFileSync(resolve(projectRoot, "client/src/pages/JumiaStorePage.tsx"), "utf8");
 
-    expect(app).toContain('"/jumia"');
+    expect(app).toContain('path={"/marketplace"} component={JumiaStorePage}');
+    expect(app).toContain('path={"/jumia"} component={LegacyCatalogueRedirect}');
+    expect(app).toContain('"/marketplace": {');
     expect(app).toContain("index: false");
+    expect(vercel).toContain('"source": "/marketplace/:path*"');
     expect(vercel).toContain('"source": "/jumia/:path*"');
+    expect(vercelConfig.redirects).toContainEqual({ source: "/jumia", destination: "/marketplace", permanent: true });
+    expect(vercelConfig.redirects).toContainEqual({ source: "/jumia/:path*", destination: "/marketplace/:path*", permanent: true });
     expect(vercel).toContain('"key": "X-Robots-Tag"');
     expect(vercel).toContain('"value": "noindex, follow"');
     expect(robots).not.toContain("Disallow: /jumia");
@@ -251,9 +257,12 @@ describe("public performance and mobile foundations", () => {
     expect(catalog).toContain('label: "Power banks"');
     expect(catalog).toContain('label: "Solar panels & kits"');
     expect(catalog).toContain('label: "Furniture"');
-    expect(catalog).toContain("Retailer price seen");
-    expect(catalog).toContain("final total with you before any payment");
-    expect(catalog).toContain("We will update you with the confirmed item");
+    expect(catalog).toContain("Seen online");
+    expect(catalog).toContain("We confirm the item and final total before payment.");
+    expect(catalog).toContain("We’ll confirm availability and collection or delivery details before payment.");
+    expect(catalog).toContain("catalog-image-fallback");
+    expect(catalog).not.toContain("View retailer details");
+    expect(catalog).not.toContain("catalog-source-link");
     expect(catalog).toContain("staleTime: 5 * 60_000");
     expect(catalog).toContain("localStorage.setItem(BASKET_STORAGE_KEY");
     expect(catalog).toContain("onAdd={addResult}");
@@ -303,19 +312,15 @@ describe("public performance and mobile foundations", () => {
     expect(vendorPage).not.toContain('setLocation("/dashboard")');
   });
 
-  it("keeps premium marketplace and catalogue messaging truthful while local listings grow", () => {
+  it("puts real local listings and popular categories ahead of catalogue explanations", () => {
     const home = readFileSync(resolve(projectRoot, "client/src/pages/Home.tsx"), "utf8");
 
-    expect(home).toContain("explore a wider selection through MtaaMarket");
-    expect(home).toContain("Siaya sellers");
-    expect(home).toContain("Local shopping");
-    expect(home).toContain("wider selection");
-    expect(home).toContain("Search local products");
-    expect(home).toContain("Find more options");
-    expect(home).toContain("Browse local products");
-    expect(home).toContain("Local categories");
-    expect(home).toContain("Swipe to explore");
-    expect(home).toContain('aria-label="Browse local product categories"');
+    expect(home).toContain("From Siaya sellers");
+    expect(home).toContain("Shop by category");
+    expect(home).toContain("Search local listings");
+    expect(home).toContain("Good finds, close to home.");
+    expect(home).toContain("/marketplace?item=");
+    expect(home).toContain('aria-label="Filter local products by category"');
     expect(home).toContain("aria-pressed={!category}");
     expect(home).not.toContain("Many approved local sellers");
     expect(home).not.toContain("Sellers serve Siaya buyers");
@@ -329,8 +334,8 @@ describe("public performance and mobile foundations", () => {
 
     expect(app).toContain('lazy(() => import("./pages/AssistedSourcingPage"))');
     expect(app).toContain('path={"/how-it-works"}');
-    expect(layout).toContain('href="/how-it-works"');
-    expect(home).toContain('href="/how-it-works"');
+    expect(layout).not.toContain('href="/how-it-works"');
+    expect(home).not.toContain('href="/how-it-works"');
     expect(guide).toContain("Shopping in Siaya");
     expect(guide).toContain("Browse the market");
     expect(guide).toContain("One place for local shopping.");

@@ -14,6 +14,15 @@
       ]
     },
     {
+      "source": "/marketplace/:path*",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, follow"
+        }
+      ]
+    },
+    {
       "source": "/(.*)",
       "headers": [
         {
@@ -47,6 +56,18 @@
     {
       "source": "/:path((?!api(?:/|$)).*)",
       "destination": "/index.html"
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/jumia",
+      "destination": "/marketplace",
+      "permanent": true
+    },
+    {
+      "source": "/jumia/:path*",
+      "destination": "/marketplace/:path*",
+      "permanent": true
     }
   ]
 }

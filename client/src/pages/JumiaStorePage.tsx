@@ -13,6 +13,7 @@ import {
   MapPin,
   Minus,
   PackageCheck,
+  PackageOpen,
   Plus,
   Search,
   ShieldCheck,
@@ -50,7 +51,7 @@ type SearchResult = {
 
 type ResultFilter = "all" | "photos" | "priced";
 
-const DEFAULT_CATALOG_QUERY = "mattress 6x6";
+const DEFAULT_CATALOG_QUERY = "fridge refrigerator";
 const BASKET_STORAGE_KEY = "mtaa-select-basket-v1";
 const MAX_BASKET_LINES = 20;
 const MAX_ITEM_QUANTITY = 20;
@@ -128,13 +129,12 @@ function readSavedBasket(): OrderItem[] {
   }
 }
 
-function JumiaProductImage({ src, alt, className = "h-36 w-full" }: { src?: string | null; alt: string; className?: string }) {
+function CatalogProductImage({ src, alt, className = "h-36 w-full" }: { src?: string | null; alt: string; className?: string }) {
   const [failed, setFailed] = useState(false);
   if (!src || failed) {
     return (
-      <div className={`${className} jumia-image-fallback`} role="img" aria-label={`${alt || "Product"} image unavailable`}>
-        <ImageOff size={24} />
-        <span>Product photo unavailable</span>
+      <div className={`${className} catalog-image-fallback`} role="img" aria-label={`${alt || "Product"} photo unavailable`}>
+        <PackageOpen size={27} strokeWidth={1.5} />
       </div>
     );
   }
@@ -155,21 +155,19 @@ function JumiaProductImage({ src, alt, className = "h-36 w-full" }: { src?: stri
 function SearchResultCard({ result, onAdd, addDisabled }: { result: SearchResult; onAdd: (result: SearchResult) => void; addDisabled: boolean }) {
   return (
     <article className="selection-card">
-      <JumiaProductImage src={result.imageUrl} alt={result.title} className="selection-card-image" />
+      <CatalogProductImage src={result.imageUrl} alt={result.title} className="selection-card-image" />
       <div className="selection-card-body">
         <div className="selection-card-kicker">
-          <span>Product result</span>
-          <span>{result.price ? "Retailer price seen" : "Check current price"}</span>
+          <span>Market pick</span>
+          <span>{result.price ? "Seen online" : "Price to confirm"}</span>
         </div>
         <h3 className="selection-card-title">{result.title}</h3>
-        <p className="selection-card-description">{result.snippet || "Open the product page to review the latest options."}</p>
         <div className="selection-card-footer">
-          <strong>{result.price ? `KES ${result.price.toLocaleString("en-KE")}` : "Price on product page"}</strong>
+          <strong>{result.price ? `KES ${result.price.toLocaleString("en-KE")}` : "Confirm price"}</strong>
           <button className="primary-cta selection-card-button" type="button" onClick={() => onAdd(result)} disabled={addDisabled}>
             <Plus size={16} /> Add to basket
           </button>
         </div>
-        <a className="catalog-source-link" href={result.url} target="_blank" rel="noopener noreferrer">View retailer details</a>
       </div>
     </article>
   );
@@ -286,7 +284,6 @@ export default function JumiaStorePage() {
       }];
     });
     setBasketFeedback(`${result.title} added to your basket.`);
-    scrollTo("catalog-basket");
   }
 
   function changeQuantity(index: number, change: number) {
@@ -329,7 +326,7 @@ export default function JumiaStorePage() {
             <div>
               <p className="eyebrow">Request received</p>
               <h1>Your request is in.</h1>
-              <p>We will update you with the confirmed item and collection or delivery details. No payment has been taken. Reference: {submittedOrder.order_number}.</p>
+              <p>We’ll confirm availability and collection or delivery details before payment. Reference: {submittedOrder.order_number}.</p>
             </div>
             <div className="catalog-confirmation-actions">
               <button className="primary-cta" type="button" onClick={() => setSubmittedOrder(null)}>Continue shopping <ArrowRight size={17} /></button>
@@ -340,9 +337,9 @@ export default function JumiaStorePage() {
           <form className="catalog-order-form" onSubmit={submit}>
             <section className="catalog-commerce-head">
               <div>
-                <p className="eyebrow">MtaaMarket Select / broader choice</p>
-                <h1>Find what you need.</h1>
-                <p>Browse current choices, add them once, and send one local order.</p>
+                <p className="eyebrow">Shop products</p>
+                <h1>Find your next good buy.</h1>
+                <p>Phones, home, electronics and more.</p>
               </div>
               <div className="catalog-commerce-tools">
                 <span><ShieldCheck size={15} /> Pay after confirmation</span>
@@ -350,17 +347,21 @@ export default function JumiaStorePage() {
               </div>
             </section>
 
-            <aside className="catalog-view-note" aria-label="Order information">
-              <span className="catalog-view-note-icon"><Eye size={17} /></span>
-              <div>
-                <strong>Choose from current product results.</strong>
-                <span>We confirm exact availability and the final total with you before any payment.</span>
+            <section id="catalog-categories" className="catalog-category-section">
+              <div className="catalog-section-heading"><div><p className="eyebrow">Popular searches</p><h2>Shop by category</h2></div></div>
+              <div className="catalog-category-grid">
+                {browseCategories.map(({ label, query, icon: Icon, tone }) => (
+                  <button type="button" key={label} className={`catalog-category-card ${tone}`} onClick={() => chooseCategory(query)}>
+                    <span className="catalog-category-icon"><Icon size={22} /></span><strong>{label}</strong><ChevronRight size={16} />
+                  </button>
+                ))}
               </div>
-            </aside>
+            </section>
+
 
             <section id="catalog-live-search" className="catalog-search-card">
               <div className="catalog-search-heading">
-                <div><p className="eyebrow">Shop the live selection</p><h2>Browse products.</h2></div>
+                <div><p className="eyebrow">Search all products</p><h2>What are you looking for?</h2></div>
                 <Search className="catalog-search-icon" />
               </div>
               <div className="catalog-search-shell">
@@ -379,18 +380,10 @@ export default function JumiaStorePage() {
               </div>
 
               {searchResults.isError && <p className="catalog-search-message error" role="alert">Search is temporarily unavailable. Please try again.</p>}
-              {searchResults.data && (
-                <p className="catalog-search-message" role="status">
-                  {searchResults.isFetching && !hasCurrentResults
-                    ? "Updating your search. Previous choices remain visible below."
-                    : searchResults.data.cacheStatus === "stale"
-                      ? "Showing saved matches. Prices and availability may have changed; we will confirm before payment."
-                      : searchResults.data.cacheStatus === "cached"
-                        ? "Recently searched product matches. Check the current retailer details before ordering."
-                        : searchResults.data.message}
-                </p>
-              )}
+              {searchResults.data?.cacheStatus === "stale" && <p className="catalog-search-message" role="status">Saved matches. We confirm current price and availability before payment.</p>}
+              {searchResults.data?.cacheStatus === "cached" && <p className="catalog-search-message" role="status">Recently viewed products.</p>}
 
+              {searchResults.isLoading && <div className="selection-grid" aria-label="Loading products">{Array.from({ length: 8 }, (_, index) => <div className="selection-card-skeleton" key={index} />)}</div>}
               {allResults.length > 0 && (
                 <>
                   <div className="catalog-results-toolbar">
@@ -422,17 +415,6 @@ export default function JumiaStorePage() {
               )}
             </section>
 
-            <section id="catalog-categories" className="catalog-category-section">
-              <div className="catalog-section-heading"><div><p className="eyebrow">Browse departments</p><h2>Shop by category.</h2></div><span>Live search</span></div>
-              <div className="catalog-category-grid">
-                {browseCategories.map(({ label, query, icon: Icon, tone }) => (
-                  <button type="button" key={label} className={`catalog-category-card ${tone}`} onClick={() => chooseCategory(query)}>
-                    <span className="catalog-category-icon"><Icon size={22} /></span><strong>{label}</strong><small>Open live results</small><ChevronRight size={16} />
-                  </button>
-                ))}
-              </div>
-            </section>
-
             {items.length > 0 && (
               <section id="catalog-basket" className="catalog-basket-card">
                 <div className="catalog-section-heading">
@@ -443,12 +425,11 @@ export default function JumiaStorePage() {
                 {items.map((item, index) => (
                   <article className="catalog-basket-item" key={`${item.sourceUrl ?? item.title}-${index}`}>
                     <div className="catalog-basket-item-main">
-                      <JumiaProductImage src={item.imageUrl} alt="" className="h-16 w-16 shrink-0" />
+                      <CatalogProductImage src={item.imageUrl} alt="" className="h-16 w-16 shrink-0" />
                       <div className="min-w-0">
                         <h3>{item.title}</h3>
-                        {item.price ? <p className="catalog-item-price">{item.currency || "KES"} {item.price.toLocaleString("en-KE")} each · retailer price seen</p> : <p className="catalog-item-price">Confirm current price</p>}
+                        {item.price ? <p className="catalog-item-price">{item.currency || "KES"} {item.price.toLocaleString("en-KE")} each · seen price</p> : <p className="catalog-item-price">Confirm current price</p>}
                         <p className="catalog-item-detail">{item.details}</p>
-                        {item.sourceUrl && <a className="catalog-source-link" href={item.sourceUrl} target="_blank" rel="noopener noreferrer">Review product details</a>}
                       </div>
                     </div>
                     <div className="catalog-basket-actions">

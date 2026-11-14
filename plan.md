@@ -45,4 +45,47 @@ Add an “Accounts” section to the existing `/admin` owner control centre with
 
 ## Design
 
-Reuse the existing operational retail control-room style: crisp navy headers, calm neutral cards, clear green/amber status cues, legible account and order rows that become stacked cards on narrow screens, and compact but explicit action labels. Seller tools should feel practical and confidence-building, with immediate photo preview and clear feedback after save; the buyer workspace should make order state easy to scan. The result remains one Siaya Mtaa Market website, not a separate portal.
+Reuse the existing operational retail control-room style for authenticated workspaces: crisp headers, calm neutral cards, clear green/amber status cues, legible account and order rows that become stacked cards on narrow screens, and compact but explicit action labels. Seller tools should feel practical and confidence-building; buyer order state should be easy to scan. The result remains one Siaya Mtaa Market website, not a separate portal.
+
+## Public storefront redesign
+
+### Product direction and customer flow
+
+Rework the public home and wider-choice catalogue into a compact, product-first marketplace inspired by the established category/search/listing patterns on Kilimall and Jiji, without copying their branding or claiming affiliation. Put the search control, popular category shortcuts, real local product listings and current sourced product results above explanatory material. Keep homepage copy to a short local-market headline, useful labels and one concise availability/payment reassurance. Retain the request and service paths in navigation without allowing them to dominate the shopping flow.
+
+Use a clean canonical `/marketplace` route for the browse/search catalogue. All visible navigation and product shortcuts use that route; old `/jumia` links are retained only as a compatibility redirect that preserves the query. Remove retailer names and retailer URLs from customer-facing copy and links while keeping the internal product URL needed for owner-side availability review. Do not imply a supplier partnership. Keep the existing server-side product search, result sanitization, price staleness suppression, warm-instance cache, request coalescing, image fallback, persistent basket, and order/admin stock-review contract. A search result or category shortcut is not a verified in-stock listing; do not invent inventory, prices, reviews, ratings, discounts, or demand rankings.
+
+### Visual system and interaction
+
+**Design movement:** adapt practical Kenyan online-market patterns—search-led entry, category-first discovery and compact listing cards—for Siaya, without copying another marketplace's identity.
+
+**Core principles:** show real listings before explaining the platform; make search and popular departments one tap away; keep item details, price confidence and order actions easy to scan; make availability checks invisible to the buyer until the owner can actually confirm them.
+
+**Color philosophy:** use soft off-white and white surfaces for calm scanning, dark green-gray for readable item text, Siaya market-green for buying actions, and small warm-orange/amber accents for prices or status—not for broad decorative panels.
+
+**Layout paradigm:** keep content left-aligned and use a compact shop header, a horizontal category rail, followed by the local inventory and product-result shelves. Put the checkout and collection controls after the selected items. Let category rails scroll horizontally on phones and let product grids reflow rather than shrinking cards.
+
+**Signature elements:** the existing M mark with a small orange market-dot; a swipeable row of lightly tinted department shortcuts; crisp product cards with one strong KSh/action row.
+
+**Interaction philosophy:** search routes directly into the results view; category shortcuts seed a useful product query; one tap adds an item without yanking the shopper away; quantity edits remain in the basket; current price and availability confirmation is clear but mentioned once.
+
+**Animation:** use short 140–180 ms border, color and elevation transitions only; no autoplay, bouncing badges or large scroll-triggered reveals. Honor `prefers-reduced-motion` and use a restrained shimmer only while real listings are loading.
+
+**Typography system:** DM Sans is the storefront face for both headings and interface text. Use semibold product titles, bold KSh prices, compact muted metadata and short sentence-case labels. Keep paragraphs out of the shopping path.
+
+**Brand essence:** Siaya's everyday marketplace for local sellers and practical product discovery; distinctive for local access and owner-confirmed handoff. Personality: useful, clear, neighbourly.
+
+**Brand voice:** short and human—examples: “Good finds, close to home.” and “Shop local. Find more.”
+
+**Wordmark and signature color:** retain the compact M badge, set it in market green `#157a45` with one small warm-orange accent. Use that green consistently for primary shopping actions.
+
+**Responsive behavior:** on mobile keep two legible product cards per row, horizontally swipeable category rails, touch-sized buttons and reachable basket access. The page search stays near the top; product-card actions do not move the shopper away from the grid.
+
+### Project structure
+
+- `client/src/pages/Home.tsx` owns the compact product-first home, local listing feed and category shortcuts.
+- `client/src/pages/JumiaStorePage.tsx` continues to own catalogue search, filters, persistent wider-choice basket and order placement; its public route and copy are retailer-neutral.
+- `client/src/components/MarketplaceLayout.tsx` owns the shared shop navigation, basket shortcut and retailer-neutral footer links.
+- `client/src/App.tsx` owns the clean `/marketplace` route, legacy route redirect and matching route metadata.
+- `client/src/index.css` owns the public storefront and catalogue retail visual system while preserving protected seller/admin workspace styling.
+- `server/jumia-search.ts` remains the internal supplier search boundary and keeps customer-facing sanitized results distinct from source URLs needed for fulfillment.

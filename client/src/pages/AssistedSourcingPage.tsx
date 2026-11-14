@@ -40,7 +40,7 @@ export default function AssistedSourcingPage() {
             <p>Shop local products and explore a wider selection through MtaaMarket. Choose where you want your order delivered or collected, then follow it from your account.</p>
             <div className="guide-actions">
               <Link href="/" className="primary-cta">Browse the market <ArrowRight size={17} /></Link>
-              <Link href="/jumia" className="secondary-cta">Explore more <Search size={16} /></Link>
+              <Link href="/marketplace" className="secondary-cta">Shop products <Search size={16} /></Link>
             </div>
           </div>
           <div className="assisted-guide-card" aria-label="Shopping summary">
@@ -77,7 +77,7 @@ export default function AssistedSourcingPage() {
             <h2>Local shopping, with more choice.</h2>
             <p>Start with products listed by Siaya sellers or open more choices when you need a wider range. Your order, location, and progress stay together in your MtaaMarket account.</p>
           </div>
-          <Link href="/jumia" className="secondary-cta">Explore more <ArrowRight size={17} /></Link>
+          <Link href="/marketplace" className="secondary-cta">Shop products <ArrowRight size={17} /></Link>
         </section>
 
         <section className="guide-closing">
