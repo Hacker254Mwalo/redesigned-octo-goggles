@@ -29,4 +29,4 @@
 
 - [x] **Trim redundant catalogue departments.** Keep the requested/high-value product groups and remove overlapping or unrelated department buttons instead of deleting safety/error handling.
 
-- [ ] **Confirm production serves the new release.** After the code is pushed, verify that the custom domain loads the new bundle; the last Vercel GitHub check succeeded while the public domain still returned the previous bundle. Do not report deployment as live until the asset hash changes.
+- [x] **Confirm production serves the new release.** Verified the Vercel success for release `7919fed` and queried the live custom domain: `/jumia` now loads its catalog JavaScript chunk as `application/javascript`, not an HTML fallback. The served chunk contains the new one-tap “Add to basket,” paid/availability confirmation copy, and persisted-basket code.
