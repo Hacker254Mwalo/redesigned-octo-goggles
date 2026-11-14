@@ -20,3 +20,13 @@
 - [x] **Publish transparent shopping terms.** Add `/terms`, link it from signup and the site footer, and add it to the sitemap. Explain order and sourcing checks, disclosed sourcing/handling and delivery charges, cancellation, complaints, account contact and consumer rights.
 
 - [ ] **Build a launch-ready 500-product assortment.** Add actual offers only when exact items, supplier, current cost and sale price, confirmed availability or lead time, Siaya delivery/collection, warranty/returns, and permitted product images are verified. The live-search catalogue is a discovery path, not 500 owned or reserved stock records.
+
+- [x] **Make live product search responsive and dependable on free Vercel.** Use the server-side structured search path rather than the client Google CSE path that drops price and image data; retain in-flight results while a new search runs; add bounded per-instance result caching and duplicate-request coalescing without adding Redis, image-proxy functions, or a paid dependency. Do not present stale prices as current.
+
+- [x] **Improve result imagery without mislabeling products.** Lazy-load and asynchronously decode valid Jumia CDN images, use a clear fallback on failed/missing images, and do not attach another product's photo to a result. Prefer visual results while preserving access to text-only results.
+
+- [x] **Make the wider-choice basket quick and durable.** Add an item from its result card in one action, let the buyer adjust quantity or remove it, persist the basket locally across refreshes, and retain it until the order is successfully recorded. Keep verified-account ordering, owner availability confirmation and no-payment-before-confirmation.
+
+- [x] **Trim redundant catalogue departments.** Keep the requested/high-value product groups and remove overlapping or unrelated department buttons instead of deleting safety/error handling.
+
+- [ ] **Confirm production serves the new release.** After the code is pushed, verify that the custom domain loads the new bundle; the last Vercel GitHub check succeeded while the public domain still returned the previous bundle. Do not report deployment as live until the asset hash changes.

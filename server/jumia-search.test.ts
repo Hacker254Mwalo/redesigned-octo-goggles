@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { searchJumiaPublicProducts } from "./jumia-search";
+import { clearJumiaPublicSearchCache, searchJumiaPublicProducts } from "./jumia-search";
 
 describe("Jumia public discovery", () => {
   beforeEach(() => {
+    clearJumiaPublicSearchCache();
     delete process.env.GOOGLE_CUSTOM_SEARCH_API_KEY;
     delete process.env.GOOGLE_SEARCH_API_KEY;
     delete process.env.GOOGLE_CUSTOM_SEARCH_CX;
@@ -31,6 +32,60 @@ describe("Jumia public discovery", () => {
 
     expect(result.configured).toBe(false);
     expect(result.message).toContain("three characters");
+  });
+
+  it("reuses recent normalized queries without calling the provider again", async () => {
+    process.env.TAVILY_API_KEY = "test-key";
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ results: [
+      { title: "Mattress 6x6", url: "https://www.jumia.co.ke/mattress-6x6-123456.html", content: "Mattress 6x6 from KES 12,500" },
+    ] }), { status: 200 }));
+
+    const first = await searchJumiaPublicProducts("mattress 6x6");
+    const second = await searchJumiaPublicProducts("  MATTRESS   6x6 ");
+
+    expect(first.cacheStatus).toBe("live");
+    expect(second.cacheStatus).toBe("cached");
+    expect(second.results[0]?.price).toBe(12500);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("coalesces simultaneous identical searches into one provider call", async () => {
+    process.env.TAVILY_API_KEY = "test-key";
+    let resolveResponse!: (response: Response) => void;
+    const providerResponse = new Promise<Response>(resolve => { resolveResponse = resolve; });
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockReturnValue(providerResponse);
+
+    const first = searchJumiaPublicProducts("chest freezer");
+    const second = searchJumiaPublicProducts("chest freezer");
+    resolveResponse(new Response(JSON.stringify({ results: [
+      { title: "Chest Freezer 200L", url: "https://www.jumia.co.ke/chest-freezer-200l-123456.html", content: "Chest freezer KSh 25,000" },
+    ] }), { status: 200 }));
+    const [firstResult, secondResult] = await Promise.all([first, second]);
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(firstResult.results[0]?.title).toBe(secondResult.results[0]?.title);
+  });
+
+  it("serves saved matches without prices when a refresh fails", async () => {
+    vi.useFakeTimers();
+    try {
+      process.env.TAVILY_API_KEY = "test-key";
+      const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(new Response(JSON.stringify({ results: [
+        { title: "Solar Panel 550W", url: "https://www.jumia.co.ke/solar-panel-550w-123456.html", content: "Solar panel KSh 11,999" },
+      ] }), { status: 200 }));
+      const first = await searchJumiaPublicProducts("solar panel");
+      vi.setSystemTime(Date.now() + 6 * 60_000);
+      fetchSpy.mockRejectedValueOnce(new Error("provider offline"));
+
+      const stale = await searchJumiaPublicProducts("solar panel");
+
+      expect(first.results[0]?.price).toBe(11999);
+      expect(stale.cacheStatus).toBe("stale");
+      expect(stale.results[0]?.price).toBeNull();
+      expect(stale.message).toContain("Prices and availability may have changed");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("uses Tavily when configured and maps product metadata", async () => {

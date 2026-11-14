@@ -254,6 +254,14 @@ describe("public performance and mobile foundations", () => {
     expect(catalog).toContain("Retailer price seen");
     expect(catalog).toContain("final total with you before any payment");
     expect(catalog).toContain("We will update you with the confirmed item");
+    expect(catalog).toContain("staleTime: 5 * 60_000");
+    expect(catalog).toContain("localStorage.setItem(BASKET_STORAGE_KEY");
+    expect(catalog).toContain("onAdd={addResult}");
+    expect(catalog).toContain("changeQuantity(index");
+    expect(catalog).toContain("referrerPolicy=\"no-referrer\"");
+    expect(catalog).not.toContain("JumiaGoogleSearch");
+    expect(catalog).not.toContain('label: "Shoes"');
+    expect(catalog).not.toContain('label: "Smartwatches"');
   });
 
   it("does not expose a Request Desk AI action that relies on the pending protected account migration", () => {

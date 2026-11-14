@@ -46,11 +46,24 @@ export type JumiaSearchResponse = {
   query: string;
   results: JumiaSearchResult[];
   message: string;
+  cacheStatus?: "live" | "cached" | "stale";
 };
 
 const MAX_RESULTS = 10;
+const SEARCH_PROVIDER_TIMEOUT_MS = 5_000;
+const SEARCH_CACHE_TTL_MS = 5 * 60_000;
+const SEARCH_STALE_TTL_MS = 24 * 60 * 60_000;
+const SEARCH_CACHE_MAX_ENTRIES = 80;
 const JUMIA_HOSTS = new Set(["jumia.co.ke", "www.jumia.co.ke"]);
 const JUMIA_IMAGE_HOSTS = new Set(["ke.jumia.is"]);
+type SearchCacheEntry = { response: JumiaSearchResponse; expiresAt: number; staleUntil: number };
+const searchCache = new Map<string, SearchCacheEntry>();
+const searchInFlight = new Map<string, Promise<JumiaSearchResponse>>();
+
+export function clearJumiaPublicSearchCache() {
+  searchCache.clear();
+  searchInFlight.clear();
+}
 
 function getGoogleConfig() {
   const key = process.env.GOOGLE_CUSTOM_SEARCH_API_KEY || process.env.GOOGLE_SEARCH_API_KEY || "";
@@ -304,7 +317,7 @@ async function searchWithGoogle(normalized: string, config: { key: string; cx: s
   url.searchParams.set("q", `site:jumia.co.ke ${normalized}`);
   url.searchParams.set("num", String(MAX_RESULTS));
   url.searchParams.set("safe", "active");
-  const response = await fetch(url, { headers: { Accept: "application/json" }, signal: AbortSignal.timeout(8_000) });
+  const response = await fetch(url, { headers: { Accept: "application/json" }, signal: AbortSignal.timeout(SEARCH_PROVIDER_TIMEOUT_MS) });
   if (!response.ok) throw new Error("The Jumia search provider is temporarily unavailable.");
   const payload = await response.json() as GoogleSearchResponse;
   const results = prioritizeVisualResults((payload.items ?? []).map((item, index) => sanitizeGoogleItem(item, index)).filter((item): item is JumiaSearchResult => Boolean(item)));
@@ -316,7 +329,7 @@ async function searchWithTavily(normalized: string, config: { key: string }): Pr
     method: "POST",
     headers: { Accept: "application/json", "Content-Type": "application/json" },
     body: JSON.stringify({ api_key: config.key, query: `site:jumia.co.ke ${normalized}`, search_depth: "basic", max_results: MAX_RESULTS, include_answer: false, include_raw_content: false, include_images: true }),
-    signal: AbortSignal.timeout(8_000),
+    signal: AbortSignal.timeout(SEARCH_PROVIDER_TIMEOUT_MS),
   });
   if (!response.ok) throw new Error("The Jumia search provider is temporarily unavailable.");
   const payload = await response.json() as TavilySearchResponse;
@@ -331,7 +344,7 @@ async function searchWithBrave(normalized: string, config: { key: string }): Pro
   url.searchParams.set("country", "KE");
   url.searchParams.set("search_lang", "en");
   url.searchParams.set("safesearch", "strict");
-  const response = await fetch(url, { headers: { Accept: "application/json", "X-Subscription-Token": config.key }, signal: AbortSignal.timeout(8_000) });
+  const response = await fetch(url, { headers: { Accept: "application/json", "X-Subscription-Token": config.key }, signal: AbortSignal.timeout(SEARCH_PROVIDER_TIMEOUT_MS) });
   if (!response.ok) throw new Error("The Jumia search provider is temporarily unavailable.");
   const payload = await response.json() as BraveSearchResponse;
   const results = prioritizeVisualResults((payload.web?.results ?? []).map((item, index) => sanitizeBraveItem(item, index)).filter((item): item is JumiaSearchResult => Boolean(item)));
@@ -341,11 +354,53 @@ async function searchWithBrave(normalized: string, config: { key: string }): Pro
 export async function searchJumiaPublicProducts(query: string): Promise<JumiaSearchResponse> {
   const normalized = query.trim().replace(/\s+/g, " ").slice(0, 120);
   if (normalized.length < 3) return { configured: false, provider: "unconfigured", query: normalized, results: [], message: "Enter at least three characters to search live products." };
+  const key = normalized.toLocaleLowerCase("en-KE");
+  const now = Date.now();
+  const cached = searchCache.get(key);
+  if (cached && cached.expiresAt > now) {
+    searchCache.delete(key);
+    searchCache.set(key, cached);
+    return { ...cached.response, cacheStatus: "cached" };
+  }
+  const existing = searchInFlight.get(key);
+  if (existing) return existing;
+
   const googleConfig = getGoogleConfig();
-  if (googleConfig) return searchWithGoogle(normalized, googleConfig);
   const tavilyConfig = getTavilyConfig();
-  if (tavilyConfig) return searchWithTavily(normalized, tavilyConfig);
   const braveConfig = getBraveConfig();
-  if (braveConfig) return searchWithBrave(normalized, braveConfig);
-  return { configured: false, provider: "unconfigured", query: normalized, results: [], message: "Live product search is not connected yet." };
+  if (!googleConfig && !tavilyConfig && !braveConfig) {
+    return { configured: false, provider: "unconfigured", query: normalized, results: [], message: "Live product search is not connected yet." };
+  }
+
+  const pending = (async () => {
+    try {
+      const response = googleConfig
+        ? await searchWithGoogle(normalized, googleConfig)
+        : tavilyConfig
+          ? await searchWithTavily(normalized, tavilyConfig)
+          : await searchWithBrave(normalized, braveConfig!);
+      const freshResponse = { ...response, cacheStatus: "live" as const };
+      if (searchCache.size >= SEARCH_CACHE_MAX_ENTRIES) {
+        const oldestKey = searchCache.keys().next().value;
+        if (oldestKey) searchCache.delete(oldestKey);
+      }
+      searchCache.set(key, { response: freshResponse, expiresAt: Date.now() + SEARCH_CACHE_TTL_MS, staleUntil: Date.now() + SEARCH_STALE_TTL_MS });
+      return freshResponse;
+    } catch (error) {
+      const stale = searchCache.get(key);
+      if (stale && stale.staleUntil > Date.now()) {
+        return {
+          ...stale.response,
+          cacheStatus: "stale" as const,
+          results: stale.response.results.map(result => ({ ...result, price: null, currency: null })),
+          message: "Showing saved matches. Prices and availability may have changed; we will confirm them before payment.",
+        };
+      }
+      throw error;
+    } finally {
+      searchInFlight.delete(key);
+    }
+  })();
+  searchInFlight.set(key, pending);
+  return pending;
 }

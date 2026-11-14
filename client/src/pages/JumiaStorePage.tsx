@@ -1,18 +1,60 @@
 import { MtaaAccountDialog } from "@/components/MtaaAccountDialog";
-import { JumiaGoogleSearch, hasJumiaGoogleSearch } from "@/components/JumiaGoogleSearch";
 import { MarketplaceLayout } from "@/components/MarketplaceLayout";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import { trpc } from "@/lib/trpc";
-import { ArrowRight, BadgeCheck, CheckCircle2, ChevronRight, Eye, Footprints, Home as HomeIcon, ImageOff, Laptop, MapPin, PackageCheck, Plus, Search, ShieldCheck, Shirt, ShoppingBag, Sparkles, Speaker, Sun, Trash2, Truck, Tv, Watch, Smartphone } from "lucide-react";
-import { useMemo, useState } from "react";
+import {
+  ArrowRight,
+  CheckCircle2,
+  ChevronRight,
+  Eye,
+  Home as HomeIcon,
+  ImageOff,
+  Laptop,
+  MapPin,
+  Minus,
+  PackageCheck,
+  Plus,
+  Search,
+  ShieldCheck,
+  ShoppingBag,
+  Smartphone,
+  Sparkles,
+  Sun,
+  Trash2,
+  Tv,
+} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import type { FormEvent } from "react";
 import { Link } from "wouter";
 
-type OrderItem = { title: string; details: string; quantity: number; sourceUrl?: string; imageUrl?: string | null; price?: number | null; currency?: string | null };
-type SelectedResult = { title: string; url: string; snippet: string; imageUrl: string | null; price: number | null; currency: string | null };
-type SearchResult = SelectedResult & { id: string; source: string };
+type OrderItem = {
+  title: string;
+  details: string;
+  quantity: number;
+  sourceUrl?: string;
+  imageUrl?: string | null;
+  price?: number | null;
+  currency?: string | null;
+};
+
+type SearchResult = {
+  id: string;
+  title: string;
+  url: string;
+  snippet: string;
+  imageUrl: string | null;
+  price: number | null;
+  currency: string | null;
+  source: string;
+};
+
 type ResultFilter = "all" | "photos" | "priced";
 
 const DEFAULT_CATALOG_QUERY = "mattress 6x6";
+const BASKET_STORAGE_KEY = "mtaa-select-basket-v1";
+const MAX_BASKET_LINES = 20;
+const MAX_ITEM_QUANTITY = 20;
+const JUMIA_HOSTS = new Set(["jumia.co.ke", "www.jumia.co.ke"]);
 
 const browseCategories = [
   { label: "Phones", query: "smartphone phone", icon: Smartphone, tone: "mint" },
@@ -22,14 +64,10 @@ const browseCategories = [
   { label: "Fridges", query: "refrigerator fridge", icon: HomeIcon, tone: "mint" },
   { label: "Freezers", query: "chest freezer deep freezer", icon: HomeIcon, tone: "sky" },
   { label: "Gas cookers", query: "gas cooker 4 burner", icon: HomeIcon, tone: "coral" },
-  { label: "Household appliances", query: "home kitchen appliance", icon: HomeIcon, tone: "plum" },
+  { label: "Appliances", query: "home kitchen appliances", icon: HomeIcon, tone: "plum" },
   { label: "Furniture", query: "bed frame wardrobe sofa", icon: HomeIcon, tone: "sand" },
-  { label: "Smartwatches", query: "smartwatch", icon: Watch, tone: "plum" },
-  { label: "Shoes", query: "shoes", icon: Footprints, tone: "rose" },
   { label: "Laptops", query: "laptop", icon: Laptop, tone: "sky" },
   { label: "TVs", query: "smart TV", icon: Tv, tone: "leaf" },
-  { label: "Home audio", query: "music system speakers", icon: Speaker, tone: "coral" },
-  { label: "Home & kitchen", query: "home kitchen appliances", icon: HomeIcon, tone: "sand" },
 ];
 
 const statusCopy: Record<string, string> = {
@@ -43,22 +81,98 @@ const statusCopy: Record<string, string> = {
   cancelled: "Cancelled",
 };
 
-function JumiaProductImage({ src, alt, className = "h-36 w-full" }: { src?: string | null; alt: string; className?: string }) {
-  const [failed, setFailed] = useState(false);
-  if (!src || failed) return <div className={`${className} jumia-image-fallback`} role="img" aria-label={`${alt} image unavailable`}><ImageOff size={24} /><span>Product photo unavailable</span></div>;
-  return <img className={`${className} rounded-xl object-cover`} src={src} alt={alt} loading="lazy" onError={() => setFailed(true)} />;
+function readSavedBasket(): OrderItem[] {
+  try {
+    const stored = window.localStorage.getItem(BASKET_STORAGE_KEY);
+    if (!stored) return [];
+    const parsed: unknown = JSON.parse(stored);
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed.slice(0, MAX_BASKET_LINES).flatMap((entry): OrderItem[] => {
+      if (!entry || typeof entry !== "object") return [];
+      const item = entry as Partial<OrderItem>;
+      const title = typeof item.title === "string" ? item.title.trim().slice(0, 180) : "";
+      const details = typeof item.details === "string" ? item.details.trim().slice(0, 3_000) : "";
+      const quantity = Number(item.quantity);
+      if (title.length < 4 || details.length < 10 || !Number.isSafeInteger(quantity) || quantity < 1 || quantity > MAX_ITEM_QUANTITY) return [];
+
+      let sourceUrl: string | undefined;
+      if (typeof item.sourceUrl === "string") {
+        try {
+          const parsedUrl = new URL(item.sourceUrl);
+          if (parsedUrl.protocol === "https:" && JUMIA_HOSTS.has(parsedUrl.hostname.toLowerCase()) && parsedUrl.pathname !== "/") {
+            sourceUrl = parsedUrl.toString().slice(0, 2_000);
+          }
+        } catch {
+          sourceUrl = undefined;
+        }
+      }
+
+      let imageUrl: string | null = null;
+      if (typeof item.imageUrl === "string") {
+        try {
+          const parsedImage = new URL(item.imageUrl);
+          if (parsedImage.protocol === "https:" && parsedImage.hostname.toLowerCase() === "ke.jumia.is") imageUrl = parsedImage.toString().slice(0, 1_000);
+        } catch {
+          imageUrl = null;
+        }
+      }
+
+      // A retailer price saved in the browser may be old; recheck it on the next search.
+      const price = null;
+      const currency = typeof item.currency === "string" ? item.currency.slice(0, 8) : null;
+      return [{ title, details, quantity, sourceUrl, imageUrl, price, currency }];
+    });
+  } catch {
+    return [];
+  }
 }
 
-function SearchResultCard({ result, onSelect }: { result: SearchResult; onSelect: (result: SearchResult) => void }) {
-  return <article className="selection-card">
-    <JumiaProductImage src={result.imageUrl} alt={result.title} className="selection-card-image" />
-    <div className="selection-card-body">
-      <div className="selection-card-kicker"><span>Product result</span><span>{result.price ? "Retailer price seen" : "Check current price"}</span></div>
-      <h3 className="selection-card-title">{result.title}</h3>
-      <p className="selection-card-description">{result.snippet}</p>
-      <div className="selection-card-footer"><strong>{result.price ? `KES ${result.price.toLocaleString("en-KE")}` : "Price on product page"}</strong><button className="primary-cta selection-card-button" type="button" onClick={() => onSelect(result)}>Select</button></div>
-    </div>
-  </article>;
+function JumiaProductImage({ src, alt, className = "h-36 w-full" }: { src?: string | null; alt: string; className?: string }) {
+  const [failed, setFailed] = useState(false);
+  if (!src || failed) {
+    return (
+      <div className={`${className} jumia-image-fallback`} role="img" aria-label={`${alt || "Product"} image unavailable`}>
+        <ImageOff size={24} />
+        <span>Product photo unavailable</span>
+      </div>
+    );
+  }
+
+  return (
+    <img
+      className={`${className} rounded-xl object-cover`}
+      src={src}
+      alt={alt}
+      loading="lazy"
+      decoding="async"
+      referrerPolicy="no-referrer"
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
+function SearchResultCard({ result, onAdd, addDisabled }: { result: SearchResult; onAdd: (result: SearchResult) => void; addDisabled: boolean }) {
+  return (
+    <article className="selection-card">
+      <JumiaProductImage src={result.imageUrl} alt={result.title} className="selection-card-image" />
+      <div className="selection-card-body">
+        <div className="selection-card-kicker">
+          <span>Product result</span>
+          <span>{result.price ? "Retailer price seen" : "Check current price"}</span>
+        </div>
+        <h3 className="selection-card-title">{result.title}</h3>
+        <p className="selection-card-description">{result.snippet || "Open the product page to review the latest options."}</p>
+        <div className="selection-card-footer">
+          <strong>{result.price ? `KES ${result.price.toLocaleString("en-KE")}` : "Price on product page"}</strong>
+          <button className="primary-cta selection-card-button" type="button" onClick={() => onAdd(result)} disabled={addDisabled}>
+            <Plus size={16} /> Add to basket
+          </button>
+        </div>
+        <a className="catalog-source-link" href={result.url} target="_blank" rel="noopener noreferrer">View retailer details</a>
+      </div>
+    </article>
+  );
 }
 
 export default function JumiaStorePage() {
@@ -69,97 +183,332 @@ export default function JumiaStorePage() {
   const [searchTerm, setSearchTerm] = useState(initialCatalogQuery);
   const [searchQuery, setSearchQuery] = useState(initialCatalogQuery);
   const [resultFilter, setResultFilter] = useState<ResultFilter>("all");
-  const [selectedResult, setSelectedResult] = useState<SelectedResult | null>(null);
-  const [itemOption, setItemOption] = useState("");
-  const [quantity, setQuantity] = useState("1");
-  const [items, setItems] = useState<OrderItem[]>([]);
+  const [items, setItems] = useState<OrderItem[]>(readSavedBasket);
+  const [basketFeedback, setBasketFeedback] = useState("");
   const [fulfilmentMethod, setFulfilmentMethod] = useState<"siaya_pickup" | "home_delivery" | "collection_point">("siaya_pickup");
   const [preferredLocation, setPreferredLocation] = useState("");
   const [deliverySchedule, setDeliverySchedule] = useState("");
   const [orderNote, setOrderNote] = useState("");
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
-  const googleSearchEnabled = hasJumiaGoogleSearch();
+
+  useEffect(() => {
+    try {
+      if (items.length) window.localStorage.setItem(BASKET_STORAGE_KEY, JSON.stringify(items));
+      else window.localStorage.removeItem(BASKET_STORAGE_KEY);
+    } catch {
+      setBasketFeedback("Your browser could not save this basket. Keep this page open until you place the order.");
+    }
+  }, [items]);
+
   const order = trpc.marketplace.createV3JumiaOrder.useMutation({
     onSuccess: result => {
       setSubmittedOrder(result);
-      setItems([]); setSearchTerm(""); setItemOption(""); setQuantity("1"); setPreferredLocation(""); setDeliverySchedule(""); setOrderNote(""); setSelectedResult(null);
+      setItems([]);
+      setBasketFeedback("");
+      setSearchTerm("");
+      setPreferredLocation("");
+      setDeliverySchedule("");
+      setOrderNote("");
     },
   });
   const buyerOrders = trpc.marketplace.v3BuyerJumiaOrders.useQuery(undefined, { enabled: Boolean(session), retry: false });
   const browseQuery = searchQuery.trim() || DEFAULT_CATALOG_QUERY;
-  const searchResults = trpc.marketplace.jumiaSearch.useQuery({ query: browseQuery }, { enabled: browseQuery.length >= 3 && !googleSearchEnabled, retry: false });
+  const searchResults = trpc.marketplace.jumiaSearch.useQuery(
+    { query: browseQuery },
+    {
+      enabled: browseQuery.length >= 3,
+      retry: false,
+      staleTime: 5 * 60_000,
+      gcTime: 30 * 60_000,
+      refetchOnWindowFocus: false,
+      placeholderData: previous => previous,
+    },
+  );
   const paymentTiming = fulfilmentMethod === "home_delivery" ? "pay_on_delivery" : "pay_on_collection";
   const canSubmit = items.length > 0 && (fulfilmentMethod !== "home_delivery" || preferredLocation.trim().length > 0);
   const recentOrders = useMemo(() => (buyerOrders.data ?? []).slice(0, 4), [buyerOrders.data]);
+  const allResults = searchResults.data?.results ?? [];
   const visibleResults = useMemo(() => {
-    const results = searchResults.data?.results ?? [];
-    if (resultFilter === "photos") return results.filter(result => Boolean(result.imageUrl));
-    if (resultFilter === "priced") return results.filter(result => Boolean(result.price));
-    return results;
-  }, [resultFilter, searchResults.data?.results]);
+    if (resultFilter === "photos") return allResults.filter(result => Boolean(result.imageUrl));
+    if (resultFilter === "priced") return allResults.filter(result => Boolean(result.price));
+    return allResults;
+  }, [allResults, resultFilter]);
+  const hasCurrentResults = searchResults.data?.query.trim().toLocaleLowerCase("en-KE") === browseQuery.toLocaleLowerCase("en-KE");
+  const basketCount = items.reduce((total, item) => total + item.quantity, 0);
+
+  function scrollTo(id: string) {
+    window.setTimeout(() => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
+  }
 
   function runSearch() {
     const query = searchTerm.trim();
-    if (query.length >= 3) {
-      setSearchQuery(query);
-      setResultFilter("all");
-      window.setTimeout(() => document.getElementById("catalog-live-search")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
-    }
+    if (query.length < 3) return;
+    setSearchQuery(query);
+    setResultFilter("all");
+    setBasketFeedback("");
+    scrollTo("catalog-live-search");
   }
 
   function chooseCategory(query: string) {
     setSearchTerm(query);
     setSearchQuery(query);
     setResultFilter("all");
-    setSelectedResult(null);
-    window.setTimeout(() => document.getElementById("catalog-live-search")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
+    setBasketFeedback("");
+    scrollTo("catalog-live-search");
   }
 
-  function selectResult(result: SelectedResult) {
-    setSelectedResult(result);
-    setSearchTerm(result.title);
-    setItemOption("");
-    window.setTimeout(() => document.getElementById("catalog-selection")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
+  function addResult(result: SearchResult) {
+    const details = result.snippet.trim().slice(0, 3_000) || "Selected from the live product results; confirm the exact option before payment.";
+    const basketKey = result.url || result.title.toLocaleLowerCase("en-KE");
+    const existing = items.find(item => (item.sourceUrl || item.title.toLocaleLowerCase("en-KE")) === basketKey);
+    if (!existing && items.length >= MAX_BASKET_LINES) {
+      setBasketFeedback(`Your basket can contain up to ${MAX_BASKET_LINES} different products.`);
+      scrollTo("catalog-basket");
+      return;
+    }
+
+    setItems(current => {
+      const existingIndex = current.findIndex(item => (item.sourceUrl || item.title.toLocaleLowerCase("en-KE")) === basketKey);
+      if (existingIndex >= 0) {
+        return current.map((item, index) => index === existingIndex
+          ? { ...item, quantity: Math.min(item.quantity + 1, MAX_ITEM_QUANTITY) }
+          : item);
+      }
+      return [...current, {
+        title: result.title.trim().slice(0, 180),
+        details,
+        quantity: 1,
+        sourceUrl: result.url,
+        imageUrl: result.imageUrl,
+        price: result.price,
+        currency: result.currency,
+      }];
+    });
+    setBasketFeedback(`${result.title} added to your basket.`);
+    scrollTo("catalog-basket");
   }
 
-  function addItem() {
-    const title = searchTerm.trim();
-    const option = itemOption.trim();
-    const parsedQuantity = Number(quantity);
-    if (title.length < 4 || !Number.isSafeInteger(parsedQuantity) || parsedQuantity < 1 || parsedQuantity > 20) return;
-    const details = option || selectedResult?.snippet || "Product selected from search.";
-    setItems(current => [...current, { title, details: details.slice(0, 3_000), quantity: parsedQuantity, sourceUrl: selectedResult?.url, imageUrl: selectedResult?.imageUrl, price: selectedResult?.price, currency: selectedResult?.currency }]);
-    setSearchTerm(""); setItemOption(""); setQuantity("1"); setSelectedResult(null);
-    window.setTimeout(() => document.getElementById("catalog-basket")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
+  function changeQuantity(index: number, change: number) {
+    setItems(current => current.map((item, itemIndex) => itemIndex !== index
+      ? item
+      : { ...item, quantity: Math.max(1, Math.min(MAX_ITEM_QUANTITY, item.quantity + change)) }));
   }
 
-  function submit(event: React.FormEvent<HTMLFormElement>) {
+  function removeItem(index: number) {
+    const removed = items[index];
+    setItems(current => current.filter((_, itemIndex) => itemIndex !== index));
+    setBasketFeedback(removed ? `${removed.title} removed from your basket.` : "Item removed.");
+  }
+
+  function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!session) return setAccountOpen(true);
-    if (!items.length) return;
-    order.mutate({ items, fulfilmentMethod, paymentTiming, preferredLocation: preferredLocation || undefined, deliverySchedule: deliverySchedule || undefined, orderNote: orderNote || undefined, fullName: fullName || undefined, phone: phone || undefined });
+    if (!session) {
+      setAccountOpen(true);
+      return;
+    }
+    if (!items.length || order.isPending) return;
+    order.mutate({
+      items,
+      fulfilmentMethod,
+      paymentTiming,
+      preferredLocation: preferredLocation || undefined,
+      deliverySchedule: deliverySchedule || undefined,
+      orderNote: orderNote || undefined,
+      fullName: fullName || undefined,
+      phone: phone || undefined,
+    });
   }
 
-  return <MarketplaceLayout>
-    <div className="catalog-page">
-      {submittedOrder ? <section className="catalog-confirmation" aria-live="polite"><div className="catalog-confirmation-icon"><CheckCircle2 size={25} /></div><div><p className="eyebrow">Request received</p><h1>Your request is in.</h1><p>We will update you with the confirmed item and collection or delivery details. No payment has been taken. Reference: {submittedOrder.order_number}.</p></div><div className="catalog-confirmation-actions"><button className="primary-cta" type="button" onClick={() => setSubmittedOrder(null)}>Continue shopping <ArrowRight size={17} /></button><Link className="secondary-cta" href="/dashboard">View my orders</Link></div></section> : <form className="catalog-order-form" onSubmit={submit}>
-        <section className="catalog-commerce-head"><div><p className="eyebrow">MtaaMarket Select / broader choice</p><h1>Find what you need.</h1><p>Real product choices, one local basket.</p></div><div className="catalog-commerce-tools"><span><ShieldCheck size={15} /> Live selection</span><Link href="#catalog-basket" className="catalog-basket-link"><ShoppingBag size={16} /> Basket <b>{items.length}</b></Link></div></section><aside className="catalog-view-note" aria-label="Browse-only information"><span className="catalog-view-note-icon"><Eye size={17} /></span><div><strong>Browse the wider live selection.</strong><span>Compare real choices first. Selecting an item only prepares a view of your basket; no payment is taken here.</span></div><span className="catalog-view-badge">View only</span></aside>
+  return (
+    <MarketplaceLayout>
+      <div className="catalog-page">
+        {submittedOrder ? (
+          <section className="catalog-confirmation" aria-live="polite">
+            <div className="catalog-confirmation-icon"><CheckCircle2 size={25} /></div>
+            <div>
+              <p className="eyebrow">Request received</p>
+              <h1>Your request is in.</h1>
+              <p>We will update you with the confirmed item and collection or delivery details. No payment has been taken. Reference: {submittedOrder.order_number}.</p>
+            </div>
+            <div className="catalog-confirmation-actions">
+              <button className="primary-cta" type="button" onClick={() => setSubmittedOrder(null)}>Continue shopping <ArrowRight size={17} /></button>
+              <Link className="secondary-cta" href="/dashboard">View my orders</Link>
+            </div>
+          </section>
+        ) : (
+          <form className="catalog-order-form" onSubmit={submit}>
+            <section className="catalog-commerce-head">
+              <div>
+                <p className="eyebrow">MtaaMarket Select / broader choice</p>
+                <h1>Find what you need.</h1>
+                <p>Browse current choices, add them once, and send one local order.</p>
+              </div>
+              <div className="catalog-commerce-tools">
+                <span><ShieldCheck size={15} /> Pay after confirmation</span>
+                <a href={items.length ? "#catalog-basket" : "#catalog-live-search"} className="catalog-basket-link"><ShoppingBag size={16} /> Basket <b>{basketCount}</b></a>
+              </div>
+            </section>
 
-        <section id="catalog-live-search" className="catalog-search-card"><div className="catalog-search-heading"><div><p className="eyebrow">Shop the live selection</p><h2>Browse products.</h2></div><Search className="catalog-search-icon" /></div><div className="catalog-search-shell"><Search size={19} /><input value={searchTerm} onChange={event => { setSearchTerm(event.target.value); setSelectedResult(null); }} onKeyDown={event => { if (event.key === "Enter") { event.preventDefault(); runSearch(); } }} placeholder="Search phones, TVs, shoes…" autoComplete="off" aria-label="Search live products" /><button type="button" onClick={runSearch} disabled={searchTerm.trim().length < 3 || searchResults.isFetching}>{searchResults.isFetching ? "Searching…" : "Search"}<ArrowRight size={15} /></button></div>{googleSearchEnabled && <JumiaGoogleSearch query={searchQuery} onSelect={selectResult} />}{!googleSearchEnabled && <>{searchResults.isError && <p className="catalog-search-message error" role="alert">Search is temporarily unavailable. Please try again.</p>}{searchResults.data && <p className="catalog-search-message" role="status">{searchQuery.trim() ? searchResults.data.message : "Fresh live selection to start browsing."}</p>}{searchResults.data?.results.length ? <><div className="catalog-results-toolbar"><p className="selection-count">{visibleResults.length} of {searchResults.data.results.length} choices</p><div className="catalog-filter-row" aria-label="Filter live results"><button type="button" className={resultFilter === "all" ? "active" : ""} onClick={() => setResultFilter("all")}>All choices</button><button type="button" className={resultFilter === "photos" ? "active" : ""} onClick={() => setResultFilter("photos")}>With photos</button><button type="button" className={resultFilter === "priced" ? "active" : ""} onClick={() => setResultFilter("priced")}>Price shown</button></div></div>{visibleResults.length ? <div className="selection-grid">{visibleResults.map(result => <SearchResultCard result={result} onSelect={selectResult} key={result.id} />)}</div> : <div className="catalog-filter-empty"><ImageOff size={18} /><span>No live choices match this filter. Show all choices to continue.</span><button type="button" onClick={() => setResultFilter("all")}>Show all</button></div>}</> : null}</>}</section>
+            <aside className="catalog-view-note" aria-label="Order information">
+              <span className="catalog-view-note-icon"><Eye size={17} /></span>
+              <div>
+                <strong>Choose from current product results.</strong>
+                <span>We confirm exact availability and the final total with you before any payment.</span>
+              </div>
+            </aside>
 
-        <section id="catalog-categories" className="catalog-category-section"><div className="catalog-section-heading"><div><p className="eyebrow">Browse departments</p><h2>Shop by category.</h2></div><span>Live search</span></div><div className="catalog-category-grid">{browseCategories.map(({ label, query, icon: Icon, tone }) => <button type="button" key={label} className={`catalog-category-card ${tone}`} onClick={() => chooseCategory(query)}><span className="catalog-category-icon"><Icon size={22} /></span><strong>{label}</strong><small>Open live results</small><ChevronRight size={16} /></button>)}</div></section>
+            <section id="catalog-live-search" className="catalog-search-card">
+              <div className="catalog-search-heading">
+                <div><p className="eyebrow">Shop the live selection</p><h2>Browse products.</h2></div>
+                <Search className="catalog-search-icon" />
+              </div>
+              <div className="catalog-search-shell">
+                <Search size={19} />
+                <input
+                  value={searchTerm}
+                  onChange={event => setSearchTerm(event.target.value)}
+                  onKeyDown={event => { if (event.key === "Enter") { event.preventDefault(); runSearch(); } }}
+                  placeholder="Search mattresses, fridges, cookers…"
+                  autoComplete="off"
+                  aria-label="Search live products"
+                />
+                <button type="button" onClick={runSearch} disabled={searchTerm.trim().length < 3 || searchResults.isFetching}>
+                  {searchResults.isFetching ? "Searching…" : "Search"}<ArrowRight size={15} />
+                </button>
+              </div>
 
-        <section id="catalog-selection" className="catalog-selection-card"><div className="catalog-section-heading"><div><p className="eyebrow">Your choice</p><h2>Build your basket</h2></div><PackageCheck className="catalog-selection-icon" /></div>{selectedResult ? <div className="selected-item"><JumiaProductImage src={selectedResult.imageUrl} alt="" className="h-20 w-20 shrink-0" /><div className="min-w-0"><p className="selected-item-label">Selected item</p><p className="selected-item-title">{selectedResult.title}</p>{selectedResult.price ? <p className="selected-item-price">KES {selectedResult.price.toLocaleString("en-KE")}</p> : <p className="selected-item-price">Price on product page</p>}</div></div> : <div className="catalog-selection-empty"><Sparkles size={20} /><p>Select a real product result above to add it to your basket.</p></div>}<div className="catalog-selection-controls"><label>Variant <span>(optional)</span><input value={itemOption} onChange={event => setItemOption(event.target.value)} placeholder="Size, colour or model" maxLength={180} /></label><label>Quantity<input type="number" min="1" max="20" value={quantity} onChange={event => setQuantity(event.target.value)} /></label><button className="secondary-cta" type="button" onClick={addItem} disabled={!selectedResult}><Plus size={17} /> Add to basket</button></div></section>
+              {searchResults.isError && <p className="catalog-search-message error" role="alert">Search is temporarily unavailable. Please try again.</p>}
+              {searchResults.data && (
+                <p className="catalog-search-message" role="status">
+                  {searchResults.isFetching && !hasCurrentResults
+                    ? "Updating your search. Previous choices remain visible below."
+                    : searchResults.data.cacheStatus === "stale"
+                      ? "Showing saved matches. Prices and availability may have changed; we will confirm before payment."
+                      : searchResults.data.cacheStatus === "cached"
+                        ? "Recently searched product matches. Check the current retailer details before ordering."
+                        : searchResults.data.message}
+                </p>
+              )}
 
-        {items.length > 0 && <section id="catalog-basket" className="catalog-basket-card"><div className="catalog-section-heading"><div><p className="eyebrow">Ready when you are</p><h2>Your basket</h2></div><span>{items.length} item{items.length === 1 ? "" : "s"}</span></div>{items.map((item, index) => <article className="catalog-basket-item" key={`${item.title}-${index}`}><div className="catalog-basket-item-main"><JumiaProductImage src={item.imageUrl} alt="" className="h-16 w-16 shrink-0" /><div className="min-w-0"><h3>{item.title}</h3>{item.price ? <p className="catalog-item-price">KES {item.price.toLocaleString("en-KE")}</p> : <p className="catalog-item-price">Price on product page</p>}<p className="catalog-item-detail">{item.details !== "Product selected from search." ? item.details : "Selected item"}</p><p className="catalog-item-quantity">Quantity: {item.quantity}</p></div></div><button className="catalog-remove" type="button" onClick={() => setItems(current => current.filter((_, itemIndex) => itemIndex !== index))} aria-label={`Remove ${item.title}`}><Trash2 size={16} /></button></article>)}</section>}
+              {allResults.length > 0 && (
+                <>
+                  <div className="catalog-results-toolbar">
+                    <p className="selection-count">{visibleResults.length} of {allResults.length} choices</p>
+                    <div className="catalog-filter-row" aria-label="Filter live results">
+                      <button type="button" className={resultFilter === "all" ? "active" : ""} onClick={() => setResultFilter("all")}>All choices</button>
+                      <button type="button" className={resultFilter === "photos" ? "active" : ""} onClick={() => setResultFilter("photos")}>With photos</button>
+                      <button type="button" className={resultFilter === "priced" ? "active" : ""} onClick={() => setResultFilter("priced")}>Price shown</button>
+                    </div>
+                  </div>
+                  {visibleResults.length > 0 ? (
+                    <div className="selection-grid">
+                      {visibleResults.map(result => (
+                        <SearchResultCard
+                          result={result}
+                          onAdd={addResult}
+                          addDisabled={items.length >= MAX_BASKET_LINES && !items.some(item => item.sourceUrl === result.url)}
+                          key={result.id}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="catalog-filter-empty">
+                      <ImageOff size={18} /><span>No live choices match this filter. Show all choices to continue.</span>
+                      <button type="button" onClick={() => setResultFilter("all")}>Show all</button>
+                    </div>
+                  )}
+                </>
+              )}
+            </section>
 
-        {items.length > 0 && <section className="catalog-checkout-card"><div className="catalog-section-heading"><div><p className="eyebrow">Checkout</p><h2>Choose how to receive it.</h2></div><MapPin className="catalog-selection-icon" /></div><p className="catalog-checkout-intro">Your basket is ready. Choose collection or home delivery and send your request. Retailer prices and availability can change; we confirm the item and final total with you before any payment.</p><div className="catalog-checkout-fields"><label>Fulfilment<select value={fulfilmentMethod} onChange={event => setFulfilmentMethod(event.target.value as typeof fulfilmentMethod)}><option value="siaya_pickup">Collect in Siaya</option><option value="collection_point">Collection point</option><option value="home_delivery">Home delivery</option></select></label><label>Location<input value={preferredLocation} onChange={event => setPreferredLocation(event.target.value)} placeholder="e.g. Siaya Town" maxLength={180} required={fulfilmentMethod === "home_delivery"} /></label><label>Your name <span>(if not saved)</span><input value={fullName} onChange={event => setFullName(event.target.value)} placeholder="Full name" maxLength={90} /></label><label>Kenyan phone <span>(if not saved)</span><input value={phone} onChange={event => setPhone(event.target.value)} placeholder="2547XXXXXXXX" maxLength={13} /></label><label>Preferred timing <span>(optional)</span><input value={deliverySchedule} onChange={event => setDeliverySchedule(event.target.value)} placeholder="e.g. Tomorrow afternoon" maxLength={120} /></label><label>Order note <span>(optional)</span><input value={orderNote} onChange={event => setOrderNote(event.target.value)} placeholder="Any helpful detail" maxLength={600} /></label></div>{order.isError && <p className="catalog-search-message error" role="alert">{order.error.message}</p>}<button className="primary-cta catalog-place-order" type="submit" disabled={order.isPending || !canSubmit}>{order.isPending ? "Placing order…" : session ? "Place order" : "Sign in to place order"}<ArrowRight size={17} /></button></section>}
-      </form>}
+            <section id="catalog-categories" className="catalog-category-section">
+              <div className="catalog-section-heading"><div><p className="eyebrow">Browse departments</p><h2>Shop by category.</h2></div><span>Live search</span></div>
+              <div className="catalog-category-grid">
+                {browseCategories.map(({ label, query, icon: Icon, tone }) => (
+                  <button type="button" key={label} className={`catalog-category-card ${tone}`} onClick={() => chooseCategory(query)}>
+                    <span className="catalog-category-icon"><Icon size={22} /></span><strong>{label}</strong><small>Open live results</small><ChevronRight size={16} />
+                  </button>
+                ))}
+              </div>
+            </section>
 
-      {session && recentOrders.length > 0 && <section className="catalog-order-history"><div className="catalog-section-heading"><div><p className="eyebrow">Your orders</p><h2>Follow your fulfilment</h2></div><Link className="text-cta" href="/dashboard">View all <ArrowRight size={15} /></Link></div><div className="catalog-order-history-grid">{recentOrders.map(orderItem => <article key={orderItem.id}><div><strong>{orderItem.order_number}</strong><span>{statusCopy[orderItem.status] ?? orderItem.status}</span></div><p>{orderItem.items.map((item: OrderItem) => `${item.title} × ${item.quantity}`).join(", ")}</p></article>)}</div></section>}
-    </div>
-    {!submittedOrder && <nav className="catalog-mobile-bar" aria-label="Shopping shortcuts"><Link href="/" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}><HomeIcon size={18} /><span>Home</span></Link><a href="#catalog-categories"><PackageCheck size={18} /><span>Categories</span></a><a href="#catalog-basket"><ShoppingBag size={18} /><span>Basket ({items.length})</span></a><button type="button" onClick={() => setAccountOpen(true)}><Sparkles size={18} /><span>Account</span></button></nav>}
-    <MtaaAccountDialog open={accountOpen} onClose={() => setAccountOpen(false)} />
-  </MarketplaceLayout>;
+            {items.length > 0 && (
+              <section id="catalog-basket" className="catalog-basket-card">
+                <div className="catalog-section-heading">
+                  <div><p className="eyebrow">Ready when you are</p><h2>Your basket</h2></div>
+                  <span>{basketCount} item{basketCount === 1 ? "" : "s"}</span>
+                </div>
+                {basketFeedback && <p className="catalog-search-message" role="status" aria-live="polite">{basketFeedback}</p>}
+                {items.map((item, index) => (
+                  <article className="catalog-basket-item" key={`${item.sourceUrl ?? item.title}-${index}`}>
+                    <div className="catalog-basket-item-main">
+                      <JumiaProductImage src={item.imageUrl} alt="" className="h-16 w-16 shrink-0" />
+                      <div className="min-w-0">
+                        <h3>{item.title}</h3>
+                        {item.price ? <p className="catalog-item-price">{item.currency || "KES"} {item.price.toLocaleString("en-KE")} each · retailer price seen</p> : <p className="catalog-item-price">Confirm current price</p>}
+                        <p className="catalog-item-detail">{item.details}</p>
+                        {item.sourceUrl && <a className="catalog-source-link" href={item.sourceUrl} target="_blank" rel="noopener noreferrer">Review product details</a>}
+                      </div>
+                    </div>
+                    <div className="catalog-basket-actions">
+                      <div className="catalog-quantity-controls" aria-label={`Quantity for ${item.title}`}>
+                        <button type="button" onClick={() => changeQuantity(index, -1)} disabled={item.quantity <= 1} aria-label={`Decrease ${item.title} quantity`}><Minus size={15} /></button>
+                        <span aria-live="polite">{item.quantity}</span>
+                        <button type="button" onClick={() => changeQuantity(index, 1)} disabled={item.quantity >= MAX_ITEM_QUANTITY} aria-label={`Increase ${item.title} quantity`}><Plus size={15} /></button>
+                      </div>
+                      <button className="catalog-remove" type="button" onClick={() => removeItem(index)} aria-label={`Remove ${item.title}`}><Trash2 size={16} /></button>
+                    </div>
+                  </article>
+                ))}
+              </section>
+            )}
+
+            {items.length > 0 && (
+              <section className="catalog-checkout-card">
+                <div className="catalog-section-heading"><div><p className="eyebrow">Checkout</p><h2>Choose how to receive it.</h2></div><MapPin className="catalog-selection-icon" /></div>
+                <p className="catalog-checkout-intro">Choose collection or home delivery and send your request. We confirm the item and final total before payment.</p>
+                <div className="catalog-checkout-fields">
+                  <label>Fulfilment<select value={fulfilmentMethod} onChange={event => setFulfilmentMethod(event.target.value as typeof fulfilmentMethod)}><option value="siaya_pickup">Collect in Siaya</option><option value="collection_point">Collection point</option><option value="home_delivery">Home delivery</option></select></label>
+                  <label>Location<input value={preferredLocation} onChange={event => setPreferredLocation(event.target.value)} placeholder="e.g. Siaya Town" maxLength={180} required={fulfilmentMethod === "home_delivery"} /></label>
+                  <label>Your name <span>(if not saved)</span><input value={fullName} onChange={event => setFullName(event.target.value)} placeholder="Full name" maxLength={90} /></label>
+                  <label>Kenyan phone <span>(if not saved)</span><input value={phone} onChange={event => setPhone(event.target.value)} placeholder="2547XXXXXXXX" maxLength={13} /></label>
+                  <label>Preferred timing <span>(optional)</span><input value={deliverySchedule} onChange={event => setDeliverySchedule(event.target.value)} placeholder="e.g. Tomorrow afternoon" maxLength={120} /></label>
+                  <label>Order note <span>(optional)</span><input value={orderNote} onChange={event => setOrderNote(event.target.value)} placeholder="Preferred size, colour, or model" maxLength={600} /></label>
+                </div>
+                {order.isError && <p className="catalog-search-message error" role="alert">{order.error.message}</p>}
+                <button className="primary-cta catalog-place-order" type="submit" disabled={order.isPending || !canSubmit}>
+                  {order.isPending ? "Placing order…" : session ? "Place order" : "Sign in to place order"}<ArrowRight size={17} />
+                </button>
+              </section>
+            )}
+          </form>
+        )}
+
+        {session && recentOrders.length > 0 && (
+          <section className="catalog-order-history">
+            <div className="catalog-section-heading"><div><p className="eyebrow">Your orders</p><h2>Follow your fulfilment</h2></div><Link className="text-cta" href="/dashboard">View all <ArrowRight size={15} /></Link></div>
+            <div className="catalog-order-history-grid">
+              {recentOrders.map(orderItem => (
+                <article key={orderItem.id}>
+                  <div><strong>{orderItem.order_number}</strong><span>{statusCopy[orderItem.status] ?? orderItem.status}</span></div>
+                  <p>{orderItem.items.map((item: OrderItem) => `${item.title} × ${item.quantity}`).join(", ")}</p>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
+
+      {!submittedOrder && (
+        <nav className="catalog-mobile-bar" aria-label="Shopping shortcuts">
+          <Link href="/" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}><HomeIcon size={18} /><span>Home</span></Link>
+          <a href="#catalog-categories"><PackageCheck size={18} /><span>Categories</span></a>
+          <a href={items.length ? "#catalog-basket" : "#catalog-live-search"}><ShoppingBag size={18} /><span>Basket ({basketCount})</span></a>
+          <button type="button" onClick={() => setAccountOpen(true)}><Sparkles size={18} /><span>Account</span></button>
+        </nav>
+      )}
+      <MtaaAccountDialog open={accountOpen} onClose={() => setAccountOpen(false)} />
+    </MarketplaceLayout>
+  );
 }

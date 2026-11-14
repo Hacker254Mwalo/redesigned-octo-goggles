@@ -224,3 +224,5 @@ body{font-family:"DM Sans",sans-serif;color:var(--ink);background:var(--cream)}
   background: #fff3d7;
   color: #8e6b28;
 }
+
+.catalog-basket-actions{display:flex;flex:none;align-items:center;gap:8px}.catalog-quantity-controls{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);border-radius:10px;background:#fff;padding:3px}.catalog-quantity-controls button{width:29px;height:29px;display:grid;place-items:center;border:0;border-radius:7px;background:#edf2ea;color:var(--leaf)}.catalog-quantity-controls button:disabled{cursor:not-allowed;opacity:.45}.catalog-quantity-controls span{min-width:22px;text-align:center;font:600 12px "DM Mono",monospace}.catalog-source-link{display:inline-flex;margin-top:6px;color:var(--leaf);font-size:10px;font-weight:700;text-decoration:underline;text-underline-offset:2px}.catalog-source-link:focus-visible{outline:2px solid var(--leaf);outline-offset:3px;border-radius:3px}@media(max-width:620px){.catalog-basket-item{align-items:stretch;flex-direction:column}.catalog-basket-actions{align-self:flex-end}.selection-card-footer{flex-wrap:wrap}.selection-card-button{white-space:normal}}
